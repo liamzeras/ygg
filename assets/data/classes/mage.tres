@@ -20,15 +20,17 @@ script = ExtResource("3_fire")
 display_name = "Bola de Fogo"
 description = "Projétil que explode ao tocar algo: empurra pouco, mas aquece e incendeia."
 cost = 20.0
+cost_pool = 1
 cooldown = 0.6
 scaling_attribute = 4
 
 [sub_resource type="Resource" id="leap"]
 script = ExtResource("4_leap")
-display_name = "Salto Arcano"
-description = "Impulso mágico para cima e para frente. Funciona no ar e empurra o que está aos seus pés."
-cost = 30.0
-cooldown = 1.2
+display_name = "Pulo Arcano"
+description = "Pulo duplo com impulso mágico: sobe mais alto e empurra o que está aos seus pés. Gasta Vigor."
+cost = 25.0
+cost_pool = 0
+cooldown = 0.0
 scaling_attribute = 4
 
 [sub_resource type="Resource" id="telekinesis"]
@@ -36,6 +38,7 @@ script = ExtResource("5_tk")
 display_name = "Telecinese"
 description = "Segura objetos à distância. Carrega menos que braços fortes e drena mana enquanto ativa."
 cost = 10.0
+cost_pool = 1
 cooldown = 0.3
 scaling_attribute = 4
 
@@ -48,15 +51,12 @@ description = "Fisicamente comum, mas manipula forças e calor. Quanto mais 'imp
 color = Color(0.55, 0.5, 1, 1)
 attributes = SubResource("attrs")
 body_mass = 70.0
-pool_name = "Mana"
-resource_color = Color(0.4, 0.55, 1, 1)
-resource_attribute = 4
 regen_delay = 1.0
-sprint_cost = 0.0
+sprint_cost = 10.0
 acceleration = 10.0
 air_control = 0.45
 hand_range = 2.2
 hold_distance = 1.4
 primary_ability = SubResource("fireball")
-mobility_ability = SubResource("leap")
 special_ability = SubResource("telekinesis")
+air_jump_ability = SubResource("leap")

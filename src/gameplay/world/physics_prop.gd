@@ -37,6 +37,7 @@ func _ready() -> void:
 		push_warning("%s sem material_data; usando padrão." % name)
 		material_data = PropMaterial.new()
 	add_to_group(&"physics_props")
+	add_to_group(&"heat_receivers")
 	_build()
 	contact_monitor = true
 	max_contacts_reported = 4
@@ -100,7 +101,8 @@ func explode() -> void:
 
 func _spread_heat(delta: float) -> void:
 	var radius := material_data.fire_spread_radius
-	for node in get_tree().get_nodes_in_group(&"physics_props"):
+	# Aquece tudo que recebe calor: outros objetos, o boneco de testes e (no futuro) personagens.
+	for node in get_tree().get_nodes_in_group(&"heat_receivers"):
 		if node == self:
 			continue
 		var distance := global_position.distance_to((node as Node3D).global_position)

@@ -33,13 +33,17 @@ o barril certo, carregar uma caixa até o braseiro, saltar no momento certo."
 
 - **Atributos**: Força, Agilidade, Vitalidade, Destreza, Inteligência, Sorte. Regras em
   `attributes.md`.
-- **Classes iniciais**: Cavaleiro e Mago, com 3 habilidades cada (6 no total).
+- **Classes iniciais**: Cavaleiro e Mago. Todos têm Vigor e Mana, pulo duplo (Espaço 2x)
+  e a mesma velocidade de movimento.
+- **Rumo do Mago**: será o "arqueiro" do jogo (dano à distância) e se divide em duas
+  especializações: **Elementalista** (elementos + manipulação de terreno) e **Psiônico**
+  (sem elementos: acelerar, desacelerar, flutuar). Kits em discussão.
 - **Interação básica**: qualquer classe pega objetos com as mãos (limite de carga pela
   Força) e arremessa. Andar empurra objetos.
 - **Mundo**: materiais madeira, metal, pedra e pólvora; braseiro como fonte de fogo do
   ambiente. Regras em `physics-magic-system.md`.
 
-### Cavaleiro (Vigor, baseado em Vitalidade)
+### Cavaleiro (habilidades gastam Vigor)
 
 | Tecla | Habilidade | Escala com | Ideia |
 |---|---|---|---|
@@ -47,12 +51,12 @@ o barril certo, carregar uma caixa até o braseiro, saltar no momento certo."
 | Q | Investida | Agilidade | Arrancada no chão; o impacto é a quantidade de movimento (massa x velocidade). |
 | F | Postura de Muralha | Vitalidade | Por alguns segundos ignora 85% dos empurrões e explosões, mas fica lento. |
 
-### Mago (Mana, baseada em Inteligência)
+### Mago (magias gastam Mana)
 
 | Tecla | Habilidade | Escala com | Ideia |
 |---|---|---|---|
 | Botão esq. | Bola de Fogo | Inteligência | Empurra pouco, aquece muito. Incendeia madeira e acende pólvora. |
-| Q | Salto Arcano | Inteligência | Impulso para cima e para frente, funciona no ar, empurra o que está aos pés. |
+| Q | *(reservado para as subclasses)* | — | O Salto Arcano virou o pulo duplo do mago (Espaço 2x). |
 | F | Telecinese | Inteligência | Segura à distância, mas carrega **menos** que braços fortes e drena mana. |
 
 ## Formulas (Fórmulas)

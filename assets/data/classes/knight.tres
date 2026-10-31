@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://src/gameplay/abilities/shield_bash_ability.gd" id="3_bash"]
 [ext_resource type="Script" path="res://src/gameplay/abilities/charge_ability.gd" id="4_charge"]
 [ext_resource type="Script" path="res://src/gameplay/abilities/guard_ability.gd" id="5_guard"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/arcane_leap_ability.gd" id="6_jump"]
 
 [sub_resource type="Resource" id="attrs"]
 script = ExtResource("2_attrs")
@@ -20,6 +21,7 @@ script = ExtResource("3_bash")
 display_name = "Golpe de Escudo"
 description = "Empurra tudo num cone à frente. Leves voam, pesados mal se mexem."
 cost = 15.0
+cost_pool = 0
 cooldown = 0.7
 scaling_attribute = 0
 
@@ -28,6 +30,7 @@ script = ExtResource("4_charge")
 display_name = "Investida"
 description = "Arrancada no chão que atropela objetos. O impacto vem do seu peso em movimento."
 cost = 25.0
+cost_pool = 0
 cooldown = 1.5
 scaling_attribute = 1
 
@@ -36,8 +39,19 @@ script = ExtResource("5_guard")
 display_name = "Postura de Muralha"
 description = "Finca os pés atrás do escudo: quase imune a empurrões e explosões, mas lento."
 cost = 20.0
+cost_pool = 0
 cooldown = 4.0
 scaling_attribute = 2
+
+[sub_resource type="Resource" id="air_jump"]
+script = ExtResource("6_jump")
+display_name = "Pulo Duplo"
+description = "Segundo impulso no ar, só com as pernas. Um por salto."
+cost = 25.0
+cost_pool = 0
+cooldown = 0.0
+scaling_attribute = 1
+base_blast_impulse = 0.0
 
 [resource]
 script = ExtResource("1_class")
@@ -48,9 +62,6 @@ description = "Treinado além do comum, mas ainda de carne e osso. Carrega, empu
 color = Color(0.85, 0.7, 0.35, 1)
 attributes = SubResource("attrs")
 body_mass = 100.0
-pool_name = "Vigor"
-resource_color = Color(0.9, 0.75, 0.3, 1)
-resource_attribute = 2
 sprint_cost = 10.0
 acceleration = 9.0
 air_control = 0.25
@@ -59,3 +70,4 @@ hold_distance = 1.5
 primary_ability = SubResource("bash")
 mobility_ability = SubResource("charge")
 special_ability = SubResource("guard")
+air_jump_ability = SubResource("air_jump")

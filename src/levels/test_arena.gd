@@ -5,6 +5,7 @@ extends Node3D
 
 const PLAYER_SCENE := preload("res://src/gameplay/player/player.tscn")
 const RULES := preload("res://assets/data/attribute_rules.tres")
+const DAMAGE_RULES := preload("res://assets/data/damage_rules.tres")
 const WOOD := preload("res://assets/data/materials/wood.tres")
 const METAL := preload("res://assets/data/materials/metal.tres")
 const STONE := preload("res://assets/data/materials/stone.tres")
@@ -46,6 +47,7 @@ func _spawn_player() -> void:
 	player.position = SPAWN
 	add_child(player)
 	_hud.bind_player(player)
+	$DebugEditor.bind(player, dummy)
 
 
 # --- Ambiente -----------------------------------------------------------------
@@ -187,6 +189,7 @@ func _fire_on_top() -> Node3D:
 func _build_dummy() -> void:
 	dummy = TrainingDummy.new()
 	dummy.rules = RULES
+	dummy.damage_rules = DAMAGE_RULES
 	dummy.position = Vector3(0, 0, 3)
 	add_child(dummy)
 

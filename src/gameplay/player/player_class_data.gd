@@ -13,14 +13,11 @@ extends Resource
 ## Massa do corpo + equipamento (kg): pesa em empurrões, explosões e na Investida.
 @export var body_mass := 80.0
 
-@export_group("Recurso")
-@export var pool_name := "Vigor"
-@export var resource_color := Color(0.9, 0.75, 0.3)
-## Atributo que define o tamanho e a regeneração do recurso.
-@export var resource_attribute := Attributes.Kind.VITALITY
-## Segundos sem gastar antes de começar a regenerar.
+@export_group("Recursos")
+## Todos têm Vigor (Vitalidade) e Mana (Inteligência).
+## Segundos sem gastar antes de um recurso começar a regenerar.
 @export var regen_delay := 0.8
-## Custo por segundo de correr.
+## Vigor por segundo gasto ao correr.
 @export var sprint_cost := 10.0
 
 @export_group("Controle")
@@ -38,3 +35,5 @@ extends Resource
 @export var mobility_ability: Ability
 ## F.
 @export var special_ability: Ability
+## Espaço no ar (pulo duplo). Só um por salto; recarrega ao tocar o chão.
+@export var air_jump_ability: Ability

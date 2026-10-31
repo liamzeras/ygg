@@ -31,3 +31,13 @@ func get_value(kind: Kind) -> float:
 		Kind.DEXTERITY: return dexterity
 		Kind.INTELLIGENCE: return intelligence
 		_: return luck
+
+
+func set_value(kind: Kind, value: float) -> void:
+	match kind:
+		Kind.STRENGTH: strength = value
+		Kind.AGILITY: agility = value
+		Kind.VITALITY: vitality = value
+		Kind.DEXTERITY: dexterity = value
+		Kind.INTELLIGENCE: intelligence = value
+		_: luck = value

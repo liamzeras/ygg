@@ -7,6 +7,18 @@ const TOAST_TIME := 1.6
 const TEXT := Color(0.9, 0.91, 0.94)
 const MUTED := Color(0.6, 0.63, 0.7)
 const READY := Color(0.55, 0.9, 0.55)
+const MANA_COLOR := Color(0.4, 0.55, 1.0)
+## Sem pulo duplo, a tela escurece abaixo desta fração do Vigor.
+const EXHAUSTED_FRACTION := 0.2
+const VIGNETTE_SHADER := """
+shader_type canvas_item;
+uniform float intensity : hint_range(0.0, 1.0) = 0.0;
+void fragment() {
+	vec2 p = (SCREEN_UV - 0.5) * vec2(1.0, 0.8);
+	float edge = smoothstep(0.22, 0.68, length(p));
+	COLOR = vec4(0.03, 0.02, 0.06, edge * intensity * 0.7);
+}
+"""
 
 var _player: Player
 var _root: Control
@@ -23,6 +35,10 @@ var _slot_box: VBoxContainer
 var _help: PanelContainer
 var _fps: Label
 var _guard_label: Label
+var _vignette: ColorRect
+var _exhaustion := 0.0
+var _exhaustion_pulse := 0.0
+var _breath := 0.0
 
 
 func _ready() -> void:
@@ -30,6 +46,14 @@ func _ready() -> void:
 	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.theme = load("res://assets/ui/ygg_theme.tres")
 	add_child(_root)
+	_vignette = ColorRect.new()
+	_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shader := Shader.new()
+	shader.code = VIGNETTE_SHADER
+	var shader_material := ShaderMaterial.new()
+	shader_material.shader = shader
+	_vignette.material = shader_material
+	_root.add_child(_vignette)
 	_build_center()
 	_build_status()
 	_build_help()
@@ -47,18 +71,19 @@ func bind_player(player: Player) -> void:
 	var a := data.attributes
 	_attr_label.text = "FOR %d  AGI %d  VIT %d  DES %d  INT %d  SOR %d" % [a.strength, a.agility, a.vitality, a.dexterity, a.intelligence, a.luck]
 	var fill := StyleBoxFlat.new()
-	fill.bg_color = data.resource_color
+	fill.bg_color = MANA_COLOR
 	fill.set_corner_radius_all(3)
 	_bar.add_theme_stylebox_override("fill", fill)
 
-	for slot in Player.SLOTS:
+	for slot in Player.SLOTS + [Player.SLOT_AIR_JUMP]:
 		var ability := player.get_ability(slot)
 		if ability:
 			_add_slot(slot, ability.display_name)
-	player.resource_changed.connect(_on_resource_changed)
+	player.pool_changed.connect(_on_pool_changed)
+	player.stats_changed.connect(_on_stats_changed)
 	player.hint_changed.connect(_on_hint_changed)
-	player.action_failed.connect(_show_toast)
-	_on_resource_changed(player.resource, player.stats.max_resource)
+	player.action_failed.connect(_on_action_failed)
+	_on_pool_changed(Player.Pool.MANA, player.get_pool(Player.Pool.MANA), player.get_pool_max(Player.Pool.MANA))
 	_help.get_child(0).text = _help_text()
 
 
@@ -72,11 +97,19 @@ func _process(delta: float) -> void:
 	if _player == null:
 		return
 	for slot: StringName in _slot_status:
-		var remaining := _player.get_cooldown(slot)
 		var status: Label = _slot_status[slot]
-		status.text = "%.1fs" % remaining if remaining > 0.0 else "Pronto"
-		status.add_theme_color_override("font_color", MUTED if remaining > 0.0 else READY)
+		var ok := true
+		if slot == Player.SLOT_AIR_JUMP:
+			var cost := _player.get_ability(slot).cost
+			ok = _player.is_air_jump_available() and _player.get_pool(Player.Pool.STAMINA) >= cost
+			status.text = "Pronto" if ok else ("Usado" if not _player.is_air_jump_available() else "Sem Vigor")
+		else:
+			var remaining := _player.get_cooldown(slot)
+			ok = remaining <= 0.0
+			status.text = "Pronto" if ok else "%.1fs" % remaining
+		status.add_theme_color_override("font_color", READY if ok else MUTED)
 	_guard_label.visible = _player.is_guarding()
+	_update_exhaustion(delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -84,10 +117,37 @@ func _unhandled_input(event: InputEvent) -> void:
 		_help.visible = not _help.visible
 
 
-func _on_resource_changed(current: float, maximum: float) -> void:
+func _on_pool_changed(pool: Player.Pool, current: float, maximum: float) -> void:
+	if pool != Player.Pool.MANA:
+		return
 	_bar.max_value = maximum
 	_bar.value = current
-	_bar_label.text = "%s  %d / %d" % [_player.class_data.pool_name, roundi(current), roundi(maximum)]
+	_bar_label.text = "Mana  %d / %d" % [roundi(current), roundi(maximum)]
+
+
+func _on_stats_changed() -> void:
+	var a := _player.class_data.attributes
+	_attr_label.text = "FOR %d  AGI %d  VIT %d  DES %d  INT %d  SOR %d" % [a.strength, a.agility, a.vitality, a.dexterity, a.intelligence, a.luck]
+
+
+func _on_action_failed(reason: String) -> void:
+	_show_toast(reason)
+	if reason.begins_with(Player.POOL_NAMES[Player.Pool.STAMINA]):
+		_exhaustion_pulse = 1.0
+
+
+## Vigor não tem barra: quando falta fôlego para correr/pular, as bordas da tela
+## escurecem de leve e "respiram". Some assim que o Vigor volta.
+func _update_exhaustion(delta: float) -> void:
+	var stamina := _player.get_pool(Player.Pool.STAMINA)
+	var jump := _player.get_ability(Player.SLOT_AIR_JUMP)
+	var threshold := jump.cost if jump else _player.get_pool_max(Player.Pool.STAMINA) * EXHAUSTED_FRACTION
+	var target := 1.0 if stamina < threshold else 0.0
+	_exhaustion = move_toward(_exhaustion, target, delta * 2.0)
+	_exhaustion_pulse = maxf(_exhaustion_pulse - delta * 2.5, 0.0)
+	_breath += delta * 2.2
+	var intensity := _exhaustion * (0.75 + 0.25 * sin(_breath)) + _exhaustion_pulse * 0.6
+	(_vignette.material as ShaderMaterial).set_shader_parameter("intensity", clampf(intensity, 0.0, 1.0))
 
 
 func _on_hint_changed(text: String, can_interact: bool) -> void:
@@ -194,9 +254,9 @@ func _build_help() -> void:
 
 func _help_text() -> String:
 	var lines := ["CONTROLES  (F1 esconde)"]
-	for pair in [["move_forward", "Andar"], ["jump", "Pular"], ["sprint", "Correr"], ["grab", "Pegar / soltar"],
+	for pair in [["move_forward", "Andar"], ["jump", "Pular"], ["air_jump", "Pulo duplo (gasta Vigor)"], ["sprint", "Correr"], ["grab", "Pegar / soltar"],
 			["primary", "Habilidade principal / arremessar"], ["mobility", "Mobilidade"], ["special", "Especial"],
-			["reload_arena", "Recarregar arena"], ["pause", "Pausa"]]:
+			["reload_arena", "Recarregar arena"], ["debug_editor", "Editor de testes"], ["pause", "Pausa"]]:
 		lines.append("%s — %s" % [InputBindings.label(pair[0]), pair[1]])
 	return "\n".join(lines)
 

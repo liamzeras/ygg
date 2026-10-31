@@ -8,6 +8,8 @@ extends Resource
 @export var display_name := ""
 @export_multiline var description := ""
 @export var cost := 20.0
+## De qual recurso sai o custo: esforço físico (Vigor) ou magia (Mana).
+@export var cost_pool := Player.Pool.STAMINA
 @export var cooldown := 1.0
 @export var scaling_attribute := Attributes.Kind.STRENGTH
 

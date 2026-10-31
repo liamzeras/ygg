@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="DamageRules" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/combat/damage_rules.gd" id="1_dmg"]
+
+[resource]
+script = ExtResource("1_dmg")
+impulse_threshold = 10.0
+damage_per_impulse = 0.1
+damage_per_heat = 0.1
+combo_reset_time = 5.0
