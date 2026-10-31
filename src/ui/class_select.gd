@@ -2,7 +2,8 @@ extends Control
 ## Escolha de classe. Os cartões são gerados a partir de GameState.CLASSES,
 ## então uma classe nova aparece aqui automaticamente.
 
-const CARD_SIZE := Vector2(420, 560)
+## Largura generosa para 3 cards caberem em 1600x900 sem passar da altura da tela.
+const CARD_SIZE := Vector2(480, 520)
 
 @onready var _cards: HBoxContainer = $Center/Box/Cards
 @onready var _back: Button = $Center/Box/BackButton
@@ -30,25 +31,25 @@ func _add_card(data: PlayerClassData) -> Button:
 	card.custom_minimum_size = CARD_SIZE
 	_cards.add_child(card)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 8)
 	card.add_child(box)
 
 	var title := Label.new()
 	title.text = data.display_name
-	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_font_size_override("font_size", 32)
 	title.add_theme_color_override("font_color", data.color)
 	box.add_child(title)
 	box.add_child(_text(data.role, 18, Color(0.65, 0.68, 0.75)))
-	box.add_child(_text(data.description, 17))
+	box.add_child(_text(data.description, 16))
 	box.add_child(HSeparator.new())
 
 	box.add_child(_text("Atributos", 18, data.color))
 	box.add_child(_text(_attributes_line(data.attributes), 16))
 	box.add_child(_text("Habilidades", 18, data.color))
-	for entry in [["Botão esq.", data.primary_ability], ["Q", data.mobility_ability], ["F", data.special_ability], ["Espaço 2x", data.air_jump_ability]]:
+	for entry in [["Botão esq.", data.primary_ability], ["Q", data.mobility_ability], ["F", data.special_ability], ["Espaço 2x", data.air_jump_ability], ["Segurar Espaço", data.float_ability]]:
 		var ability: Ability = entry[1]
 		if ability:
-			box.add_child(_text("[%s] %s — %s" % [entry[0], ability.display_name, ability.description], 16))
+			box.add_child(_text("[%s] %s — %s" % [entry[0], ability.display_name, ability.description], 15))
 
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL

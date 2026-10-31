@@ -31,6 +31,30 @@ static func make_fire(radius: float) -> Node3D:
 	return root
 
 
+## Partículas leves sob os pés enquanto flutua. Começa desligada (`emitting = false`).
+static func make_float_wisps() -> CPUParticles3D:
+	var particles := CPUParticles3D.new()
+	particles.name = "FloatWisps"
+	particles.emitting = false
+	particles.amount = 20
+	particles.lifetime = 0.7
+	particles.local_coords = false
+	particles.position = Vector3(0, 0.05, 0)
+	particles.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+	particles.emission_ring_axis = Vector3.UP
+	particles.emission_ring_radius = 0.45
+	particles.emission_ring_inner_radius = 0.2
+	particles.emission_ring_height = 0.05
+	particles.direction = Vector3.DOWN
+	particles.spread = 25.0
+	particles.gravity = Vector3.ZERO
+	particles.initial_velocity_min = 0.4
+	particles.initial_velocity_max = 0.9
+	particles.mesh = _particle_mesh(0.035)
+	particles.color_ramp = _gradient(Color(0.6, 0.95, 1.0, 0.8), Color(0.4, 0.8, 1.0, 0))
+	return particles
+
+
 ## Explosão rápida de partículas com flash de luz. Some sozinha.
 static func burst(parent: Node, at: Vector3, color: Color, radius: float) -> void:
 	if parent == null:

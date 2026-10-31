@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://src/gameplay/player/player.gd" id="1_player"]
 [ext_resource type="Resource" path="res://assets/data/attribute_rules.tres" id="2_rules"]
 
-[sub_resource type="CapsuleShape3D" id="body_shape"]
+[sub_resource type="CylinderShape3D" id="body_shape"]
 radius = 0.35
 height = 1.8
 

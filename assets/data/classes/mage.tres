@@ -45,8 +45,8 @@ scaling_attribute = 4
 [resource]
 script = ExtResource("1_class")
 id = &"mage"
-display_name = "Mago"
-role = "Magia aplicada ao mundo físico"
+display_name = "Mago Elementalista"
+role = "Elementos aplicados ao mundo físico"
 description = "Fisicamente comum, mas manipula forças e calor. Quanto mais 'impossível' o efeito, mais caro e limitado ele é."
 color = Color(0.55, 0.5, 1, 1)
 attributes = SubResource("attrs")

@@ -10,6 +10,7 @@ signal stats_changed
 signal hint_changed(text: String, can_interact: bool)
 signal action_failed(reason: String)
 signal ability_used(slot: StringName)
+signal floating_changed(active: bool)
 
 ## Vigor = esforço físico. Mana = magia. Todo personagem tem os dois.
 enum Pool { STAMINA, MANA }
@@ -19,20 +20,31 @@ const SLOT_PRIMARY := &"primary"
 const SLOT_MOBILITY := &"mobility"
 const SLOT_SPECIAL := &"special"
 const SLOT_AIR_JUMP := &"air_jump"
+const SLOT_FLOAT := &"float"
 const ACTION_GRAB := &"grab"
 const ACTION_JUMP := &"jump"
+## Soltar o botão esquerdo: dispara uma habilidade carregável.
+const ACTION_PRIMARY_RELEASE := &"primary_release"
 const SLOTS: Array[StringName] = [SLOT_PRIMARY, SLOT_MOBILITY, SLOT_SPECIAL]
 const KILL_HEIGHT := -30.0
 ## Aumento do FOV ao correr (graus). Puramente visual.
 const SPRINT_FOV_KICK := 6.0
+## Folga extra (m) ao testar a subida de degraus. Não muda a altura máxima do degrau.
+const STEP_CLEARANCE := 0.05
 
 @export var class_data: PlayerClassData
 @export var rules: AttributeRules
 
 var stats: DerivedStats
 var held_body: RigidBody3D
-## false enquanto um menu de depuração usa o mouse/teclado.
-var input_enabled := true
+## false enquanto um menu de depuração usa o mouse/teclado. Desligar cancela a carga.
+var input_enabled := true:
+	set(value):
+		input_enabled = value
+		if not value:
+			cancel_charge()
+## Testes automatizados: finge que Espaço está pressionado (para o flutuar).
+var force_jump_held := false
 ## Trapaças do editor de testes.
 var debug_infinite_resources := false
 var debug_no_cooldowns := false
@@ -62,6 +74,17 @@ var _guard_time := 0.0
 var _guard_reduction := 0.0
 var _guard_speed := 1.0
 var _shake := 0.0
+var _charging := false
+var _charge := 0.0
+var _charge_hold := 0.0
+var _tremor_phase := 0.0
+var _floating := false
+var _float_blocked := false
+var _float_fx: CPUParticles3D
+var _takeoff_y := 0.0
+## Suaviza a câmera ao subir um degrau (o corpo sobe na hora, a visão acompanha).
+var _step_offset := 0.0
+var _head_base_y := 0.0
 var _hint := ""
 var _spawn_point := Vector3.ZERO
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -79,7 +102,12 @@ func _ready() -> void:
 	_pools[Pool.STAMINA] = stats.max_stamina
 	_pools[Pool.MANA] = stats.max_mana
 	_spawn_point = global_position
+	_takeoff_y = global_position.y
+	_head_base_y = head.position.y
 	_aim_ray.add_exception(self)
+	if class_data.float_ability:
+		_float_fx = Fx.make_float_wisps()
+		add_child(_float_fx)
 	Settings.changed.connect(_apply_settings)
 	_apply_settings()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -104,6 +132,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		request_action(ACTION_GRAB)
 	elif event.is_action_pressed("primary"):
 		request_action(SLOT_PRIMARY)
+	elif event.is_action_released("primary"):
+		request_action(ACTION_PRIMARY_RELEASE)
 	elif event.is_action_pressed("mobility"):
 		request_action(SLOT_MOBILITY)
 	elif event.is_action_pressed("special"):
@@ -118,8 +148,11 @@ func request_action(action: StringName) -> void:
 func _physics_process(delta: float) -> void:
 	if is_on_floor():
 		_air_jump_used = false
+		_takeoff_y = global_position.y
 	_process_queue()
 	_update_timers(delta)
+	_update_charge(delta)
+	_update_float(delta)
 	_move(delta)
 	_update_held(delta)
 	_update_pools(delta)
@@ -132,9 +165,26 @@ func _process(delta: float) -> void:
 	var target_fov := _base_fov + (SPRINT_FOV_KICK if _sprinting else 0.0)
 	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-8.0 * delta))
 	_shake = maxf(_shake - delta * 1.5, 0.0)
+	_step_offset = lerpf(_step_offset, 0.0, 1.0 - exp(-14.0 * delta))
+	head.position.y = _head_base_y + _step_offset
 	var amount := _shake * _shake if Settings.get_value("camera_shake") else 0.0
 	camera.h_offset = randf_range(-1.0, 1.0) * amount * 0.15
 	camera.v_offset = randf_range(-1.0, 1.0) * amount * 0.15
+	# Tremor da mira ao segurar a carga cheia por tempo demais (gira a câmera de verdade).
+	var tremor := deg_to_rad(get_charge_tremor())
+	if tremor > 0.0:
+		_tremor_phase += delta
+		camera.rotation = Vector3(
+				sin(_tremor_phase * 6.1) * tremor + sin(_tremor_phase * 13.7) * tremor * 0.3,
+				sin(_tremor_phase * 4.7) * tremor, 0.0)
+	else:
+		camera.rotation = camera.rotation.lerp(Vector3.ZERO, clampf(10.0 * delta, 0.0, 1.0))
+
+
+func _notification(what: int) -> void:
+	# Pausa no meio da carga: o "soltar" nunca chegaria, então cancela sem gastar.
+	if what == NOTIFICATION_PAUSED:
+		cancel_charge()
 
 
 # --- API pública usada por habilidades, HUD, editor de testes e testes --------
@@ -164,6 +214,7 @@ func get_ability(slot: StringName) -> Ability:
 		SLOT_MOBILITY: return class_data.mobility_ability
 		SLOT_SPECIAL: return class_data.special_ability
 		SLOT_AIR_JUMP: return class_data.air_jump_ability
+		SLOT_FLOAT: return class_data.float_ability
 	return null
 
 
@@ -186,6 +237,46 @@ func is_air_jump_available() -> bool:
 
 func is_guarding() -> bool:
 	return _guard_time > 0.0
+
+
+func is_charging() -> bool:
+	return _charging
+
+
+## Carga atual da habilidade principal (0 a 1).
+func get_charge() -> float:
+	return _charge if _charging else 0.0
+
+
+## Graus de tremor da mira agora (0 = firme). Destreza reduz.
+func get_charge_tremor() -> float:
+	if not _charging:
+		return 0.0
+	var ability := get_ability(SLOT_PRIMARY)
+	if _charge_hold < ability.charge_time + ability.tremor_delay:
+		return 0.0
+	return ability.tremor_degrees / stats.mult(Attributes.Kind.DEXTERITY)
+
+
+## Interrompe a carga sem gastar nada.
+func cancel_charge() -> void:
+	_charging = false
+	_charge = 0.0
+	_charge_hold = 0.0
+
+
+func is_floating() -> bool:
+	return _floating
+
+
+## Altura (y) do último chão em que o jogador pisou. Base do teto do pulo duplo.
+func get_takeoff_height() -> float:
+	return _takeoff_y
+
+
+## Gravidade do personagem (m/s²), sem efeitos de área.
+func gravity_strength() -> float:
+	return _gravity
 
 
 func is_holding_telekinetically() -> bool:
@@ -235,27 +326,24 @@ func release_held() -> void:
 
 
 ## Tenta usar a habilidade do slot. Retorna true se ela foi ativada.
-func use_ability(slot: StringName) -> bool:
+## `charge` (0 a 1) só vale para habilidades carregáveis; -1 = sem carga.
+func use_ability(slot: StringName, charge := -1.0) -> bool:
 	var ability := get_ability(slot)
 	if ability == null:
 		return false
 	if ability.toggles_off(self):
 		ability.activate(self)
 		return true
-	if get_cooldown(slot) > 0.0:
-		action_failed.emit("Recarregando")
+	var cost := ability.cost_at(maxf(charge, 0.0)) if charge >= 0.0 else ability.cost
+	if not _can_start(slot, ability, cost):
 		return false
-	if get_pool(ability.cost_pool) < ability.cost and not debug_infinite_resources:
-		action_failed.emit("%s insuficiente" % POOL_NAMES[ability.cost_pool])
-		return false
-	var reason := ability.get_block_reason(self)
-	if reason != "":
-		action_failed.emit(reason)
-		return false
-	spend(ability.cost_pool, ability.cost)
+	spend(ability.cost_pool, cost)
 	if not debug_no_cooldowns:
 		_cooldowns[slot] = ability.cooldown
-	ability.activate(self)
+	if charge >= 0.0:
+		ability.activate_charged(self, charge)
+	else:
+		ability.activate(self)
 	ability_used.emit(slot)
 	return true
 
@@ -303,6 +391,7 @@ func face_point(point: Vector3) -> void:
 func respawn() -> void:
 	release_held()
 	global_position = _spawn_point
+	_takeoff_y = _spawn_point.y
 	velocity = Vector3.ZERO
 
 
@@ -319,6 +408,21 @@ func _apply_settings() -> void:
 	_base_fov = float(Settings.get_value("fov"))
 
 
+## Checa recarga, recurso e bloqueios; avisa o motivo se não puder.
+func _can_start(slot: StringName, ability: Ability, cost: float) -> bool:
+	if get_cooldown(slot) > 0.0:
+		action_failed.emit("Recarregando")
+		return false
+	if get_pool(ability.cost_pool) < cost and not debug_infinite_resources:
+		action_failed.emit("%s insuficiente" % POOL_NAMES[ability.cost_pool])
+		return false
+	var reason := ability.get_block_reason(self)
+	if reason != "":
+		action_failed.emit(reason)
+		return false
+	return true
+
+
 func _process_queue() -> void:
 	for action in _queued:
 		match action:
@@ -329,11 +433,81 @@ func _process_queue() -> void:
 			SLOT_PRIMARY:
 				if is_instance_valid(held_body):
 					_throw()
+				elif get_ability(SLOT_PRIMARY) and get_ability(SLOT_PRIMARY).is_chargeable():
+					_start_charge()
 				else:
 					use_ability(SLOT_PRIMARY)
+			ACTION_PRIMARY_RELEASE:
+				if _charging:
+					var charge := _charge
+					cancel_charge()
+					use_ability(SLOT_PRIMARY, charge)
 			_:
+				if action == SLOT_SPECIAL:
+					cancel_charge()
 				use_ability(action)
 	_queued.clear()
+
+
+# Carga (design/gdd/mage-psionic.md, Dardo Cinético): começa ao apertar, sobe com o
+# tempo até 1 e para no valor que o recurso paga. O custo é pago só ao soltar.
+func _start_charge() -> void:
+	var ability := get_ability(SLOT_PRIMARY)
+	if not _can_start(SLOT_PRIMARY, ability, ability.cost_at(0.0)):
+		return
+	_charging = true
+	_charge = 0.0
+	_charge_hold = 0.0
+
+
+func _update_charge(delta: float) -> void:
+	if not _charging:
+		return
+	var ability := get_ability(SLOT_PRIMARY)
+	var budget := INF if debug_infinite_resources else get_pool(ability.cost_pool)
+	if budget < ability.cost_at(0.0):
+		cancel_charge()
+		action_failed.emit("%s insuficiente" % POOL_NAMES[ability.cost_pool])
+		return
+	_charge_hold += delta
+	_charge = minf(minf(_charge_hold / ability.charge_time, 1.0), ability.max_charge_for(budget))
+
+
+# Flutuar (design/gdd/mage-psionic.md): só descendo, segurando Espaço. Mana zerada
+# encerra e exige soltar Espaço antes de tentar de novo.
+func _update_float(delta: float) -> void:
+	var ability := class_data.float_ability
+	if ability == null:
+		return
+	var held := force_jump_held or (input_enabled and Input.is_action_pressed("jump"))
+	if not held:
+		_float_blocked = false
+	var wants := held and not _float_blocked and not is_on_floor() and velocity.y <= 0.0 and _dash_time <= 0.0
+	if wants and not _floating:
+		if get_pool(Pool.MANA) < ability.cost and not debug_infinite_resources:
+			_float_blocked = true
+			action_failed.emit("%s insuficiente" % POOL_NAMES[Pool.MANA])
+		else:
+			_set_floating(true)
+	elif _floating and not wants:
+		_set_floating(false)
+	if not _floating:
+		return
+	if get_pool(Pool.MANA) <= 0.0 and not debug_infinite_resources:
+		_set_floating(false)
+		_float_blocked = true
+		action_failed.emit("Mana esgotada")
+		return
+	spend(Pool.MANA, ability.drain_per_second(self) * delta)
+
+
+func _set_floating(active: bool) -> void:
+	if _floating == active:
+		return
+	_floating = active
+	if _float_fx:
+		_float_fx.emitting = active
+	floating_changed.emit(active)
 
 
 func _jump() -> void:
@@ -354,6 +528,8 @@ func _update_timers(delta: float) -> void:
 func _move(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
+	if _floating:
+		velocity.y = maxf(velocity.y, -class_data.float_ability.max_fall_speed)
 
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back") if input_enabled else Vector2.ZERO
 	var wish := global_basis * Vector3(input.x, 0.0, input.y)
@@ -372,13 +548,63 @@ func _move(delta: float) -> void:
 			speed *= _guard_speed
 		# No ar sem input, mantém o embalo (pulos não "freiam").
 		if is_on_floor() or input.length() > 0.1:
-			var accel := class_data.acceleration * (1.0 if is_on_floor() else class_data.air_control)
+			var accel := class_data.acceleration * (1.0 if is_on_floor() or _floating else class_data.air_control)
 			var horizontal := Vector2(velocity.x, velocity.z).lerp(Vector2(_wish.x, _wish.z) * speed, clampf(accel * delta, 0.0, 1.0))
 			velocity.x = horizontal.x
 			velocity.z = horizontal.y
 
+	_step_up(delta)
 	move_and_slide()
 	_push_bodies(delta)
+
+
+## Sobe degraus de até `rules.step_height` só andando (escadas, meio-fio, caixotes baixos).
+## Testa: bloqueado à frente → sobe a altura do degrau → anda → desce até achar chão.
+## Só sobe se encontrar chão firme (não uma parede ou rampa íngreme) no fim.
+func _step_up(delta: float) -> void:
+	if not is_on_floor() or velocity.y > 0.0:
+		return
+	var horizontal := Vector3(velocity.x, 0.0, velocity.z) * delta
+	if horizontal.length() < 0.001:
+		return
+	# Sonda um pouco além do passo do quadro: com passos curtos o degrau passaria despercebido.
+	var probe := horizontal.normalized() * maxf(horizontal.length(), 0.05)
+	var start := global_transform
+	var blocker := KinematicCollision3D.new()
+	if not test_move(start, probe, blocker):
+		return
+	# Objetos soltos são empurrados, não escalados.
+	if blocker.get_collider() is RigidBody3D:
+		return
+	# Sobe um pouco além do degrau: na altura exata, a base do cilindro
+	# raspa na quina e o teste de andar falharia.
+	var up := Vector3.UP * (rules.step_height + STEP_CLEARANCE)
+	var ceiling := KinematicCollision3D.new()
+	if test_move(start, up, ceiling) and ceiling.get_normal().y < -0.5:
+		return
+	var raised := start.translated(up)
+	if test_move(raised, probe):
+		return
+	var landing := KinematicCollision3D.new()
+	var moved := raised.translated(probe)
+	if not test_move(moved, -up, landing):
+		return
+	# A borda da base pode pousar na quina (normal inclinada); confere a superfície logo
+	# depois da quina com um raio para baixo: só sobe se ali for chão, não rampa íngreme.
+	if landing.get_normal().y <= 0.0:
+		return
+	var contact := landing.get_position() + probe.normalized() * 0.03
+	var ray := PhysicsRayQueryParameters3D.create(contact + Vector3.UP * 0.1, contact + Vector3.DOWN * 0.2)
+	ray.exclude = [get_rid()]
+	var surface := get_world_3d().direct_space_state.intersect_ray(ray)
+	if surface.is_empty() or (surface.normal as Vector3).angle_to(Vector3.UP) > floor_max_angle:
+		return
+	var new_position := moved.origin + landing.get_travel()
+	var rise := new_position.y - global_position.y
+	if rise <= 0.01 or rise > rules.step_height + 0.01:
+		return
+	global_position = new_position
+	_step_offset -= rise
 
 
 func _push_bodies(delta: float) -> void:
@@ -423,6 +649,12 @@ func _toggle_hands() -> void:
 
 
 func _throw() -> void:
+	var throw_cost: float = _hold.get("throw_cost", 0.0)
+	if throw_cost > 0.0:
+		if get_pool(Pool.MANA) < throw_cost and not debug_infinite_resources:
+			action_failed.emit("%s insuficiente" % POOL_NAMES[Pool.MANA])
+			return
+		spend(Pool.MANA, throw_cost)
 	var body := held_body
 	var throw_speed: float = _hold["throw_speed"]
 	var carry: float = _hold["carry_mass"]

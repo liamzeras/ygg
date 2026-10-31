@@ -11,6 +11,8 @@ extends Ability
 @export var base_throw_speed := 6.0
 @export var stiffness := 6.0
 @export var hold_distance := 3.0
+## Mana gasta ao arremessar (Telecinese Acelerada do Psiônico). 0 = de graça.
+@export var throw_cost := 0.0
 
 
 func toggles_off(player: Player) -> bool:
@@ -42,4 +44,5 @@ func activate(player: Player) -> void:
 		"throw_speed": base_throw_speed * sqrt(power(player)),
 		"carry_mass": carry_mass(player),
 		"drain": mana_per_second,
+		"throw_cost": throw_cost,
 	})

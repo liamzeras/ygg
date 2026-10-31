@@ -33,6 +33,7 @@ const LABELS := {
 	"mobility": "Q",
 	"special": "F",
 	"air_jump": "Espaço 2x",
+	"float": "Segurar Espaço",
 	"debug_editor": "F2",
 	"pause": "Esc",
 	"toggle_help": "F1",

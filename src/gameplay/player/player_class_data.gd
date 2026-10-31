@@ -37,3 +37,5 @@ extends Resource
 @export var special_ability: Ability
 ## Espaço no ar (pulo duplo). Só um por salto; recarrega ao tocar o chão.
 @export var air_jump_ability: Ability
+## Segurar Espaço enquanto cai (só o Psiônico, por enquanto).
+@export var float_ability: FloatAbility

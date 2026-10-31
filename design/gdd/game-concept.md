@@ -33,11 +33,12 @@ o barril certo, carregar uma caixa até o braseiro, saltar no momento certo."
 
 - **Atributos**: Força, Agilidade, Vitalidade, Destreza, Inteligência, Sorte. Regras em
   `attributes.md`.
-- **Classes iniciais**: Cavaleiro e Mago. Todos têm Vigor e Mana, pulo duplo (Espaço 2x)
+- **Classes iniciais**: Cavaleiro, Mago Elementalista e Mago Psiônico. Todos têm Vigor e Mana, pulo duplo (Espaço 2x)
   e a mesma velocidade de movimento.
 - **Rumo do Mago**: será o "arqueiro" do jogo (dano à distância) e se divide em duas
   especializações: **Elementalista** (elementos + manipulação de terreno) e **Psiônico**
-  (sem elementos: acelerar, desacelerar, flutuar). Kits em discussão.
+  (sem elementos: acelerar, desacelerar, flutuar). Psiônico desenhado e implementado em
+  `mage-psionic.md`; o card "Mago Elementalista" usa o kit antigo do Mago até o kit dele ser desenhado.
 - **Interação básica**: qualquer classe pega objetos com as mãos (limite de carga pela
   Força) e arremessa. Andar empurra objetos.
 - **Mundo**: materiais madeira, metal, pedra e pólvora; braseiro como fonte de fogo do

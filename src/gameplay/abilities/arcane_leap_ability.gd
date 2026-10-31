@@ -10,6 +10,9 @@ extends Ability
 @export var directional_speed := 4.0
 ## Quanto da velocidade horizontal atual é mantida.
 @export_range(0.0, 1.0) var keep_momentum := 0.5
+## Altura máxima do topo do salto, contada do chão de onde pulou (m). Pulo duplo nunca
+## passa disso; alturas maiores só com outras habilidades de mobilidade.
+@export var max_total_height := 2.0
 @export var blast_radius := 2.0
 @export var base_blast_impulse := 60.0
 
@@ -18,6 +21,9 @@ func activate(player: Player) -> void:
 	var push := player.get_move_direction() * directional_speed
 	var current := player.velocity * keep_momentum
 	var up := base_up_speed * sqrt(power(player))
+	# Velocidade que leva exatamente ao teto: v = raiz(2 x g x espaço que falta).
+	var room := player.get_takeoff_height() + max_total_height - player.global_position.y
+	up = minf(up, sqrt(2.0 * player.gravity_strength() * maxf(room, 0.0)))
 	player.velocity = Vector3(current.x + push.x, up, current.z + push.z)
 	if base_blast_impulse > 0.0:
 		Explosion.detonate(player, player.global_position, blast_radius, base_blast_impulse * power(player), 0.0,

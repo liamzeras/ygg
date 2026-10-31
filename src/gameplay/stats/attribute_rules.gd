@@ -22,6 +22,10 @@ extends Resource
 @export var walk_speed := 4.5           ## m/s
 @export var sprint_speed := 7.0         ## m/s
 @export var jump_height := 0.6          ## m
+## Teto realista do pulo (m), mesmo com Agilidade alta. Mais alto só com habilidades.
+@export var max_jump_height := 1.0
+## Degrau que qualquer um sobe só andando, sem pular (m). Escada comum = 0,18 m.
+@export var step_height := 0.4
 @export var hold_stiffness := 10.0      ## firmeza ao segurar objetos (destreza)
 @export var max_stamina := 100.0        ## Vigor (Vitalidade)
 @export var stamina_regen := 15.0       ## Vigor por segundo
@@ -59,7 +63,7 @@ func derive(attributes: Attributes) -> DerivedStats:
 	stats.push_force = push_force * strength
 	stats.walk_speed = walk_speed
 	stats.sprint_speed = sprint_speed
-	stats.jump_height = jump_height * pow(agility, jump_exponent)
+	stats.jump_height = minf(jump_height * pow(agility, jump_exponent), max_jump_height)
 	stats.hold_stiffness = hold_stiffness * pow(dexterity, hold_exponent)
 	stats.max_stamina = max_stamina * pow(vitality, resource_exponent)
 	stats.stamina_regen = stamina_regen * pow(vitality, resource_exponent)

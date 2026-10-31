@@ -13,6 +13,9 @@ const EXPLOSIVE := preload("res://assets/data/materials/explosive.tres")
 
 const SPAWN := Vector3(0, 0.05, 10)
 const ARENA_HALF_SIZE := 50.0
+## Escada da pista de vãos (altura e profundidade de cada degrau, em m).
+const STAIR_RISE := 0.2
+const STAIR_DEPTH := 0.35
 
 var player: Player
 var dummy: TrainingDummy
@@ -90,20 +93,24 @@ func _build_bounds() -> void:
 # --- Pista de mobilidade (oeste) ----------------------------------------------
 
 func _build_mobility_course() -> void:
-	# Degraus com altura medida: testam o pulo de cada classe.
-	var heights := [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0]
+	# Degraus com altura medida: até rules.step_height (0,4 m) sobe andando; 1 m é o pulo
+	# máximo e 2 m o máximo com pulo duplo. 2,5 m só com mobilidade futura.
+	var heights := [0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5]
 	for i in heights.size():
 		var h: float = heights[i]
-		var pos := Vector3(-10, h / 2.0, 6 - i * 3.0)
-		_static_box(pos, Vector3(2, h, 2), _accent_material if h >= 2.0 else _block_material)
-		_sign(Vector3(-10, h + 0.6, 6 - i * 3.0), ("%.2f m" % h).replace(".", ","), 0.007)
-	_sign(Vector3(-10, 3.2, 9), "ALTURA DE PULO", 0.01)
+		var pos := Vector3(-10, h / 2.0, 9 - i * 3.0)
+		_static_box(pos, Vector3(2, h, 2), _accent_material if h > 2.0 else _block_material)
+		_sign(Vector3(-10, h + 0.6, 9 - i * 3.0), ("%.2f m" % h).replace(".", ","), 0.007)
+	_sign(Vector3(-10, 3.2, 12), "ALTURA DE PULO\naté 0,4 m: só andando", 0.01)
 
 	# Plataformas a 2 m com vãos crescentes: testam distância (Investida, Salto Arcano).
 	var z := 8.0
-	for step in 3:  # escada de acesso, degraus de 0,5 m
-		var step_height := 0.5 * (step + 1)
-		_static_box(Vector3(-20, step_height / 2.0, z + 5.25 - step * 1.5), Vector3(3, step_height, 1.5), _block_material)
+	# Escada de verdade até a primeira plataforma: 9 degraus de 0,2 m, sobe só andando.
+	for step in range(1, 10):
+		var step_height := STAIR_RISE * step
+		var step_z := z + 1.5 + (10 - step) * STAIR_DEPTH - STAIR_DEPTH / 2.0
+		_static_box(Vector3(-20, step_height / 2.0, step_z), Vector3(3, step_height, STAIR_DEPTH), _block_material)
+	_sign(Vector3(-20, 2.8, z + 5.0), "escada (degraus de 0,2 m)", 0.007)
 	for gap in [0.0, 2.0, 3.0, 4.0, 5.0, 6.0]:
 		z -= gap
 		_static_box(Vector3(-20, 1.0, z), Vector3(3, 2, 3), _block_material)
@@ -119,11 +126,19 @@ func _build_mobility_course() -> void:
 		ramp.rotation_degrees.x = angle
 		_sign(Vector3(-30, 3.6, 6 - i * 8.0), "rampa %d°" % angle, 0.007)
 
-	# Torres em sequência para o Salto Arcano (cada uma alcançável a partir da anterior).
+	# Torres altas: acima do teto do pulo duplo (2 m). Reservadas para mobilidade futura
+	# e para testar o Flutuar descendo.
 	for tower in [[Vector3(-38, 0, -20), 3.0], [Vector3(-38, 0, -24.5), 4.5], [Vector3(-38, 0, -29), 6.0]]:
 		var h: float = tower[1]
 		_static_box(tower[0] + Vector3(0, h / 2.0, 0), Vector3(3, h, 3), _accent_material)
 		_sign(tower[0] + Vector3(0, h + 0.6, 0), ("torre %.1f m" % h).replace(".", ","), 0.007)
+	# Escadaria até a torre de 6 m (leste dela), para subir andando e testar o Flutuar.
+	var top := 6.0
+	var steps := roundi(top / STAIR_RISE)
+	for step in range(1, steps):
+		var step_height := STAIR_RISE * step
+		var step_x := -36.5 + (steps - step) * STAIR_DEPTH - STAIR_DEPTH / 2.0
+		_static_box(Vector3(step_x, step_height / 2.0, -29), Vector3(STAIR_DEPTH, step_height, 2), _block_material)
 
 
 # --- Laboratório de materiais (leste) -----------------------------------------

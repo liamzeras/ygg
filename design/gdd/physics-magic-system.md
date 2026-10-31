@@ -63,6 +63,8 @@ arremesso        = vel_arremesso x clamp(1 - massa / (carga x 1,5), 0,3, 1)
 
 ## Dependencies (Dependências)
 
+`SlowField` (Campo Lento do Psiônico, `mage-psionic.md`) limita a velocidade de props e
+projéteis dentro dele e reduz a gravidade ali.
 `PropMaterial` → `PhysicsProp` ↔ `Explosion` ↔ `HeatZone`; habilidades usam `Explosion`
 e consultas de forma; `TrainingDummy` recebe `register_hit` e `add_heat`.
 

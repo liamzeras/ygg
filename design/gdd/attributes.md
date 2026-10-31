@@ -24,8 +24,11 @@ duplo, as bordas da tela escurecem de leve e "respiram". A Mana aparece em barra
 ### Pulo duplo
 
 Todas as classes: apertar Espaço de novo no ar. Um por salto (recarrega ao tocar o chão),
-custa 25 de Vigor. Cavaleiro: impulso só das pernas, escala com Agilidade (+1,4 m).
-Mago: Pulo Arcano, escala com Inteligência (+2,6 m) e empurra o que está aos pés.
+custa 25 de Vigor. **O topo do salto nunca passa de 2 m acima do chão de onde pulou**
+(`max_total_height` no `.tres` da classe); alturas maiores só com habilidades de mobilidade
+ainda não criadas. Cavaleiro: impulso só das pernas, escala com Agilidade.
+Mago: Pulo Arcano, escala com Inteligência e empurra o que está aos pés. Com atributos
+altos o impulso só fica mais rápido, não mais alto.
 
 ### Referência humana
 
@@ -34,7 +37,7 @@ Mago: Pulo Arcano, escala com Inteligência (+2,6 m) e empurra o que está aos p
 | Força | FOR | 20 | carga nas mãos, velocidade de arremesso, empurrão ao andar, Golpe de Escudo |
 | Agilidade | AGI | 12 | altura do pulo, pulo duplo do cavaleiro, Investida (**não** muda a velocidade de andar/correr) |
 | Vitalidade | VIT | 15 | Vigor (tamanho e regeneração), Postura de Muralha |
-| Destreza | DES | 7 | firmeza ao segurar objetos |
+| Destreza | DES | 7 | firmeza ao segurar objetos, tremor da mira do Dardo Cinético (Psiônico) |
 | Inteligência | INT | 11 | Mana (tamanho e regeneração), magias, pulo duplo do mago |
 | Sorte | SOR | 5 | ainda sem efeito |
 
@@ -66,7 +69,8 @@ mult(v) = (v / humano) ^ alfa
 | Carga nas mãos | 35 kg | 35 x mult(FOR) | 57 kg | 28 kg |
 | Arremesso | 9 m/s | 9 x mult(FOR)^0,5 | 11,5 m/s | 8,0 m/s |
 | Andar / correr | 4,5 / 7 m/s | fixo para todos (só montarias e efeitos mudam, a definir) | 4,5 / 7 | 4,5 / 7 |
-| Altura do pulo | 0,6 m | 0,6 x mult(AGI) | 0,68 m | 0,72 m |
+| Altura do pulo | 0,6 m | min(0,6 x mult(AGI), 1,0) | 0,68 m | 0,72 m |
+| Degrau sem pular | 0,4 m | fixo para todos (`step_height`) | 0,4 m | 0,4 m |
 | Vigor | 100 | 100 x mult(VIT)^0,5 | 128 | 103 |
 | Mana | 100 | 100 x mult(INT)^0,5 | 88 | 149 |
 
@@ -89,7 +93,8 @@ humano (60 N·s). O boneco de testes mostra essa comparação ao vivo.
 
 ## Tuning Knobs (Ajustes)
 
-`attribute_rules.tres`: referência humana, `cap`, `multiplier_at_cap`, valores humanos
+`attribute_rules.tres`: referência humana, `cap`, `multiplier_at_cap`, `max_jump_height` (1 m,
+faixa segura 0,8–1,5), `step_height` (0,4 m, faixa segura 0,25–0,5), valores humanos
 (carga, velocidades, pulo, recurso, empurrão de referência) e todos os expoentes.
 
 ## Acceptance Criteria (Critérios de aceite)
@@ -103,6 +108,10 @@ humano (60 N·s). O boneco de testes mostra essa comparação ao vivo.
 ## Decisões do Liam (1º playtest)
 
 - Pulo base continua realista (0,6 m); a altura extra vem do pulo duplo, que gasta Vigor.
+- (2º playtest) Pulo no máximo **1 m**, mesmo com Agilidade 150; com pulo duplo, no máximo
+  **2 m**. Tempo no ar alto tirava o realismo e a graça do Flutuar do Psiônico.
+- (2º playtest) Degraus de até **0,4 m** sobem só andando (escadas, meio-fio). O corpo do
+  personagem virou um cilindro para apoiar bem na beirada do degrau.
 - Velocidade de movimento é fixa para todos. Montarias e efeitos ficam para depois.
 - Vigor sem barra (efeito sutil nas bordas da tela). Vigor e Mana para todas as classes.
 

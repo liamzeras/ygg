@@ -1,0 +1,108 @@
+[gd_resource type="Resource" script_class="PlayerClassData" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/player/player_class_data.gd" id="1_class"]
+[ext_resource type="Script" path="res://src/gameplay/stats/attributes.gd" id="2_attrs"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/kinetic_dart_ability.gd" id="3_dart"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/arcane_leap_ability.gd" id="4_leap"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/telekinesis_ability.gd" id="5_tk"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/slow_field_ability.gd" id="6_field"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/float_ability.gd" id="7_float"]
+
+[sub_resource type="Resource" id="attrs"]
+script = ExtResource("2_attrs")
+strength = 16.0
+agility = 15.0
+vitality = 16.0
+dexterity = 12.0
+intelligence = 30.0
+luck = 6.0
+
+[sub_resource type="Resource" id="dart"]
+script = ExtResource("3_dart")
+min_impulse = 25.0
+max_impulse = 80.0
+min_speed = 30.0
+max_speed = 60.0
+min_cost = 4.0
+gravity_scale = 0.05
+lifetime = 4.0
+display_name = "Dardo Cinético"
+description = "Segure para carregar, solte para disparar. Só empurra: não aquece nem acende nada. Carga cheia segurada demais faz a mira tremer."
+cost = 20.0
+cost_pool = 1
+cooldown = 0.25
+scaling_attribute = 4
+charge_time = 1.0
+tremor_delay = 1.5
+tremor_degrees = 2.0
+
+[sub_resource type="Resource" id="field"]
+script = ExtResource("6_field")
+radius = 3.0
+base_duration = 2.5
+reach = 15.0
+max_speed_inside = 1.5
+gravity_factor = 0.1
+display_name = "Campo Lento"
+description = "Bolha no ponto mirado: tudo dentro dela fica lento por alguns segundos. Não afeta você."
+cost = 30.0
+cost_pool = 1
+cooldown = 8.0
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="telekinesis"]
+script = ExtResource("5_tk")
+reach = 8.0
+base_carry_mass = 12.0
+mana_per_second = 8.0
+base_throw_speed = 14.0
+stiffness = 6.0
+hold_distance = 3.0
+throw_cost = 10.0
+display_name = "Telecinese Acelerada"
+description = "Segura objetos à distância e os arremessa muito mais rápido. Arremessar gasta Mana."
+cost = 10.0
+cost_pool = 1
+cooldown = 0.3
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="leap"]
+script = ExtResource("4_leap")
+display_name = "Pulo Arcano"
+description = "Pulo duplo com impulso mágico: sobe mais alto e empurra o que está aos seus pés. Gasta Vigor."
+cost = 25.0
+cost_pool = 0
+cooldown = 0.0
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="float"]
+script = ExtResource("7_float")
+max_fall_speed = 1.5
+base_drain = 15.0
+display_name = "Flutuar"
+description = "Segure Espaço enquanto cai: desce devagar e controla a direção. Drena Mana."
+cost = 5.0
+cost_pool = 1
+cooldown = 0.0
+scaling_attribute = 4
+
+[resource]
+script = ExtResource("1_class")
+id = &"psionic"
+display_name = "Mago Psiônico"
+role = "Arqueiro mental: força pura, sem elementos"
+description = "Não cria nada: muda a velocidade do que já existe. Empurra de longe, desacelera áreas e freia a própria queda."
+color = Color(0.45, 0.85, 0.95, 1)
+attributes = SubResource("attrs")
+body_mass = 70.0
+regen_delay = 1.0
+sprint_cost = 10.0
+acceleration = 10.0
+air_control = 0.45
+hand_range = 2.2
+hold_distance = 1.4
+primary_ability = SubResource("dart")
+mobility_ability = SubResource("field")
+special_ability = SubResource("telekinesis")
+air_jump_ability = SubResource("leap")
+float_ability = SubResource("float")

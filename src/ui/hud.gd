@@ -35,6 +35,8 @@ var _slot_box: VBoxContainer
 var _help: PanelContainer
 var _fps: Label
 var _guard_label: Label
+var _float_label: Label
+var _charge_bar: ProgressBar
 var _vignette: ColorRect
 var _exhaustion := 0.0
 var _exhaustion_pulse := 0.0
@@ -75,7 +77,7 @@ func bind_player(player: Player) -> void:
 	fill.set_corner_radius_all(3)
 	_bar.add_theme_stylebox_override("fill", fill)
 
-	for slot in Player.SLOTS + [Player.SLOT_AIR_JUMP]:
+	for slot in Player.SLOTS + [Player.SLOT_AIR_JUMP, Player.SLOT_FLOAT]:
 		var ability := player.get_ability(slot)
 		if ability:
 			_add_slot(slot, ability.display_name)
@@ -103,13 +105,35 @@ func _process(delta: float) -> void:
 			var cost := _player.get_ability(slot).cost
 			ok = _player.is_air_jump_available() and _player.get_pool(Player.Pool.STAMINA) >= cost
 			status.text = "Pronto" if ok else ("Usado" if not _player.is_air_jump_available() else "Sem Vigor")
+		elif slot == Player.SLOT_FLOAT:
+			ok = _player.get_pool(Player.Pool.MANA) >= _player.get_ability(slot).cost
+			status.text = "Ativo" if _player.is_floating() else ("Pronto" if ok else "Sem Mana")
+		elif slot == Player.SLOT_PRIMARY and _player.is_charging():
+			status.text = "%d%%" % roundi(_player.get_charge() * 100.0)
 		else:
 			var remaining := _player.get_cooldown(slot)
 			ok = remaining <= 0.0
 			status.text = "Pronto" if ok else "%.1fs" % remaining
 		status.add_theme_color_override("font_color", READY if ok else MUTED)
 	_guard_label.visible = _player.is_guarding()
+	_float_label.visible = _player.is_floating()
+	_update_charge_bar()
 	_update_exhaustion(delta)
+
+
+## Barra fina sob a mira enquanto carrega. Fica laranja quando a mira começa a tremer.
+func _update_charge_bar() -> void:
+	_charge_bar.visible = _player.is_charging()
+	if not _charge_bar.visible:
+		return
+	_charge_bar.value = _player.get_charge()
+	var fill := _charge_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if _player.get_charge_tremor() > 0.0:
+		fill.bg_color = Color(1.0, 0.6, 0.3)
+	elif _player.get_charge() >= 1.0:
+		fill.bg_color = Color(0.85, 1.0, 1.0)
+	else:
+		fill.bg_color = _player.class_data.color
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -183,6 +207,25 @@ func _build_center() -> void:
 	_guard_label = _centered_label(-90.0, 22, Color(0.7, 0.85, 1.0))
 	_guard_label.text = "EM GUARDA"
 	_guard_label.visible = false
+	_float_label = _centered_label(-90.0, 20, Color(0.6, 0.92, 1.0))
+	_float_label.text = "flutuando"
+	_float_label.visible = false
+
+	_charge_bar = ProgressBar.new()
+	_charge_bar.show_percentage = false
+	_charge_bar.max_value = 1.0
+	_charge_bar.step = 0.0
+	_charge_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_charge_bar.offset_left = -40
+	_charge_bar.offset_right = 40
+	_charge_bar.offset_top = 14
+	_charge_bar.offset_bottom = 19
+	var background := StyleBoxFlat.new()
+	background.bg_color = Color(0, 0, 0, 0.5)
+	_charge_bar.add_theme_stylebox_override("background", background)
+	_charge_bar.add_theme_stylebox_override("fill", StyleBoxFlat.new())
+	_charge_bar.visible = false
+	_root.add_child(_charge_bar)
 
 
 func _build_status() -> void:
@@ -254,8 +297,14 @@ func _build_help() -> void:
 
 func _help_text() -> String:
 	var lines := ["CONTROLES  (F1 esconde)"]
-	for pair in [["move_forward", "Andar"], ["jump", "Pular"], ["air_jump", "Pulo duplo (gasta Vigor)"], ["sprint", "Correr"], ["grab", "Pegar / soltar"],
-			["primary", "Habilidade principal / arremessar"], ["mobility", "Mobilidade"], ["special", "Especial"],
+	var pairs := [["move_forward", "Andar"], ["jump", "Pular"], ["air_jump", "Pulo duplo (gasta Vigor)"]]
+	if _player and _player.get_ability(Player.SLOT_FLOAT):
+		pairs.append(["float", "Flutuar ao cair (gasta Mana)"])
+	var primary := "Habilidade principal / arremessar"
+	if _player and _player.get_ability(Player.SLOT_PRIMARY) and _player.get_ability(Player.SLOT_PRIMARY).is_chargeable():
+		primary = "Segurar carrega, soltar dispara"
+	for pair in pairs + [["sprint", "Correr"], ["grab", "Pegar / soltar"],
+			["primary", primary], ["mobility", "Mobilidade"], ["special", "Especial"],
 			["reload_arena", "Recarregar arena"], ["debug_editor", "Editor de testes"], ["pause", "Pausa"]]:
 		lines.append("%s — %s" % [InputBindings.label(pair[0]), pair[1]])
 	return "\n".join(lines)
