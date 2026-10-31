@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="PlayerClassData" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/player/player_class_data.gd" id="1_class"]
+[ext_resource type="Script" path="res://src/gameplay/stats/attributes.gd" id="2_attrs"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/shield_bash_ability.gd" id="3_bash"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/charge_ability.gd" id="4_charge"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/guard_ability.gd" id="5_guard"]
+
+[sub_resource type="Resource" id="attrs"]
+script = ExtResource("2_attrs")
+strength = 32.0
+agility = 14.0
+vitality = 26.0
+dexterity = 10.0
+intelligence = 8.0
+luck = 5.0
+
+[sub_resource type="Resource" id="bash"]
+script = ExtResource("3_bash")
+display_name = "Golpe de Escudo"
+description = "Empurra tudo num cone à frente. Leves voam, pesados mal se mexem."
+cost = 15.0
+cooldown = 0.7
+scaling_attribute = 0
+
+[sub_resource type="Resource" id="charge"]
+script = ExtResource("4_charge")
+display_name = "Investida"
+description = "Arrancada no chão que atropela objetos. O impacto vem do seu peso em movimento."
+cost = 25.0
+cooldown = 1.5
+scaling_attribute = 1
+
+[sub_resource type="Resource" id="guard"]
+script = ExtResource("5_guard")
+display_name = "Postura de Muralha"
+description = "Finca os pés atrás do escudo: quase imune a empurrões e explosões, mas lento."
+cost = 20.0
+cooldown = 4.0
+scaling_attribute = 2
+
+[resource]
+script = ExtResource("1_class")
+id = &"knight"
+display_name = "Cavaleiro"
+role = "Força bruta e física pesada"
+description = "Treinado além do comum, mas ainda de carne e osso. Carrega, empurra e atropela usando o próprio corpo e o escudo."
+color = Color(0.85, 0.7, 0.35, 1)
+attributes = SubResource("attrs")
+body_mass = 100.0
+pool_name = "Vigor"
+resource_color = Color(0.9, 0.75, 0.3, 1)
+resource_attribute = 2
+sprint_cost = 10.0
+acceleration = 9.0
+air_control = 0.25
+hand_range = 2.2
+hold_distance = 1.5
+primary_ability = SubResource("bash")
+mobility_ability = SubResource("charge")
+special_ability = SubResource("guard")

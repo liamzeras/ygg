@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="PropMaterial" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/world/prop_material.gd" id="1_mat"]
+
+[resource]
+script = ExtResource("1_mat")
+display_name = "Barril de pólvora"
+color = Color(0.7, 0.15, 0.1, 1)
+roughness = 0.6
+density = 110.0
+friction = 0.6
+flammable = true
+ignition_heat = 60.0
+heat_decay = 10.0
+burn_time = 3.0
+fire_spread_radius = 1.2
+fire_spread_heat = 40.0
+explosive = true
+fuse_time = 1.5
+explosion_radius = 5.0
+explosion_impulse = 700.0
+explosion_heat = 150.0
+impact_detonation_speed = 9.0

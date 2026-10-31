@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PropMaterial" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/world/prop_material.gd" id="1_mat"]
+
+[resource]
+script = ExtResource("1_mat")
+display_name = "Caixa de madeira"
+color = Color(0.62, 0.43, 0.25, 1)
+roughness = 0.85
+density = 90.0
+friction = 0.7
+flammable = true
+ignition_heat = 100.0
+heat_decay = 15.0
+burn_time = 10.0
+fire_spread_radius = 1.4
+fire_spread_heat = 45.0
