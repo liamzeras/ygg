@@ -115,7 +115,7 @@ cmd_teste() {
 	local saida
 	saida="$("$(caminho_godot)" --headless --path "$RAIZ" res://tests/smoke_test.tscn 2>&1)"
 	echo "$saida" | grep -E 'FALHA|=== SMOKE TEST'
-	# Erro de script interrompe uma suíte sem contar como falha, então é conferido à parte.
+	# Segunda proteção: o próprio teste já conta erro de script como falha nas suítes.
 	if echo "$saida" | grep -qE 'SCRIPT ERROR|Parse Error'; then
 		echo "$saida" | grep -E -A3 'SCRIPT ERROR|Parse Error'
 		return 1
