@@ -39,6 +39,13 @@ mais relevantes são:
 Fluxos coordenados úteis: `/start`, `/brainstorm`, `/prototype`, `/team-combat`,
 `/team-ui`, `/team-level`, `/playtest-report`, `/bug-report`, `/sprint-plan`.
 
+## Operação paralela (frentes)
+
+O trabalho é dividido em frentes, cada uma com seu time e seus arquivos. Para delegar sem
+parar a conversa principal, use `/orquestrar <pedido>`; `/orquestrar status` mostra o que
+está rodando e `/orquestrar integrar` junta o que ficou pronto. Mapa e regras em
+`.claude/frentes/mapa.md`; dono de cada arquivo em `.claude/frentes/donos.txt`.
+
 ## Estrutura
 
 ```text

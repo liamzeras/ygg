@@ -1,0 +1,113 @@
+# Dono de cada arquivo do Ygg. Lido por tools/frentes.sh.
+# Formato: <padrão> <frente> [trava]
+# A primeira linha que casar vence, então regras específicas ficam antes das gerais.
+# "*" também atravessa pastas. Arquivos .uid e .import seguem o dono do arquivo original.
+#
+# "trava" = arquivo disputado: só uma frente por vez pode alterar, com reserva no quadro.
+# Critério de hoje: mudou em todos os 3 commits do projeto ou é ponto central de integração.
+
+# --- Arquivos com trava ---
+src/gameplay/player/player.gd     gameplay    trava
+src/gameplay/player/player.tscn   gameplay    trava
+src/levels/test_arena.gd          mundo       trava
+src/levels/test_arena.tscn        mundo       trava
+src/ui/hud.gd                     interface   trava
+src/core/input_bindings.gd        fundacao    trava
+tests/smoke_test.gd               qualidade   trava
+tests/screenshot.gd               qualidade   trava
+design/gdd/game-concept.md        loop        trava
+project.godot                     fundacao    trava
+CLAUDE.md                         fundacao    trava
+
+# --- Fundação (a "lógica": base técnica, arquitetura, desempenho) ---
+src/core/game_state.gd            loop
+src/core/*                        fundacao
+docs/architecture/*               fundacao
+tools/*                           fundacao
+.claude/*                         fundacao
+*.gdignore                        fundacao
+
+# --- Gameplay (corpo do jogador e física sistêmica) ---
+src/gameplay/player/player_class_data.gd  classes
+src/gameplay/player/*             gameplay
+src/gameplay/world/physics_prop.gd    gameplay
+src/gameplay/world/prop_material.gd   gameplay
+src/gameplay/world/explosion.gd   gameplay
+src/gameplay/world/heat_zone.gd   gameplay
+assets/data/materials/*           gameplay
+design/gdd/physics-magic-system.md  gameplay
+
+# --- Classes (habilidades, atributos e o que as magias criam no mundo) ---
+src/gameplay/abilities/*          classes
+src/gameplay/stats/*              classes
+src/gameplay/world/mud_patch.gd   classes
+src/gameplay/world/stone_pillar.gd  classes
+src/gameplay/world/slow_field.gd  classes
+assets/data/classes/*             classes
+assets/data/attribute_rules.tres  classes
+design/gdd/attributes.md          classes
+design/gdd/mage-*                 classes
+design/gdd/class-*                classes
+
+# --- Monstros (combate, dano, inimigos e alvos de teste) ---
+src/gameplay/combat/*             monstros
+src/gameplay/creatures/*          monstros
+src/gameplay/world/training_dummy.gd  monstros
+src/gameplay/world/flying_target.gd   monstros
+assets/data/damage_rules.tres     monstros
+assets/data/creatures/*           monstros
+design/gdd/damage-and-testing.md  monstros
+design/gdd/creature-*             monstros
+
+# --- Equipamentos (itens, inventário, loot, economia) ---
+src/gameplay/items/*              equipamentos
+assets/data/items/*               equipamentos
+design/gdd/item-*                 equipamentos
+design/gdd/economy-*              equipamentos
+
+# --- Loop (ciclo do jogo, progressão, salvamento) ---
+src/gameplay/progression/*        loop
+src/gameplay/save/*               loop
+assets/data/progression/*         loop
+design/gdd/core-loop*             loop
+design/gdd/progression-*          loop
+
+# --- Quests (sistema e conteúdo de missões) ---
+src/gameplay/quests/*             quests
+assets/data/quests/*              quests
+design/quests/*                   quests
+design/gdd/quest-*                quests
+
+# --- História (roteiro, lore, personagens) ---
+design/narrative/*                historia
+assets/data/dialogue/*            historia
+
+# --- Mundo (fases, mapa aberto, ambientação) ---
+src/levels/*                      mundo
+assets/data/world/*               mundo
+design/levels/*                   mundo
+design/gdd/world-*                mundo
+
+# --- Arte (direção visual, efeitos, shaders) ---
+src/gameplay/fx/*                 arte
+assets/art/*                      arte
+assets/shaders/*                  arte
+design/art/*                      arte
+
+# --- Áudio ---
+src/gameplay/audio/*              audio
+assets/audio/*                    audio
+design/audio/*                    audio
+
+# --- Interface (menus, HUD, acessibilidade) ---
+src/ui/*                          interface
+assets/ui/*                       interface
+design/ux/*                       interface
+
+# --- Sábio (sessão de pesquisa; só escreve material de consulta) ---
+design/sabio/*                    sabio
+
+# --- Qualidade (testes, roteiros de QA, relatórios) ---
+tests/*                           qualidade
+production/playtests/*            qualidade
+production/qa/*                   qualidade
