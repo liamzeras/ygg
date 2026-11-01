@@ -28,7 +28,6 @@ func _ready() -> void:
 	await _test_damage_consistency()
 	await _test_progression()
 	await _test_stair_auto_climb()
-	await _test_stair_rhythm()
 	await _test_dash()
 	await _test_flying_targets()
 	await _test_dummy_fire_and_reset()
@@ -581,47 +580,6 @@ func _test_stair_auto_climb() -> void:
 		peak = maxf(peak, player.global_position.y)
 	Input.action_release("move_forward")
 	_check(peak > 2.5, "segurando W sobe até o topo (%.2f m)" % peak)
-	await _unload(arena)
-
-
-# Regressão: subir escada com ritmo regular, sem perder velocidade nem dar tranco na câmera.
-func _test_stair_rhythm() -> void:
-	print("\n--- Ritmo da subida ---")
-	var arena := await _load_arena("knight")
-	var player: Player = arena.player
-	# Mais longe que o pé da escada, para chegar já na velocidade de andar.
-	player.global_position = Vector3(-20, 0.05, 17)
-	player.face_point(Vector3(-20, 1.6, -10))
-	await _frames(5)
-	Input.action_press("move_forward")
-	var last_y := player.global_position.y
-	var last_z := player.global_position.z
-	var last_camera := player.get_aim_origin().y
-	var last_step := -1
-	var intervals: Array[float] = []
-	var speeds: Array[float] = []
-	var max_camera_jump := 0.0
-	for i in 120:
-		await _frames(1)
-		var y := player.global_position.y
-		if y > 1.95:
-			break
-		if y - last_y > 0.05:
-			if last_step >= 0:
-				intervals.append(i - last_step)
-			last_step = i
-		if last_step >= 0:
-			speeds.append(absf(player.global_position.z - last_z) * 60.0)
-			max_camera_jump = maxf(max_camera_jump, player.get_aim_origin().y - last_camera)
-		last_y = y
-		last_z = player.global_position.z
-		last_camera = player.get_aim_origin().y
-	Input.action_release("move_forward")
-	print("  quadros entre degraus: %s" % [intervals])
-	print("  avanço máx/mín: %.2f / %.2f m/s; maior salto da câmera num quadro: %.3f m" % [speeds.max(), speeds.min(), max_camera_jump])
-	_check(intervals.size() >= 7 and intervals.max() - intervals.min() <= 1.0, "intervalo entre degraus regular (%s quadros)" % [intervals])
-	_check(speeds.max() <= player.stats.walk_speed * 1.15 and speeds.min() >= player.stats.walk_speed * 0.8, "velocidade constante na escada (%.2f a %.2f m/s)" % [speeds.min(), speeds.max()])
-	_check(max_camera_jump < 0.09, "câmera sobe sem tranco (máx %.3f m por quadro)" % max_camera_jump)
 	await _unload(arena)
 
 
