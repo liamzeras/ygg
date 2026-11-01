@@ -72,11 +72,10 @@ Regras:
 - Não remova nem afrouxe uma verificação para fazer o teste passar. Se o jogo mudou de
   propósito, explique a mudança no commit.
 - Suíte que não compila, não estende `suite_base.gd` ou não faz nenhuma verificação conta como falha.
-
-**Limitação conhecida:** se o script der erro no meio de uma suíte, depois de já ter feito alguma
-verificação, as verificações seguintes não rodam e o resultado ainda pode ser `0 falhas`. O sinal é o
-número `N` cair ou aparecer `SCRIPT ERROR` na saída completa do comando do Godot (`tools/frentes.sh
-teste` não mostra essa linha). Ao mexer numa suíte, confira se `N` subiu ou ficou igual.
+- Qualquer erro de script durante uma suíte (no teste ou no jogo) também conta como falha e mostra
+  o arquivo e a linha do erro. O erro pode ter vindo da suíte anterior, se aconteceu logo no fim dela.
+- Ao mexer numa suíte, confira se `N` subiu ou ficou igual: o teste não sabe quantas verificações
+  deveriam existir, então uma verificação apagada não aparece como falha.
 
 ## Capturas de tela (revisão visual)
 

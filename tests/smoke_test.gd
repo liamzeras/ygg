@@ -10,12 +10,43 @@ var _failures: Array[String] = []
 var _checks := 0
 
 
+## Guarda os erros de script do Godot. Um erro interrompe a função sem avisar quem a chamou,
+## e as verificações seguintes não rodariam: sem isto, o teste ainda diria "0 falhas".
+class ScriptErrorWatcher extends Logger:
+	var _mutex := Mutex.new()
+	var _errors: Array[String] = []
+
+	# O Godot pode chamar isto de qualquer thread, por isso o Mutex.
+	func _log_error(_function: String, file: String, line: int, code: String, rationale: String, _editor_notify: bool, error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		if error_type != ERROR_TYPE_SCRIPT:
+			return
+		var error := "%s (%s:%d)" % [code if rationale.is_empty() else rationale, file, line]
+		_mutex.lock()
+		# Um erro em _process se repetiria a cada quadro: basta aparecer uma vez.
+		if not _errors.has(error):
+			_errors.append(error)
+		_mutex.unlock()
+
+	## Devolve os erros guardados e esvazia a lista.
+	func take() -> Array[String]:
+		_mutex.lock()
+		var errors := _errors
+		_errors = []
+		_mutex.unlock()
+		return errors
+
+
 func _ready() -> void:
+	var watcher := ScriptErrorWatcher.new()
+	OS.add_logger(watcher)
 	var files := _find_suites()
 	if files.is_empty():
 		_fail("nenhuma suíte encontrada em %s" % SUITES_DIR)
 	for file in files:
 		await _run_suite(file)
+		for error in watcher.take():
+			_fail("erro de script durante a suíte %s: %s" % [file, error])
+	OS.remove_logger(watcher)
 	print("")
 	for failure in _failures:
 		print("  FALHOU: " + failure)
