@@ -34,15 +34,45 @@ algo pegando fogo, queimou." O jogador entende o dano olhando a cena, sem decora
 dano_impacto = max(impulso - limiar, 0) x dano_por_impulso     (limiar 10 N·s, 0,1 por N·s)
 dano_fogo    = calor x dano_por_calor                           (0,1 por unidade de calor)
 DPS          = dano_do_combo / max(duração_do_combo, 1 s)
+impulso_materializado = massa x velocidade_relativa x 200 x mult(atributo)
+velocidade_do_tiro    = velocidade_da_magia + velocidade_de_quem_lança
 ```
 
 Valores medidos no teste de fumaça (classe no nível inicial):
 
 | Fonte | Impulso / calor | Dano |
 |---|---|---|
-| Golpe de Escudo (1,8 m do boneco) | ~100 N·s | ~9 |
-| Bola de Fogo (acerto direto) | calor 133 + explosão | ~16 |
-| Caixa em chamas encostada | ~20 calor/s | ~2 por segundo |
+| Golpe de Escudo (qualquer ponto do alcance) | ~195 N·s | ~18,5 |
+| Bola de Fogo, carga cheia (10 g a 30 m/s) | 133 N·s + calor 178 | ~30 |
+| Dardo Cinético, carga cheia (7 g a 60 m/s) | 187 N·s | ~18 |
+| Degrau mais alto da escada subindo | 325 N·s | ~31,5 |
+| Caixa em chamas encostada | ~32 calor/s | ~3 por segundo |
+
+### Objetos materializados e movimento
+
+O que a magia cria tem massa de verdade: uma Bola de Fogo cheia pesa 10 g e um Dardo cheio, 7 g.
+Fisicamente, 10 g a 30 m/s são só 0,3 N·s, abaixo do limiar de dano. A escala `materialized_scale`
+(200, faixa segura 100–400) representa a energia mágica concentrada, e o restante é física:
+mais velocidade = mais impacto.
+
+Onde o movimento conta:
+
+- **Projéteis mágicos**: herdam toda a velocidade de quem lança; o impacto usa a velocidade
+  relativa ao alvo. Correr para o alvo soma, recuar subtrai, alvo vindo de frente soma.
+- **Campo Lento**: um projétil freado bate fraco.
+- **Objetos arremessados** (mãos e telecinese): herdam todo o movimento de quem arremessa
+  (antes era metade). O impacto em alvos usa a velocidade relativa.
+- **Golpe de Escudo**: soma massa x velocidade para a frente x 0,15. Recuar não subtrai.
+- **Investida e Dash**: já vêm da massa e da velocidade.
+- **Pilares**: massa x velocidade de subida x 0,05.
+- **Calor não muda com a velocidade.**
+
+**Correção do 3º playtest:** o dano mudava com o ponto do corpo atingido (Bola de Fogo cheia: 36 nas
+pernas, 18 na cabeça), porque a explosão media a distância até a origem do boneco, que fica nos pés.
+Isso parecia efeito de distância e de pulo contra queda. Agora o acerto direto recebe tudo, o respingo
+mede até a superfície do corpo, projéteis não têm resistência do ar e o Golpe de Escudo é igual em todo
+o alcance. Um pulo (4 m/s) ou uma queda de 4 m (8,9 m/s) são quase perpendiculares a um tiro na
+horizontal e mudam pouco; só o movimento na direção do tiro pesa muito.
 
 ## Edge Cases (Casos-limite)
 
@@ -62,6 +92,8 @@ Futuro: personagens e inimigos com vida usam as mesmas `DamageRules`.
 ## Acceptance Criteria (Critérios de aceite)
 
 - [x] Caixa em chamas ao lado do boneco causa dano de fogo (teste de fumaça; bug reportado no 1º playtest).
+- [x] Distância (3, 8, 20 m) e ponto do corpo (0,5; 1,2; 1,9 m) mudam o dano em menos de 5% (teste de fumaça).
+- [x] Cair de 4 m pesa mais que um pulo baixo (teste de fumaça).
 - [x] Boneco zera após 5 s sem dano (teste de fumaça).
 - [x] Esbarrão abaixo do limiar não causa dano (teste de fumaça).
 - [ ] Playtest: o DPS mostrado bate com a sensação de "isso bateu forte".
@@ -80,3 +112,12 @@ Painel in-game para testar o que o personagem ainda não alcança. **Nada é sal
 - **Arena**: zerar boneco, recarregar.
 
 Com o editor aberto o mouse fica livre e o personagem para de responder ao teclado.
+
+## Alvos voadores (F7)
+
+Cada pressão de F7 cria 3 alvos em volta do boneco, em órbitas diferentes (`TARGET_ORBITS` em
+`test_arena.gd`): raio 4 m a 3 m/s, 6 m a 5 m/s no sentido contrário e 8 m a 7 m/s, entre 2,6 e 5 m
+de altura. No máximo 9: acima disso, somem os mais antigos. F5 limpa todos.
+
+Os alvos não têm vida. O dano aparece em cima do alvo e entra no combo e no DPS do boneco (com o
+nome "Alvo: ..."). Golpes os empurram para fora da órbita (massa 5 kg) e eles voltam sozinhos.

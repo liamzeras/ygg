@@ -105,7 +105,8 @@ O dano sai das `DamageRules` que já existem: `dano = max(impulso − 10, 0) x 0
 ### Dardo Cinético
 
 ```
-impulso    = lerp(25, 80, c) x I          N·s     (faixa: 25 a 640 no teto, I = 8)
+massa      = lerp(4, 7, c)                g
+impulso    = massa x velocidade relativa ao alvo x 200 x I   N·s
 velocidade = lerp(30, 60, c)              m/s     (gravidade 5% da normal)
 custo      = lerp(4, 20, c)               Mana    (pago ao soltar)
 tremor     = 2° / D                       só depois de 1,5 s com carga cheia
@@ -113,8 +114,8 @@ tremor     = 2° / D                       só depois de 1,5 s com carga cheia
 
 | Exemplo (Psiônico inicial) | Impulso | Dano no boneco | Caixa de madeira (19 kg) sai a | Mana |
 |---|---|---|---|---|
-| Clique (c = 0) | 56 N·s | ~4,6 | 2,9 m/s | 4 |
-| Carga cheia (c = 1) | 178 N·s | ~16,8 | 9,4 m/s | 20 |
+| Clique (c = 0) | 53 N·s | ~4,4 | 2,8 m/s | 4 |
+| Carga cheia (c = 1) | 187 N·s | ~17,6 | 9,6 m/s | 20 |
 
 A carga cheia fica no nível da Bola de Fogo (~16), mas sem fogo. Com 149 de Mana e
 regeneração de 15/s, cabem ~7 disparos cheios seguidos. Barril de pólvora (28 kg) leva
@@ -172,8 +173,8 @@ Descer da torre de 6 m leva ~4 s e custa ~40 de Mana. Com Mana cheia dá ~15 s n
   na velocidade que tinha (lenta). O campo é um **freio**, não guarda energia.
 - **Campo nasce colado no jogador**: o jogador não é afetado, mas objetos que ele estiver
   segurando com a telecinese são.
-- **Dardo freado pelo campo**: o impulso do dardo cai junto com a velocidade (impulso x
-  velocidade atual / velocidade de disparo). Um dardo que saiu da bolha a 1,5 m/s quase não empurra.
+- **Dardo freado pelo campo**: o impulso depende da velocidade relativa no impacto (massa x
+  velocidade x escala). Um dardo que saiu da bolha a 1,5 m/s quase não empurra.
 - **Projéteis dentro do campo**: continuam contando o tempo de vida. Se ele acabar lá
   dentro, o projétil some.
 - **Fogo e explosão dentro do campo**: calor normal. Os destroços arremessados respeitam o
@@ -209,7 +210,7 @@ Tudo no `.tres` do Psiônico (`assets/data/classes/psionic.tres`).
 
 | Ajuste | Valor | Faixa segura | O que muda no jogo |
 |---|---|---|---|
-| Dardo: impulso mín./máx. | 25 / 80 | 15–40 / 50–120 | Força e dano. Acima de 120, o dardo arremessa barris o bastante para explodir. |
+| Dardo: massa mín./máx. | 4 / 7 g | 2–6 / 5–10 g | Força e dano. Acima de 10 g, o dardo arremessa barris o bastante para explodir. |
 | Dardo: velocidade mín./máx. | 30 / 60 m/s | 20–40 / 40–80 | Facilidade de mirar de longe. |
 | Dardo: custo mín./máx. | 4 / 20 | 2–8 / 12–30 | Quantos tiros cheios cabem na Mana. |
 | Dardo: tempo de carga | 1,0 s | 0,6–1,5 | Ritmo do "arco". |

@@ -1,24 +1,18 @@
 class_name KineticDartProjectile
-extends RigidBody3D
-## Projétil do Dardo Cinético. Ao bater, aplica `impulse` na direção do voo.
-## O impulso cai junto com a velocidade (um dardo freado pelo Campo Lento bate fraco).
+extends MaterializedProjectile
+## Projétil do Dardo Cinético. Ao bater, aplica o impulso na direção do voo.
+## Impulso calculado em MaterializedProjectile: um dardo freado pelo Campo Lento bate fraco.
 
 const COLOR := Color(0.55, 0.95, 1.0)
 
 var source_name := "Dardo Cinético"
-var impulse := 0.0
-var launch_speed := 30.0
 var lifetime := 4.0
 
-var _direction := Vector3.FORWARD
-var _speed := 0.0
 var _done := false
 var _visual: Node3D
 
 
 func _ready() -> void:
-	# Leve: quem empurra é o impulso calculado, não a massa do dardo.
-	mass = 0.05
 	continuous_cd = true
 	contact_monitor = true
 	max_contacts_reported = 1
@@ -49,33 +43,26 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 
-func launch(direction: Vector3) -> void:
-	_direction = direction.normalized()
-	_speed = launch_speed
-	linear_velocity = _direction * launch_speed
+func launch(spell_velocity: Vector3, caster_velocity: Vector3) -> void:
+	super(spell_velocity, caster_velocity)
 	_orient()
 
 
-## Impulso que o dardo aplicaria se batesse agora.
-func current_impulse() -> float:
-	return impulse * clampf(_speed / launch_speed, 0.0, 1.0)
-
-
 func _physics_process(delta: float) -> void:
+	super(delta)
 	lifetime -= delta
 	if lifetime <= 0.0:
 		queue_free()
 		return
-	var speed := linear_velocity.length()
-	if speed > 0.05:
-		_direction = linear_velocity / speed
-		_speed = speed
 	_orient()
 
 
 func _orient() -> void:
-	if _visual and absf(_direction.dot(Vector3.UP)) < 0.99:
-		_visual.global_basis = Basis.looking_at(_direction, Vector3.UP)
+	var speed := _flight_velocity.length()
+	if _visual and speed > 0.05:
+		var direction := _flight_velocity / speed
+		if absf(direction.dot(Vector3.UP)) < 0.99:
+			_visual.global_basis = Basis.looking_at(direction, Vector3.UP)
 
 
 func _on_body_entered(body: Node) -> void:
@@ -83,7 +70,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	_done = true
 	# Velocidade e direção de antes do choque (a colisão já mudou linear_velocity).
-	_hit.call_deferred(body, current_impulse(), _direction)
+	_hit.call_deferred(body, impact_impulse(body), _flight_velocity.normalized())
 
 
 func _hit(body: Node, strength: float, direction: Vector3) -> void:

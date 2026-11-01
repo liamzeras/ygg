@@ -16,9 +16,14 @@ const ARENA_HALF_SIZE := 50.0
 ## Escada da pista de vãos (altura e profundidade de cada degrau, em m).
 const STAIR_RISE := 0.2
 const STAIR_DEPTH := 0.35
+## Alvos voadores (F7): cada pressão cria um lote com estas órbitas em volta do boneco:
+## [raio (m), altura (m), velocidade (m/s; negativa = sentido contrário)].
+const TARGET_ORBITS := [[4.0, 2.6, 3.0], [6.0, 3.8, -5.0], [8.0, 5.0, 7.0]]
+const MAX_TARGETS := 9
 
 var player: Player
 var dummy: TrainingDummy
+var flying_targets: Array[FlyingTarget] = []
 
 @onready var _hud: CanvasLayer = $HUD
 
@@ -40,8 +45,25 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("spawn_targets"):
+		spawn_flying_targets()
 	if event.is_action_pressed("reload_arena"):
 		GameState.reload_current()
+
+
+## Cria um lote de alvos voadores em volta do boneco; acima do limite, somem os mais antigos.
+func spawn_flying_targets() -> void:
+	for orbit in TARGET_ORBITS:
+		var target := FlyingTarget.new()
+		target.dummy = dummy
+		target.center = dummy.global_position + Vector3.UP * orbit[1]
+		target.orbit_radius = orbit[0]
+		target.orbit_speed = orbit[2]
+		target.angle = randf() * TAU
+		add_child(target)
+		flying_targets.append(target)
+	while flying_targets.size() > MAX_TARGETS:
+		flying_targets.pop_front().queue_free()
 
 
 func _spawn_player() -> void:

@@ -1,7 +1,7 @@
 class_name ChargeAbility
 extends Ability
 ## Cavaleiro — Investida: arrancada no chão que atropela objetos no caminho.
-## Velocidade = base x raiz(mult(Agilidade)).
+## Velocidade = base x raiz(mult(Força)): arrancada vem das pernas (Agilidade não entra).
 ## Impacto = massa do cavaleiro x velocidade x fração transferida (quantidade de movimento).
 
 @export var base_speed := 9.0

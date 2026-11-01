@@ -71,7 +71,7 @@ func bind_player(player: Player) -> void:
 	_class_label.text = data.display_name
 	_class_label.add_theme_color_override("font_color", data.color)
 	var a := data.attributes
-	_attr_label.text = "FOR %d  AGI %d  VIT %d  DES %d  INT %d  SOR %d" % [a.strength, a.agility, a.vitality, a.dexterity, a.intelligence, a.luck]
+	_attr_label.text = "Nv %d  ·  FOR %d  AGI %d  VIT %d  DES %d  INT %d  SOR %d" % [_player.level, a.strength, a.agility, a.vitality, a.dexterity, a.intelligence, a.luck]
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = MANA_COLOR
 	fill.set_corner_radius_all(3)
@@ -151,7 +151,7 @@ func _on_pool_changed(pool: Player.Pool, current: float, maximum: float) -> void
 
 func _on_stats_changed() -> void:
 	var a := _player.class_data.attributes
-	_attr_label.text = "FOR %d  AGI %d  VIT %d  DES %d  INT %d  SOR %d" % [a.strength, a.agility, a.vitality, a.dexterity, a.intelligence, a.luck]
+	_attr_label.text = "Nv %d  ·  FOR %d  AGI %d  VIT %d  DES %d  INT %d  SOR %d" % [_player.level, a.strength, a.agility, a.vitality, a.dexterity, a.intelligence, a.luck]
 
 
 func _on_action_failed(reason: String) -> void:
@@ -303,9 +303,9 @@ func _help_text() -> String:
 	var primary := "Habilidade principal / arremessar"
 	if _player and _player.get_ability(Player.SLOT_PRIMARY) and _player.get_ability(Player.SLOT_PRIMARY).is_chargeable():
 		primary = "Segurar carrega, soltar dispara"
-	for pair in pairs + [["sprint", "Correr"], ["grab", "Pegar / soltar"],
+	for pair in pairs + [["sprint", "Correr"], ["dash", "Dash (com direção; padrão: frente)"], ["grab", "Pegar / soltar"],
 			["primary", primary], ["mobility", "Mobilidade"], ["special", "Especial"],
-			["reload_arena", "Recarregar arena"], ["debug_editor", "Editor de testes"], ["pause", "Pausa"]]:
+			["reload_arena", "Recarregar arena"], ["debug_editor", "Editor de testes"], ["spawn_targets", "Alvos voadores"], ["pause", "Pausa"]]:
 		lines.append("%s — %s" % [InputBindings.label(pair[0]), pair[1]])
 	return "\n".join(lines)
 

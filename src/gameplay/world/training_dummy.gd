@@ -15,6 +15,8 @@ const HIGHLIGHT_TIME := 0.4
 const REFRESH_INTERVAL := 0.1
 ## Calor menor que isto por frame é agrupado como "Fogo" contínuo.
 const FIRE_SOURCE := "Fogo"
+const BODY_HEIGHT := 2.1
+const BODY_RADIUS := 0.3
 
 @export var rules: AttributeRules
 @export var damage_rules: DamageRules
@@ -71,6 +73,16 @@ func reset() -> void:
 	_idle_time = 0.0
 	_dirty = true
 	combo_reset.emit()
+
+
+## Distância de um ponto até a superfície do boneco (ver DamageRules.distance_to).
+func surface_distance(point: Vector3) -> float:
+	return DamageRules.capsule_distance(global_position, BODY_HEIGHT, BODY_RADIUS, point)
+
+
+## Centro do corpo (a origem do nó fica nos pés).
+func get_center() -> Vector3:
+	return global_position + Vector3.UP * BODY_HEIGHT / 2.0
 
 
 ## Dano por segundo do combo atual (janela mínima de 1 s para não explodir no 1º golpe).
@@ -141,11 +153,11 @@ func _build() -> void:
 	_add_part(head_mesh, Vector3(0, 1.92, 0), Color.WHITE, _body_material)
 
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.3
-	shape.height = 2.1
+	shape.radius = BODY_RADIUS
+	shape.height = BODY_HEIGHT
 	var collision := CollisionShape3D.new()
 	collision.shape = shape
-	collision.position.y = 1.05
+	collision.position.y = BODY_HEIGHT / 2.0
 	add_child(collision)
 
 	_label = Label3D.new()

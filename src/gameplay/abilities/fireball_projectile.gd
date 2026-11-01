@@ -1,21 +1,22 @@
 class_name FireballProjectile
-extends RigidBody3D
-## Projétil da Bola de Fogo. Valores vêm de `ability` (FireballAbility).
+extends MaterializedProjectile
+## Projétil da Bola de Fogo. Valores vêm de `ability` (FireballAbility). O calor não depende
+## da velocidade; o empurrão e o dano de impacto sim (ver MaterializedProjectile).
 
 const RADIUS := 0.15
 
 var ability: FireballAbility
-var impulse := 0.0
 var heat := 0.0
+var blast_radius := 1.6
 
 var _life := 0.0
 var _done := false
 var _direct_hit: Node
+var _impulse := -1.0
 
 
 func _ready() -> void:
 	gravity_scale = ability.gravity_scale
-	mass = 0.5
 	continuous_cd = true
 	contact_monitor = true
 	max_contacts_reported = 1
@@ -43,6 +44,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	super(delta)
 	_life -= delta
 	if _life <= 0.0:
 		_detonate()
@@ -50,6 +52,7 @@ func _physics_process(delta: float) -> void:
 
 func _on_body_entered(body: Node) -> void:
 	_direct_hit = body
+	_impulse = impact_impulse(body)
 	_detonate.call_deferred()
 
 
@@ -57,7 +60,8 @@ func _detonate() -> void:
 	if _done:
 		return
 	_done = true
-	if is_instance_valid(_direct_hit) and _direct_hit.has_method("add_heat"):
-		_direct_hit.add_heat(heat)
-	Explosion.detonate(self, global_position, ability.blast_radius, impulse, heat, [get_rid()])
+	# Sem alvo (tempo acabou), explode com a velocidade que tinha.
+	var impulse := _impulse if _impulse >= 0.0 else impact_impulse()
+	var direct := _direct_hit as Node3D if is_instance_valid(_direct_hit) else null
+	Explosion.detonate(self, global_position, blast_radius, impulse, heat, [get_rid()], Color(1, 0.6, 0.2), direct, ability.display_name)
 	queue_free()

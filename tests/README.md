@@ -3,8 +3,10 @@
 ## Teste de fumaça (automático)
 
 Carrega a arena com o Cavaleiro, o Elementalista e o Psiônico, usa as habilidades de cada, pega e arremessa
-uma caixa, testa fogo, explosão, Dardo Cinético, Campo Lento, Flutuar e as fórmulas de atributos.
-Leva ~40 segundos e não abre janela.
+uma caixa, testa fogo, explosão, Dardo Cinético, Campo Lento, Flutuar, Bola de Fogo carregável,
+Escada de Pedra, Lamaçal, teto de pulo, degraus, dash, alvos voadores, impacto por massa e
+velocidade e as fórmulas de atributos.
+Leva ~1 minuto e não abre janela.
 
 No terminal, dentro da pasta `Ygg`:
 

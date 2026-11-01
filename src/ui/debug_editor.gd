@@ -17,6 +17,9 @@ var _value_labels := {}
 var _derived: Label
 var _infinite: CheckButton
 var _no_cooldown: CheckButton
+var _level_slider: HSlider
+var _level_value: Label
+var _points: Label
 
 
 func _ready() -> void:
@@ -90,6 +93,30 @@ func _build() -> void:
 	presets.add_child(_button("Teto (150)", _apply_cap))
 	box.add_child(presets)
 
+	box.add_child(_section("Nível  (o slider acima é livre; aqui valem as regras)"))
+	var level_row := HBoxContainer.new()
+	level_row.add_theme_constant_override("separation", 8)
+	level_row.add_child(_fixed_label("Nível", 110))
+	_level_slider = HSlider.new()
+	_level_slider.min_value = 1
+	_level_slider.max_value = _player.rules.max_level
+	_level_slider.step = 1
+	_level_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_level_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_level_slider.value_changed.connect(func(value: float) -> void: _player.set_level(roundi(value)))
+	level_row.add_child(_level_slider)
+	_level_value = _fixed_label("", 100)
+	_level_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	level_row.add_child(_level_value)
+	box.add_child(level_row)
+	_points = _text("", 16, TEXT)
+	box.add_child(_points)
+	var level_presets := HBoxContainer.new()
+	level_presets.add_theme_constant_override("separation", 8)
+	level_presets.add_child(_button("Nível 1 (tudo em 1)", _apply_level_one))
+	level_presets.add_child(_button("Nível 99 (referência)", _apply_level_max))
+	box.add_child(level_presets)
+
 	box.add_child(_section("Valores calculados"))
 	_derived = _text("", 16, TEXT)
 	box.add_child(_derived)
@@ -153,12 +180,20 @@ func _refresh() -> void:
 		var value := attrs.get_value(kind)
 		(_sliders[kind] as HSlider).set_value_no_signal(value)
 		(_value_labels[kind] as Label).text = "%d  (%sx)" % [value, _decimal(_player.stats.mult(kind), 2)]
+	var rules := _player.rules
+	_level_slider.set_value_no_signal(_player.level)
+	_level_value.text = "%d / %d" % [_player.level, rules.max_level]
+	var free := _player.get_free_points()
+	var status := "%d livres" % free if free >= 0 else "%d acima do nível (teste livre)" % -free
+	_points.text = "Pontos: %d de %d  ·  %s  ·  próximo nível: +%d" % [
+		rules.spent_points(attrs), rules.points_at_level(_player.level), status, rules.points_gained_at(_player.level + 1)]
 	var s := _player.stats
 	_derived.text = "\n".join([
 		"Carga nas mãos: %s kg" % _decimal(s.carry_mass, 0),
 		"Arremesso: %s m/s" % _decimal(s.throw_speed, 1),
 		"Andar / correr: %s / %s m/s" % [_decimal(s.walk_speed, 1), _decimal(s.sprint_speed, 1)],
 		"Pulo: %s m" % _decimal(s.jump_height, 2),
+		"Velocidade de ataque: %sx" % _decimal(s.attack_speed, 2),
 		"Vigor: %s  (+%s/s)" % [_decimal(s.max_stamina, 0), _decimal(s.stamina_regen, 1)],
 		"Mana: %s  (+%s/s)" % [_decimal(s.max_mana, 0), _decimal(s.mana_regen, 1)],
 	])
@@ -172,6 +207,24 @@ func _apply_human() -> void:
 func _apply_cap() -> void:
 	for kind: Attributes.Kind in Attributes.Kind.values():
 		_player.set_attribute(kind, _player.rules.cap)
+
+
+func _apply_level_one() -> void:
+	_player.set_level(1)
+	for kind: Attributes.Kind in Attributes.Kind.values():
+		_player.set_attribute(kind, _player.rules.start_value)
+
+
+## Nível máximo com a build de referência: os valores vão para os atributos mais altos da classe.
+func _apply_level_max() -> void:
+	var rules := _player.rules
+	var attrs := _player.class_data.attributes
+	var kinds: Array = Attributes.Kind.values()
+	kinds.sort_custom(func(a: int, b: int) -> bool: return attrs.get_value(a) > attrs.get_value(b))
+	_player.set_level(rules.max_level)
+	for i in kinds.size():
+		var value: float = rules.reference_build[i] if i < rules.reference_build.size() else rules.start_value
+		_player.set_attribute(kinds[i], value)
 
 
 func _decimal(value: float, places: int) -> String:

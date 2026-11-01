@@ -33,12 +33,13 @@ o barril certo, carregar uma caixa até o braseiro, saltar no momento certo."
 
 - **Atributos**: Força, Agilidade, Vitalidade, Destreza, Inteligência, Sorte. Regras em
   `attributes.md`.
-- **Classes iniciais**: Cavaleiro, Mago Elementalista e Mago Psiônico. Todos têm Vigor e Mana, pulo duplo (Espaço 2x)
+- **Classes iniciais**: Cavaleiro, Mago Elementalista e Mago Psiônico. Todos têm Vigor e Mana, dash (Ctrl), pulo duplo (Espaço 2x)
   e a mesma velocidade de movimento.
 - **Rumo do Mago**: será o "arqueiro" do jogo (dano à distância) e se divide em duas
   especializações: **Elementalista** (elementos + manipulação de terreno) e **Psiônico**
   (sem elementos: acelerar, desacelerar, flutuar). Psiônico desenhado e implementado em
-  `mage-psionic.md`; o card "Mago Elementalista" usa o kit antigo do Mago até o kit dele ser desenhado.
+  `mage-psionic.md`; Elementalista em `mage-elementalist.md` (Bola de Fogo carregável, Escada de
+  Pedra, Lamaçal).
 - **Interação básica**: qualquer classe pega objetos com as mãos (limite de carga pela
   Força) e arremessa. Andar empurra objetos.
 - **Mundo**: materiais madeira, metal, pedra e pólvora; braseiro como fonte de fogo do
@@ -49,16 +50,20 @@ o barril certo, carregar uma caixa até o braseiro, saltar no momento certo."
 | Tecla | Habilidade | Escala com | Ideia |
 |---|---|---|---|
 | Botão esq. | Golpe de Escudo | Força | Cone de empurrão. Leves voam, pesados mal se mexem. |
-| Q | Investida | Agilidade | Arrancada no chão; o impacto é a quantidade de movimento (massa x velocidade). |
+| Q | Investida | Força | Arrancada no chão; o impacto é a quantidade de movimento (massa x velocidade). |
 | F | Postura de Muralha | Vitalidade | Por alguns segundos ignora 85% dos empurrões e explosões, mas fica lento. |
 
-### Mago (magias gastam Mana)
+### Mago Elementalista (magias gastam Mana) · detalhes em `mage-elementalist.md`
 
 | Tecla | Habilidade | Escala com | Ideia |
 |---|---|---|---|
-| Botão esq. | Bola de Fogo | Inteligência | Empurra pouco, aquece muito. Incendeia madeira e acende pólvora. |
-| Q | *(reservado para as subclasses)* | — | O Salto Arcano virou o pulo duplo do mago (Espaço 2x). |
-| F | Telecinese | Inteligência | Segura à distância, mas carrega **menos** que braços fortes e drena mana. |
+| Botão esq. | Bola de Fogo (carregável) | Inteligência | Projétil em arco: explode, empurra e incendeia. |
+| Q | Escada de Pedra | fixa | 3 pilares de 0,85, 1,70 e 2,55 m; o do meio na mira. Sobe com W. |
+| F | Lamaçal | Inteligência | Lama: objetos param, fogo apaga, quem pisa fica lento. |
+
+### Mago Psiônico · detalhes em `mage-psionic.md`
+
+Dardo Cinético (carregável), Campo Lento (Q), Telecinese Acelerada (F) e Flutuar (segurar Espaço caindo).
 
 ## Formulas (Fórmulas)
 

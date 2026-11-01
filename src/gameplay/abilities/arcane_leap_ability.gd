@@ -3,7 +3,7 @@ extends Ability
 ## Pulo duplo (todas as classes): impulso no ar, para cima e na direção
 ## em que o jogador está andando. A versão arcana do mago também empurra o que está aos pés.
 ## Usado com Espaço no ar; o jogador garante só um por salto.
-## Velocidade vertical = base x raiz(mult(atributo)): Agilidade no cavaleiro, Inteligência no mago.
+## Velocidade vertical = base x raiz(mult(atributo)): Força no cavaleiro, Inteligência no mago.
 
 @export var base_up_speed := 5.0
 ## Impulso horizontal na direção do movimento (0 se parado: sobe reto).

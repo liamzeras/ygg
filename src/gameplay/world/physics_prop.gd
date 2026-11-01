@@ -25,11 +25,13 @@ const KILL_HEIGHT := -50.0
 var heat := 0.0
 var burning := false
 var last_speed := 0.0
+var last_velocity := Vector3.ZERO
 
 var _burn_left := 0.0
 var _fuse_left := -1.0
 var _exploded := false
 var _visual_material: StandardMaterial3D
+var _fire: Node3D
 
 
 func _ready() -> void:
@@ -49,6 +51,7 @@ func get_display_name() -> String:
 
 
 func _physics_process(delta: float) -> void:
+	last_velocity = linear_velocity
 	last_speed = linear_velocity.length()
 	if global_position.y < KILL_HEIGHT:
 		queue_free()
@@ -83,10 +86,28 @@ func ignite() -> void:
 		return
 	burning = true
 	_burn_left = material_data.burn_time
-	add_child(Fx.make_fire(maxf(size.x, size.z) * 0.4))
+	_fire = Fx.make_fire(maxf(size.x, size.z) * 0.4)
+	add_child(_fire)
 	if material_data.explosive:
 		_fuse_left = material_data.fuse_time
 	ignited.emit()
+
+
+## Apaga o fogo (ex.: Lamaçal). O que já queimou continua escurecido; o pavio para.
+func extinguish() -> void:
+	if not burning:
+		return
+	burning = false
+	heat = 0.0
+	_fuse_left = -1.0
+	if is_instance_valid(_fire):
+		_fire.queue_free()
+	_fire = null
+
+
+## Retira calor (ex.: lama molhada).
+func cool(amount: float) -> void:
+	heat = maxf(heat - amount, 0.0)
 
 
 func explode() -> void:
@@ -105,7 +126,7 @@ func _spread_heat(delta: float) -> void:
 	for node in get_tree().get_nodes_in_group(&"heat_receivers"):
 		if node == self:
 			continue
-		var distance := global_position.distance_to((node as Node3D).global_position)
+		var distance := DamageRules.distance_to(node as Node3D, global_position)
 		if distance < radius:
 			node.add_heat(material_data.fire_spread_heat * (1.0 - distance / radius) * delta)
 
@@ -117,8 +138,10 @@ func _burn_out() -> void:
 
 
 func _on_body_entered(body: Node) -> void:
-	if body.has_method("register_hit") and last_speed > 2.0:
-		body.register_hit(get_display_name(), mass * last_speed)
+	# Impacto pela velocidade relativa: bater num alvo que vem na sua direção dói mais.
+	var relative_speed := (last_velocity - DamageRules.velocity_of(body)).length()
+	if body.has_method("register_hit") and relative_speed > 2.0:
+		body.register_hit(get_display_name(), mass * relative_speed)
 	if not material_data.explosive or _exploded:
 		return
 	var impact := last_speed

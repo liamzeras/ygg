@@ -19,18 +19,22 @@ const POOL_NAMES := {Pool.STAMINA: "Vigor", Pool.MANA: "Mana"}
 const SLOT_PRIMARY := &"primary"
 const SLOT_MOBILITY := &"mobility"
 const SLOT_SPECIAL := &"special"
+const SLOT_DASH := &"dash"
 const SLOT_AIR_JUMP := &"air_jump"
 const SLOT_FLOAT := &"float"
 const ACTION_GRAB := &"grab"
 const ACTION_JUMP := &"jump"
 ## Soltar o botão esquerdo: dispara uma habilidade carregável.
 const ACTION_PRIMARY_RELEASE := &"primary_release"
-const SLOTS: Array[StringName] = [SLOT_PRIMARY, SLOT_MOBILITY, SLOT_SPECIAL]
+const SLOTS: Array[StringName] = [SLOT_PRIMARY, SLOT_MOBILITY, SLOT_SPECIAL, SLOT_DASH]
 const KILL_HEIGHT := -30.0
 ## Aumento do FOV ao correr (graus). Puramente visual.
 const SPRINT_FOV_KICK := 6.0
 ## Folga extra (m) ao testar a subida de degraus. Não muda a altura máxima do degrau.
 const STEP_CLEARANCE := 0.05
+## Tamanho do corpo (igual à colisão em player.tscn).
+const BODY_HEIGHT := 1.8
+const BODY_RADIUS := 0.35
 
 @export var class_data: PlayerClassData
 @export var rules: AttributeRules
@@ -48,6 +52,8 @@ var force_jump_held := false
 ## Trapaças do editor de testes.
 var debug_infinite_resources := false
 var debug_no_cooldowns := false
+## Nível do personagem (1 a rules.max_level). Define quantos pontos ele pode distribuir.
+var level := 1
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -57,6 +63,7 @@ var debug_no_cooldowns := false
 var _pools := {Pool.STAMINA: 0.0, Pool.MANA: 0.0}
 var _regen_wait := {Pool.STAMINA: 0.0, Pool.MANA: 0.0}
 var _base_attributes: Attributes
+var _base_level := 1
 var _pitch := 0.0
 var _base_fov := 80.0
 var _queued: Array[StringName] = []
@@ -82,6 +89,7 @@ var _floating := false
 var _float_blocked := false
 var _float_fx: CPUParticles3D
 var _takeoff_y := 0.0
+var _speed_effects := {}
 ## Suaviza a câmera ao subir um degrau (o corpo sobe na hora, a visão acompanha).
 var _step_offset := 0.0
 var _head_base_y := 0.0
@@ -98,12 +106,17 @@ func _ready() -> void:
 	# Cópia própria: o editor de testes mexe nos atributos sem alterar o .tres.
 	class_data = class_data.duplicate(true)
 	_base_attributes = class_data.attributes.duplicate()
+	# Build de teste da classe: o menor nível que paga os atributos dela.
+	_base_level = rules.level_for_build(_base_attributes)
+	level = _base_level
 	_recompute_stats()
 	_pools[Pool.STAMINA] = stats.max_stamina
 	_pools[Pool.MANA] = stats.max_mana
 	_spawn_point = global_position
 	_takeoff_y = global_position.y
 	_head_base_y = head.position.y
+	# Terreno (pilar, lama) encontra personagens por este grupo.
+	add_to_group(&"characters")
 	_aim_ray.add_exception(self)
 	if class_data.float_ability:
 		_float_fx = Fx.make_float_wisps()
@@ -136,6 +149,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		request_action(ACTION_PRIMARY_RELEASE)
 	elif event.is_action_pressed("mobility"):
 		request_action(SLOT_MOBILITY)
+	elif event.is_action_pressed("dash"):
+		request_action(SLOT_DASH)
 	elif event.is_action_pressed("special"):
 		request_action(SLOT_SPECIAL)
 
@@ -213,6 +228,7 @@ func get_ability(slot: StringName) -> Ability:
 		SLOT_PRIMARY: return class_data.primary_ability
 		SLOT_MOBILITY: return class_data.mobility_ability
 		SLOT_SPECIAL: return class_data.special_ability
+		SLOT_DASH: return class_data.dash_ability
 		SLOT_AIR_JUMP: return class_data.air_jump_ability
 		SLOT_FLOAT: return class_data.float_ability
 	return null
@@ -253,9 +269,15 @@ func get_charge_tremor() -> float:
 	if not _charging:
 		return 0.0
 	var ability := get_ability(SLOT_PRIMARY)
-	if _charge_hold < ability.charge_time + ability.tremor_delay:
+	if _charge_hold < get_charge_time() + ability.tremor_delay:
 		return 0.0
 	return ability.tremor_degrees / stats.mult(Attributes.Kind.DEXTERITY)
+
+
+## Segundos até a carga cheia do botão esquerdo, já com a velocidade de ataque (Agilidade).
+func get_charge_time() -> float:
+	var ability := get_ability(SLOT_PRIMARY)
+	return ability.charge_time / stats.attack_speed if ability else 0.0
 
 
 ## Interrompe a carga sem gastar nada.
@@ -267,6 +289,23 @@ func cancel_charge() -> void:
 
 func is_floating() -> bool:
 	return _floating
+
+
+## Efeito de terreno na velocidade de movimento (ex.: lama x0,5). Vale o mais forte.
+func set_speed_effect(source: Object, factor: float) -> void:
+	_speed_effects[source] = factor
+
+
+func clear_speed_effect(source: Object) -> void:
+	_speed_effects.erase(source)
+
+
+## Multiplicador atual da velocidade de movimento (1 = normal).
+func get_speed_factor() -> float:
+	var factor := 1.0
+	for value: float in _speed_effects.values():
+		factor = minf(factor, value)
+	return factor
 
 
 ## Altura (y) do último chão em que o jogador pisou. Base do teto do pulo duplo.
@@ -302,6 +341,7 @@ func set_attribute(kind: Attributes.Kind, value: float) -> void:
 ## Volta os atributos aos valores iniciais da classe.
 func reset_attributes() -> void:
 	class_data.attributes = _base_attributes.duplicate()
+	level = _base_level
 	_recompute_stats()
 
 
@@ -339,7 +379,7 @@ func use_ability(slot: StringName, charge := -1.0) -> bool:
 		return false
 	spend(ability.cost_pool, cost)
 	if not debug_no_cooldowns:
-		_cooldowns[slot] = ability.cooldown
+		_cooldowns[slot] = ability.cooldown / (stats.attack_speed if slot == SLOT_PRIMARY else 1.0)
 	if charge >= 0.0:
 		ability.activate_charged(self, charge)
 	else:
@@ -366,6 +406,39 @@ func start_guard(duration: float, reduction: float, speed_factor: float) -> void
 	_guard_time = duration
 	_guard_reduction = reduction
 	_guard_speed = speed_factor
+
+
+## Pontos ainda não distribuídos (negativo = build de teste acima do que o nível paga).
+func get_free_points() -> int:
+	return rules.points_at_level(level) - rules.spent_points(class_data.attributes)
+
+
+## Muda o nível sem mexer nos atributos: os pontos livres sobem ou descem junto.
+func set_level(value: int) -> void:
+	level = clampi(value, 1, rules.max_level)
+	stats_changed.emit()
+
+
+## Sobe um nível. Retorna false se já estiver no máximo.
+func level_up() -> bool:
+	if level >= rules.max_level:
+		return false
+	set_level(level + 1)
+	return true
+
+
+## Gasta um ponto livre em um atributo, respeitando o teto base.
+func raise_attribute(kind: Attributes.Kind) -> bool:
+	var value := class_data.attributes.get_value(kind)
+	if get_free_points() <= 0 or value >= rules.base_cap:
+		return false
+	set_attribute(kind, value + 1.0)
+	return true
+
+
+## Distância de um ponto até a superfície do corpo (ver DamageRules.distance_to).
+func surface_distance(point: Vector3) -> float:
+	return DamageRules.capsule_distance(global_position, BODY_HEIGHT, BODY_RADIUS, point)
 
 
 ## Recebe um empurrão (N·s). A velocidade muda conforme a massa do personagem.
@@ -470,7 +543,7 @@ func _update_charge(delta: float) -> void:
 		action_failed.emit("%s insuficiente" % POOL_NAMES[ability.cost_pool])
 		return
 	_charge_hold += delta
-	_charge = minf(minf(_charge_hold / ability.charge_time, 1.0), ability.max_charge_for(budget))
+	_charge = minf(minf(_charge_hold / get_charge_time(), 1.0), ability.max_charge_for(budget))
 
 
 # Flutuar (design/gdd/mage-psionic.md): só descendo, segurando Espaço. Mana zerada
@@ -539,13 +612,13 @@ func _move(delta: float) -> void:
 	_sprinting = wants_sprint and input.length() > 0.1 and get_pool(Pool.STAMINA) > 0.0 and not is_guarding()
 
 	if _dash_time > 0.0:
-		_dash_time -= delta
 		velocity.x = _dash_velocity.x
 		velocity.z = _dash_velocity.z
 	else:
 		var speed := stats.sprint_speed if _sprinting else stats.walk_speed
 		if is_guarding():
 			speed *= _guard_speed
+		speed *= get_speed_factor()
 		# No ar sem input, mantém o embalo (pulos não "freiam").
 		if is_on_floor() or input.length() > 0.1:
 			var accel := class_data.acceleration * (1.0 if is_on_floor() or _floating else class_data.air_control)
@@ -553,12 +626,18 @@ func _move(delta: float) -> void:
 			velocity.x = horizontal.x
 			velocity.z = horizontal.y
 
+	var was_dashing := _dash_time > 0.0
 	_step_up(delta)
 	move_and_slide()
 	_push_bodies(delta)
+	if was_dashing:
+		_dash_time -= delta
+		if _dash_time <= 0.0:
+			_end_dash()
 
 
-## Sobe degraus de até `rules.step_height` só andando (escadas, meio-fio, caixotes baixos).
+## Sobe degraus de até `rules.step_height` só andando (escadas, meio-fio, caixotes baixos),
+## ou até `auto_climb_height` de quem tiver essa propriedade, segurando W.
 ## Testa: bloqueado à frente → sobe a altura do degrau → anda → desce até achar chão.
 ## Só sobe se encontrar chão firme (não uma parede ou rampa íngreme) no fim.
 func _step_up(delta: float) -> void:
@@ -576,9 +655,14 @@ func _step_up(delta: float) -> void:
 	# Objetos soltos são empurrados, não escalados.
 	if blocker.get_collider() is RigidBody3D:
 		return
+	var max_step := rules.step_height
+	# Degraus com subida automática (Escada de Pedra): sobem segurando para a frente.
+	var climbable := blocker.get_collider()
+	if "auto_climb_height" in climbable and input_enabled and Input.is_action_pressed("move_forward"):
+		max_step = maxf(max_step, climbable.auto_climb_height)
 	# Sobe um pouco além do degrau: na altura exata, a base do cilindro
 	# raspa na quina e o teste de andar falharia.
-	var up := Vector3.UP * (rules.step_height + STEP_CLEARANCE)
+	var up := Vector3.UP * (max_step + STEP_CLEARANCE)
 	var ceiling := KinematicCollision3D.new()
 	if test_move(start, up, ceiling) and ceiling.get_normal().y < -0.5:
 		return
@@ -601,19 +685,31 @@ func _step_up(delta: float) -> void:
 		return
 	var new_position := moved.origin + landing.get_travel()
 	var rise := new_position.y - global_position.y
-	if rise <= 0.01 or rise > rules.step_height + 0.01:
+	if rise <= 0.01 or rise > max_step + 0.01:
 		return
 	global_position = new_position
 	_step_offset -= rise
+
+
+## Acaba o dash: o excesso de velocidade some (senão, no ar, ele continuaria voando).
+func _end_dash() -> void:
+	_dash_time = 0.0
+	var horizontal := Vector2(velocity.x, velocity.z).limit_length(stats.sprint_speed)
+	velocity.x = horizontal.x
+	velocity.z = horizontal.y
 
 
 func _push_bodies(delta: float) -> void:
 	for i in get_slide_collision_count():
 		var collision := get_slide_collision(i)
 		var collider := collision.get_collider()
-		if _dash_time > 0.0 and collider and not _dash_hits.has(collider):
+		var is_floor_contact := collision.get_normal().y > 0.7
+		if _dash_time > 0.0 and collider and not is_floor_contact and not _dash_hits.has(collider):
 			_dash_hits.append(collider)
 			var direction := (_dash_velocity.normalized() + Vector3.UP * 0.3).normalized()
+			# De frente com algo que não cede: para o dash em vez de ficar forçando.
+			if not collider is RigidBody3D and collision.get_normal().dot(_dash_velocity.normalized()) < -0.7:
+				_end_dash()
 			if collider is RigidBody3D:
 				(collider as RigidBody3D).apply_central_impulse(direction * _dash_impact)
 			if collider.has_method("register_hit"):
@@ -661,7 +757,8 @@ func _throw() -> void:
 	release_held()
 	# Objetos perto do limite de carga saem mais devagar.
 	var mass_factor := clampf(1.0 - body.mass / (carry * 1.5), 0.3, 1.0)
-	body.linear_velocity = get_aim_direction() * throw_speed * mass_factor + velocity * 0.5
+	# O objeto já se movia junto com quem segura: herda todo o movimento.
+	body.linear_velocity = get_aim_direction() * throw_speed * mass_factor + velocity
 	add_shake(0.1)
 
 

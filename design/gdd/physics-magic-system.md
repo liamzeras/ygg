@@ -63,6 +63,9 @@ arremesso        = vel_arremesso x clamp(1 - massa / (carga x 1,5), 0,3, 1)
 
 ## Dependencies (Dependências)
 
+`MudPatch` (Lamaçal do Elementalista, `mage-elementalist.md`) freia props, retira calor e
+apaga o fogo (`PhysicsProp.extinguish()`); o pavio de pólvora para. `StonePillar` é terreno
+animado: empurra e arremessa props.
 `SlowField` (Campo Lento do Psiônico, `mage-psionic.md`) limita a velocidade de props e
 projéteis dentro dele e reduz a gravidade ali.
 `PropMaterial` → `PhysicsProp` ↔ `Explosion` ↔ `HeatZone`; habilidades usam `Explosion`

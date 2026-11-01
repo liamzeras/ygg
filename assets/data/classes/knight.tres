@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://src/gameplay/abilities/guard_ability.gd" id="5_guard"]
 [ext_resource type="Script" path="res://src/gameplay/abilities/arcane_leap_ability.gd" id="6_jump"]
 
+[ext_resource type="Script" path="res://src/gameplay/abilities/dash_ability.gd" id="9_dash"]
+
 [sub_resource type="Resource" id="attrs"]
 script = ExtResource("2_attrs")
 strength = 32.0
@@ -18,6 +20,7 @@ luck = 5.0
 
 [sub_resource type="Resource" id="bash"]
 script = ExtResource("3_bash")
+momentum_transfer = 0.15
 display_name = "Golpe de Escudo"
 description = "Empurra tudo num cone à frente. Leves voam, pesados mal se mexem."
 cost = 15.0
@@ -32,7 +35,8 @@ description = "Arrancada no chão que atropela objetos. O impacto vem do seu pes
 cost = 25.0
 cost_pool = 0
 cooldown = 1.5
-scaling_attribute = 1
+scaling_attribute = 0
+base_speed = 7.5
 
 [sub_resource type="Resource" id="guard"]
 script = ExtResource("5_guard")
@@ -50,8 +54,21 @@ description = "Segundo impulso no ar, só com as pernas. Um por salto."
 cost = 25.0
 cost_pool = 0
 cooldown = 0.0
-scaling_attribute = 1
+scaling_attribute = 0
+base_up_speed = 4.2
 base_blast_impulse = 0.0
+
+[sub_resource type="Resource" id="dash"]
+script = ExtResource("9_dash")
+distance = 3.0
+duration = 0.2
+momentum_transfer = 0.1
+display_name = "Dash"
+description = "Arrancada curta na direção do movimento, ou para a frente se parado. Não atravessa paredes."
+cost = 20.0
+cost_pool = 0
+cooldown = 1.0
+scaling_attribute = 0
 
 [resource]
 script = ExtResource("1_class")
@@ -71,3 +88,4 @@ primary_ability = SubResource("bash")
 mobility_ability = SubResource("charge")
 special_ability = SubResource("guard")
 air_jump_ability = SubResource("air_jump")
+dash_ability = SubResource("dash")
