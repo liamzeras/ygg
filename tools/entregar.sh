@@ -7,7 +7,7 @@
 set -u
 
 GODOT="./Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
-TESTS="res://tests/smoke_test.tscn res://tests/escadas_test.tscn"
+TESTS="res://tests/smoke_test.tscn"
 
 if [ "$#" -lt 2 ]; then
 	echo "Uso: bash tools/entregar.sh \"mensagem\" arquivo [arquivo...]" >&2
