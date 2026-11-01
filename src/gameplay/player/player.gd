@@ -32,6 +32,14 @@ const KILL_HEIGHT := -30.0
 const SPRINT_FOV_KICK := 6.0
 ## Folga extra (m) ao testar a subida de degraus. Não muda a altura máxima do degrau.
 const STEP_CLEARANCE := 0.05
+## Distância (m) além do passo do quadro em que já se procura o próximo degrau.
+const STEP_LOOKAHEAD := 0.05
+## Quanto (m) a borda do corpo precisa passar da quina para contar como apoiada.
+const STEP_OVERLAP := 0.03
+## Folga (m) acima do degrau ao subir, para a base do corpo não raspar na quina.
+const STEP_SKIN := 0.005
+## Tempo máximo (s) sem gravidade esperando chegar ao degrau, caso o jogador pare.
+const STEP_HANG_MAX_TIME := 0.2
 ## Tamanho do corpo (igual à colisão em player.tscn).
 const BODY_HEIGHT := 1.8
 const BODY_RADIUS := 0.35
@@ -92,6 +100,9 @@ var _takeoff_y := 0.0
 var _speed_effects := {}
 ## Suaviza a câmera ao subir um degrau (o corpo sobe na hora, a visão acompanha).
 var _step_offset := 0.0
+var _step_offset_speed := 0.0
+var _step_hang_distance := 0.0
+var _step_hang_time := 0.0
 var _head_base_y := 0.0
 var _hint := ""
 var _spawn_point := Vector3.ZERO
@@ -180,7 +191,7 @@ func _process(delta: float) -> void:
 	var target_fov := _base_fov + (SPRINT_FOV_KICK if _sprinting else 0.0)
 	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-8.0 * delta))
 	_shake = maxf(_shake - delta * 1.5, 0.0)
-	_step_offset = lerpf(_step_offset, 0.0, 1.0 - exp(-14.0 * delta))
+	_update_step_camera(delta)
 	head.position.y = _head_base_y + _step_offset
 	var amount := _shake * _shake if Settings.get_value("camera_shake") else 0.0
 	camera.h_offset = randf_range(-1.0, 1.0) * amount * 0.15
@@ -586,7 +597,8 @@ func _set_floating(active: bool) -> void:
 func _jump() -> void:
 	if _dash_time > 0.0:
 		return
-	if is_on_floor():
+	if is_on_floor() or _step_hang_time > 0.0:
+		_step_hang_time = 0.0
 		velocity.y = sqrt(2.0 * _gravity * stats.jump_height)
 	elif is_air_jump_available() and use_ability(SLOT_AIR_JUMP):
 		_air_jump_used = true
@@ -599,7 +611,7 @@ func _update_timers(delta: float) -> void:
 
 
 func _move(delta: float) -> void:
-	if not is_on_floor():
+	if not is_on_floor() and _step_hang_time <= 0.0:
 		velocity.y -= _gravity * delta
 	if _floating:
 		velocity.y = maxf(velocity.y, -class_data.float_ability.max_fall_speed)
@@ -621,15 +633,21 @@ func _move(delta: float) -> void:
 		speed *= get_speed_factor()
 		# No ar sem input, mantém o embalo (pulos não "freiam").
 		if is_on_floor() or input.length() > 0.1:
-			var accel := class_data.acceleration * (1.0 if is_on_floor() or _floating else class_data.air_control)
+			var accel := class_data.acceleration * (1.0 if is_on_floor() or _floating or _step_hang_time > 0.0 else class_data.air_control)
 			var horizontal := Vector2(velocity.x, velocity.z).lerp(Vector2(_wish.x, _wish.z) * speed, clampf(accel * delta, 0.0, 1.0))
 			velocity.x = horizontal.x
 			velocity.z = horizontal.y
 
 	var was_dashing := _dash_time > 0.0
+	var was_hanging := _step_hang_time > 0.0
 	_step_up(delta)
 	move_and_slide()
 	_push_bodies(delta)
+	if was_hanging:
+		_step_hang_time -= delta
+		_step_hang_distance -= get_position_delta().length()
+		if is_on_floor() or _step_hang_distance <= 0.0:
+			_step_hang_time = 0.0
 	if was_dashing:
 		_dash_time -= delta
 		if _dash_time <= 0.0:
@@ -646,8 +664,9 @@ func _step_up(delta: float) -> void:
 	var horizontal := Vector3(velocity.x, 0.0, velocity.z) * delta
 	if horizontal.length() < 0.001:
 		return
-	# Sonda um pouco além do passo do quadro: com passos curtos o degrau passaria despercebido.
-	var probe := horizontal.normalized() * maxf(horizontal.length(), 0.05)
+	# Sobe um pouco antes de encostar, para não perder velocidade batendo no degrau.
+	var direction := horizontal.normalized()
+	var probe := horizontal + direction * STEP_LOOKAHEAD
 	var start := global_transform
 	var blocker := KinematicCollision3D.new()
 	if not test_move(start, probe, blocker):
@@ -667,28 +686,49 @@ func _step_up(delta: float) -> void:
 	if test_move(start, up, ceiling) and ceiling.get_normal().y < -0.5:
 		return
 	var raised := start.translated(up)
-	if test_move(raised, probe):
+	# Confere o pouso já com a borda do corpo sobre o degrau.
+	var gap := blocker.get_travel().length()
+	var over_step := direction * (gap + STEP_OVERLAP)
+	if test_move(raised, over_step):
 		return
 	var landing := KinematicCollision3D.new()
-	var moved := raised.translated(probe)
+	var moved := raised.translated(over_step)
 	if not test_move(moved, -up, landing):
 		return
 	# A borda da base pode pousar na quina (normal inclinada); confere a superfície logo
 	# depois da quina com um raio para baixo: só sobe se ali for chão, não rampa íngreme.
 	if landing.get_normal().y <= 0.0:
 		return
-	var contact := landing.get_position() + probe.normalized() * 0.03
+	var contact := landing.get_position() + direction * 0.03
 	var ray := PhysicsRayQueryParameters3D.create(contact + Vector3.UP * 0.1, contact + Vector3.DOWN * 0.2)
 	ray.exclude = [get_rid()]
 	var surface := get_world_3d().direct_space_state.intersect_ray(ray)
 	if surface.is_empty() or (surface.normal as Vector3).angle_to(Vector3.UP) > floor_max_angle:
 		return
-	var new_position := moved.origin + landing.get_travel()
-	var rise := new_position.y - global_position.y
-	if rise <= 0.01 or rise > max_step + 0.01:
+	# Só sobe: quem anda para a frente é move_and_slide. Somar o avanço aqui acelerava a cada degrau.
+	var new_height := moved.origin.y + landing.get_travel().y + STEP_SKIN
+	var rise := new_height - global_position.y
+	if rise <= 0.01 + STEP_SKIN or rise > max_step + 0.01 + STEP_SKIN:
 		return
-	global_position = new_position
+	global_position.y = new_height
+	# Até a borda do corpo chegar ao degrau, não há chão embaixo: sem gravidade nesse trecho,
+	# ou o corpo cairia contra a parede do degrau e perderia o ritmo.
+	_step_hang_distance = gap + STEP_OVERLAP
+	_step_hang_time = STEP_HANG_MAX_TIME
 	_step_offset -= rise
+
+
+## Câmera acompanha os degraus com uma mola sem oscilação: degraus seguidos viram uma subida
+## contínua, em vez de um tranco para cada um (mesma fórmula do SmoothDamp).
+func _update_step_camera(delta: float) -> void:
+	var omega := 2.0 / rules.step_camera_time
+	var x := omega * delta
+	var decay := 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
+	var pull := (_step_offset_speed + omega * _step_offset) * delta
+	_step_offset_speed = (_step_offset_speed - omega * pull) * decay
+	var next := (_step_offset + pull) * decay
+	# Limite de velocidade: um degrau alto sobe por um instante, em vez de saltar de uma vez.
+	_step_offset = move_toward(_step_offset, next, rules.step_camera_max_speed * delta)
 
 
 ## Acaba o dash: o excesso de velocidade some (senão, no ar, ele continuaria voando).

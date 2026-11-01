@@ -155,6 +155,9 @@ faixa segura 0,8–1,5), `step_height` (0,4 m, faixa segura 0,25–0,5), valores
 - Pulo base de **0,85 m** (3º playtest; antes 0,6 m); a altura extra vem do pulo duplo, que gasta Vigor.
 - (2º playtest) Pulo no máximo **1 m**, mesmo com Agilidade 150; com pulo duplo, no máximo
   **2 m**. Tempo no ar alto tirava o realismo e a graça do Flutuar do Psiônico.
+- (4º pedido) Subida de escada contínua: o corpo sobe antes de encostar no degrau, sem perder
+  velocidade (um degrau a cada 4 ou 5 quadros na escada de 0,2 m, antes 4 a 13), e a câmera acompanha
+  com mola (`step_camera_time` 0,06 s, faixa 0,03–0,12; `step_camera_max_speed` 4 m/s, faixa 2–8).
 - (2º playtest) Degraus de até **0,4 m** sobem só andando (escadas, meio-fio). O corpo do
   personagem virou um cilindro para apoiar bem na beirada do degrau.
 - Velocidade de movimento é fixa para todos. Montarias e efeitos ficam para depois.

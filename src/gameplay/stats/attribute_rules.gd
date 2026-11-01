@@ -26,6 +26,10 @@ extends Resource
 @export var max_jump_height := 1.0
 ## Degrau que qualquer um sobe só andando, sem pular (m). Escada comum = 0,18 m.
 @export var step_height := 0.4
+## Quão rápido a câmera alcança o corpo ao subir um degrau (s). Menor = mais colado e seco.
+@export var step_camera_time := 0.06
+## Velocidade máxima da câmera subindo degraus (m/s).
+@export var step_camera_max_speed := 4.0
 @export var hold_stiffness := 10.0      ## firmeza ao segurar objetos (destreza)
 @export var max_stamina := 100.0        ## Vigor (Vitalidade)
 @export var stamina_regen := 15.0       ## Vigor por segundo

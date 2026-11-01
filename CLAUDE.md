@@ -77,7 +77,19 @@ está rodando e `/orquestrar integrar` junta o que ficou pronto. Mapa e regras e
 
 ## Protocolo de colaboração
 
-Pergunta → Opções → Decisão → Rascunho → Aprovação. Sem commits sem pedido do usuário.
+Pergunta → Opções → Decisão → Rascunho → Aprovação.
+
+**Commit e envio automáticos (ordem do Liam, 2026-11-01):** na conversa principal, ao terminar uma
+mudança pedida pelo Liam, entregue sem perguntar:
+
+```bash
+bash tools/entregar.sh "mensagem do commit" arquivo1 arquivo2
+```
+
+O script roda o teste de fumaça e, se passar, faz commit só dos arquivos listados e envia para o
+GitHub. Se falhar, nada é commitado: corrija e rode de novo. Liste só os arquivos da sua tarefa, porque
+outras sessões usam a mesma pasta. Frentes em ramo seguem o mapa: commit no ramo, sem envio, e só o
+orquestrador junta na `main`. Se o Liam pedir para esperar o playtest, não entregue até ele liberar.
 
 ## Coordenação e padrões
 
