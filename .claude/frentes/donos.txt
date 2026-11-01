@@ -13,11 +13,22 @@ src/levels/test_arena.gd          mundo       trava
 src/levels/test_arena.tscn        mundo       trava
 src/ui/hud.gd                     interface   trava
 src/core/input_bindings.gd        fundacao    trava
-tests/smoke_test.gd               qualidade   trava
 tests/screenshot.gd               qualidade   trava
 design/gdd/game-concept.md        loop        trava
 project.godot                     fundacao    trava
 CLAUDE.md                         fundacao    trava
+
+# --- Sábio (sessão de pesquisa: material de consulta e laboratório próprio) ---
+design/sabio/*                    sabio
+src/gameplay/lab/*                sabio
+assets/data/lab/*                 sabio
+src/levels/sabio_lab*             sabio
+tests/lab_test*                   sabio
+
+# --- Suítes de teste: cada frente é dona da sua ---
+tests/suites/classes*             classes
+tests/suites/gameplay*            gameplay
+tests/suites/monstros*            monstros
 
 # --- Fundação (a "lógica": base técnica, arquitetura, desempenho) ---
 src/core/game_state.gd            loop
@@ -103,9 +114,6 @@ design/audio/*                    audio
 src/ui/*                          interface
 assets/ui/*                       interface
 design/ux/*                       interface
-
-# --- Sábio (sessão de pesquisa; só escreve material de consulta) ---
-design/sabio/*                    sabio
 
 # --- Qualidade (testes, roteiros de QA, relatórios) ---
 tests/*                           qualidade

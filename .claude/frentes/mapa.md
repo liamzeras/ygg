@@ -25,8 +25,8 @@ agora" em `design/gdd/game-concept.md`.
 | `historia` | Roteiro, lore, personagens, diálogos | `narrative-director` | `writer`, `world-builder` | `/team-narrative` | só design |
 | `audio` | Identidade sonora, lista de sons | `audio-director` | `sound-designer` | `/team-audio` | só design |
 
-A pasta `design/sabio/` é da sessão de pesquisa Sábio. Não é uma frente: serve de consulta
-para as frentes, e só o Sábio escreve nela.
+A sessão de pesquisa Sábio não é uma frente. O material dela (`design/sabio/`) serve de
+consulta para as frentes, e só ela escreve lá e no próprio laboratório (`src/gameplay/lab/`).
 
 Monetização, marketing, multiplayer e lançamento ficam de fora: `studio_mode` é `indie` e
 o jogo ainda está em pré-produção.
@@ -44,7 +44,9 @@ o jogo ainda está em pré-produção.
 5. **Só o orquestrador junta o trabalho na `main`**, um ramo por vez, com ordem do Liam e
    teste de fumaça depois de cada junção.
 6. **Conversa principal também conta:** ela trabalha direto na `main` e aparece no quadro como
-   `principal`, com as reservas dela. O que está sem commit lá é invisível para as frentes.
+   `principal`, com as reservas dela. Ela entrega sozinha com `tools/entregar.sh` (commit e envio,
+   regra no `CLAUDE.md`). O que ainda está sem commit lá é invisível para as frentes.
+7. **Testes:** cada frente acrescenta testes só na própria suíte em `tests/suites/`.
 
 ## Limpeza que tira os gargalos
 
@@ -53,7 +55,7 @@ Quem reduz a disputa por arquivos são estas tarefas, nesta ordem:
 
 | # | Frente | Tarefa | Por quê |
 |---|---|---|---|
-| 1 | `qualidade` | Dividir `tests/smoke_test.gd` em uma suíte por frente | Tem 699 linhas e toda funcionalidade nova mexe nele |
+| 1 | `qualidade` | **Feita:** dividir `tests/smoke_test.gd` em uma suíte por frente | Tinha 789 linhas e toda funcionalidade nova mexia nele |
 | 2 | `gameplay` | Separar de `player.gd` os componentes de movimento, mãos e recursos | Tem 773 linhas e 13 habilidades chamam o jogador diretamente |
 | 3 | `mundo` | Separar de `test_arena.gd` as estações de teste por área | Toda classe nova acrescenta coisas à arena |
 | 4 | `interface` | Fazer o HUD montar os espaços de habilidade a partir dos dados | Hoje `hud.gd` trata casos por habilidade |

@@ -26,12 +26,16 @@ Conforme o argumento:
      pergunte se ele libera o escopo.
 2. **Conferir se pode começar.** Pare e avise o Liam se qualquer item falhar:
    - **Base atualizada:** a sessão nasce do último commit. Rode `git status --short`. Se houver
-     algo sem commit que a tarefa precise enxergar, peça permissão para commitar antes.
+     algo sem commit que a tarefa precise enxergar, peça permissão para commitar antes. Confira
+     também `git status -sb`: a primeira sessão nasceu da versão do GitHub, sem os commits ainda
+     não enviados. Se a `main` estiver à frente do `origin`, avise o Liam antes de abrir.
    - **Limite:** veja `mcp__ccd_session_mgmt__list_sessions` com `{"linked": true}` e o quadro.
      O máximo é 3 frentes em `código` e 2 em `só design`. Acima disso, vai para a fila.
    - **Mesma frente ocupada:** uma tarefa por frente. A segunda vai para a fila.
    - **Travas:** se a tarefa precisa de arquivo com trava já reservado no quadro, vai para a fila.
-3. **Reservar.** Anote no quadro a frente, a tarefa e as travas reservadas.
+3. **Reservar.** Anote no quadro a frente, a tarefa e as travas reservadas. Se reservou uma
+   trava, avise a conversa principal na hora: ela pode estar confiando num aviso antigo de que
+   a trava estava livre.
 4. **Abrir a sessão.** Carregue a ferramenta com `ToolSearch`
    (`select:mcp__ccd_session__start_session`) e chame com `initiation: "user_asked"`,
    `context: "fresh"`, `use_worktree: true`, `name` e `branch_name` iguais a
