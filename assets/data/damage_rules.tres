@@ -8,4 +8,5 @@ impulse_threshold = 10.0
 damage_per_impulse = 0.1
 damage_per_heat = 0.1
 combo_reset_time = 5.0
+blocked_explosion_factor = 0.15
 materialized_scale = 200.0

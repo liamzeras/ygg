@@ -6,9 +6,15 @@ extends RefCounted
 ##
 ## `direct` é quem levou o acerto direto: recebe tudo, sem queda por distância. Os demais
 ## perdem força conforme a distância até a superfície do corpo, não até a origem do nó.
+## Parede ou pilar entre a explosão e o corpo protege; objetos soltos, personagens e o boneco, não.
 
 ## Fração do impulso redirecionada para cima, para os objetos "pularem".
 const UPWARD_BIAS := 0.4
+## Altura (m) do início do raio de oclusão: explosões rente ao chão não podem se bloquear nele.
+const OCCLUSION_LIFT := 0.1
+## Corpos soltos atravessados no máximo por um raio de oclusão.
+const OCCLUSION_MAX_PASSES := 8
+const DAMAGE: DamageRules = preload("res://assets/data/damage_rules.tres")
 
 
 static func detonate(context: Node3D, origin: Vector3, radius: float, impulse: float, heat: float,
@@ -25,9 +31,11 @@ static func detonate(context: Node3D, origin: Vector3, radius: float, impulse: f
 		_affect(direct, origin, impulse, heat, direct_source)
 	for hit in space.intersect_shape(params, 64):
 		var body := hit["collider"] as Node3D
-		if body == null or body == direct:
+		if body == null or body == direct or not _can_be_affected(body):
 			continue
 		var falloff := clampf(1.0 - DamageRules.distance_to(body, origin) / radius, 0.0, 1.0)
+		if _is_shielded(space, origin, body, exclude):
+			falloff *= DAMAGE.blocked_explosion_factor
 		_affect(body, origin, impulse * falloff, heat * falloff, "Explosão")
 
 	Fx.burst(context.get_tree().current_scene, origin, color, radius)
@@ -46,3 +54,24 @@ static func _affect(body: Node3D, origin: Vector3, impulse: float, heat: float, 
 		body.register_hit(source, impulse)
 	if heat > 0.0 and body.has_method("add_heat"):
 		body.add_heat(heat)
+
+
+static func _can_be_affected(body: Node3D) -> bool:
+	return body is RigidBody3D or body.has_method("apply_knockback") or body.has_method("register_hit") or body.has_method("add_heat")
+
+
+## true se houver parede ou pilar no caminho até o centro do corpo. Um raio só: quem está
+## meio exposto conta como protegido, porque o centro dele está coberto.
+static func _is_shielded(space: PhysicsDirectSpaceState3D, origin: Vector3, body: Node3D, exclude: Array[RID]) -> bool:
+	var ignored: Array[RID] = exclude.duplicate()
+	ignored.append((body as CollisionObject3D).get_rid())
+	var query := PhysicsRayQueryParameters3D.create(origin + Vector3.UP * OCCLUSION_LIFT, DamageRules.center_of(body))
+	for pass_index in OCCLUSION_MAX_PASSES:
+		query.exclude = ignored
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			return false
+		if not (hit.collider is RigidBody3D or hit.collider is CharacterBody3D or hit.collider.has_method("register_hit")):
+			return true
+		ignored.append(hit.rid)
+	return false

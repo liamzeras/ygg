@@ -452,6 +452,11 @@ func surface_distance(point: Vector3) -> float:
 	return DamageRules.capsule_distance(global_position, BODY_HEIGHT, BODY_RADIUS, point)
 
 
+## Centro do corpo (a origem do nó fica nos pés).
+func get_center() -> Vector3:
+	return global_position + Vector3.UP * BODY_HEIGHT / 2.0
+
+
 ## Recebe um empurrão (N·s). A velocidade muda conforme a massa do personagem.
 func apply_knockback(impulse: Vector3) -> void:
 	if is_guarding():

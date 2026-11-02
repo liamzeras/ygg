@@ -35,7 +35,7 @@ func activate(player: Player) -> void:
 		var body := hit["collider"] as Node3D
 		if body == null:
 			continue
-		var center: Vector3 = body.get_center() if body.has_method("get_center") else body.global_position
+		var center := DamageRules.center_of(body)
 		var offset := center - origin
 		var distance := offset.length()
 		if distance > 0.01 and offset.normalized().dot(direction) < min_dot:
