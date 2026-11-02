@@ -111,7 +111,7 @@ Se o divisor for zero ou negativo, o objeto nunca acende.
 | Situação | Conta | Resultado |
 |---|---|---|
 | Seca | 100 / (80 − 15) | 1,5 s |
-| Molhada 💡 | 100 / (40 − 15) | 4 s |
+| Molhada 💡 | 100 / (40 − 15), sem contar a secagem | 4 s; **medido no protótipo: 3,4 s**, porque o calor seca ([resultado](../pesquisa/resultado-formulas.md)) |
 | Dentro da lama ⚠️ | 100 / (80 − 15 − 50) | 6,7 s, e apaga em seguida: é a lacuna 2 |
 
 **Exemplo com a Bola de Fogo:** o calor vai de 78 (clique) a 178 (carga cheia), no Elementalista

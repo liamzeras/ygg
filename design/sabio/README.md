@@ -19,6 +19,14 @@
 - [Ideias para o Ygg](inspiracao/ideias-para-ygg.md) (backlog para o Liam decidir)
 - [Elementos × materiais](inspiracao/tabela-elementos-materiais.md) (rascunho de GDD; aguarda decisões)
 
+**Pesquisa científica**
+
+- [Princípios para o Deep Research](pesquisa/principios-para-deep-research.md) (prompt e 140 princípios; as respostas voltam para esta pasta)
+- [Contexto físico auditado](pesquisa/contexto-fisico.md) (18 princípios do Gemini, com erros apontados)
+- [Faltantes](pesquisa/faltantes.md) (122 princípios pesquisados, com o arquivo e a confiança de cada bloco)
+- [Decisão de implementação](pesquisa/decisao-implementacao.md) (proposta e respostas da conversa principal e do orquestrador)
+- [Fórmulas contra o jogo](pesquisa/resultado-formulas.md) (previsto versus medido na física real)
+
 **Protótipos**
 
 - [Laboratório do Sábio](laboratorio.md) (módulos para avaliar, manter ou apagar)
