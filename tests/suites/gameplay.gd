@@ -58,11 +58,11 @@ func _test_stair_rhythm() -> void:
 	Input.action_press("move_forward")
 	var last_y := player.global_position.y
 	var last_z := player.global_position.z
-	var last_camera := player.get_aim_origin().y
+	var camera_trace := CameraTrace.new(player)
+	add_child(camera_trace)
 	var last_step := -1
 	var intervals: Array[float] = []
 	var speeds: Array[float] = []
-	var max_camera_jump := 0.0
 	for i in 120:
 		await _frames(1)
 		var y := player.global_position.y
@@ -74,17 +74,55 @@ func _test_stair_rhythm() -> void:
 			last_step = i
 		if last_step >= 0:
 			speeds.append(absf(player.global_position.z - last_z) * 60.0)
-			max_camera_jump = maxf(max_camera_jump, player.get_aim_origin().y - last_camera)
 		last_y = y
 		last_z = player.global_position.z
-		last_camera = player.get_aim_origin().y
 	Input.action_release("move_forward")
+	camera_trace.queue_free()
+	var max_camera_rise := camera_trace.max_rise(1.0 / Engine.physics_ticks_per_second)
 	print("  quadros entre degraus: %s" % [intervals])
-	print("  avanço máx/mín: %.2f / %.2f m/s; maior salto da câmera num quadro: %.3f m" % [speeds.max(), speeds.min(), max_camera_jump])
+	print("  avanço máx/mín: %.2f / %.2f m/s; câmera: máx %.3f m em 1/60 s, %.3f m por quadro desenhado (%d quadros)" % [speeds.max(), speeds.min(), max_camera_rise, camera_trace.max_frame_rise(), camera_trace.times.size()])
 	_check(intervals.size() >= 7 and intervals.max() - intervals.min() <= 1.0, "intervalo entre degraus regular (%s quadros)" % [intervals])
 	_check(speeds.max() <= player.stats.walk_speed * 1.15 and speeds.min() >= player.stats.walk_speed * 0.8, "velocidade constante na escada (%.2f a %.2f m/s)" % [speeds.min(), speeds.max()])
-	_check(max_camera_jump < 0.09, "câmera sobe sem tranco (máx %.3f m por quadro)" % max_camera_jump)
+	_check(max_camera_rise < 0.09, "câmera sobe sem tranco (máx %.3f m em 1/60 s)" % max_camera_rise)
 	await _unload(arena)
+
+
+# Grava a altura da câmera a cada quadro desenhado, depois do _process do jogador.
+# A câmera anda em _process, e sem janela cabem 2 ou 3 quadros em cada tick de física: comparar tick
+# com tick mediria ora 14 ms, ora 21 ms de subida. Por isso a medida usa uma janela de tempo fixa.
+class CameraTrace extends Node:
+	var times: Array[float] = []
+	var heights: Array[float] = []
+	var _player: Player
+
+	func _init(player: Player) -> void:
+		_player = player
+		process_priority = 1000
+
+	func _process(delta: float) -> void:
+		times.append((times.back() if not times.is_empty() else 0.0) + delta)
+		heights.append(_player.get_aim_origin().y)
+
+	## Maior subida da câmera em qualquer intervalo de `window` segundos (interpola entre quadros).
+	func max_rise(window: float) -> float:
+		var best := 0.0
+		var j := 0
+		for i in range(1, times.size()):
+			var start_time := times[i] - window
+			if start_time < times[0]:
+				continue
+			while times[j + 1] < start_time:
+				j += 1
+			var start := lerpf(heights[j], heights[j + 1], inverse_lerp(times[j], times[j + 1], start_time))
+			best = maxf(best, heights[i] - start)
+		return best
+
+	## Maior subida entre dois quadros desenhados seguidos.
+	func max_frame_rise() -> float:
+		var best := 0.0
+		for i in range(1, heights.size()):
+			best = maxf(best, heights[i] - heights[i - 1])
+		return best
 
 
 func _test_dash() -> void:
