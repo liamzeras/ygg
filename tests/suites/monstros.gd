@@ -11,6 +11,99 @@ func run() -> void:
 	await _test_damage_consistency()
 	await _test_flying_targets()
 	await _test_dummy_fire_and_reset()
+	await _test_health_and_respawn()
+	await _test_combat_bot()
+
+
+# Vida, renascer e invencibilidade (design/gdd/combat-bot.md).
+func _test_health_and_respawn() -> void:
+	print("\n--- Vida e renascer ---")
+	var arena := await _load_arena("psionic")
+	var player: Player = arena.player
+	var health := player.get_node_or_null("Health") as Health
+	_check(health != null, "jogador tem vida")
+	if health == null:
+		await _unload(arena)
+		return
+	var expected := DAMAGE.base_health * pow(player.stats.mult(Attributes.Kind.VITALITY), DAMAGE.health_exponent)
+	_check(is_equal_approx(health.max_health, expected), "vida máxima %.0f (Vitalidade)" % health.max_health)
+
+	# Um dardo de outro personagem acerta o jogador e tira vida.
+	var dart := KineticDartProjectile.new()
+	dart.mass = 0.007
+	dart.power = 2.2
+	arena.add_child(dart)
+	dart.global_position = player.get_center() + Vector3(0, 0, -3)
+	dart.launch(Vector3(0, 0, 60), Vector3.ZERO)
+	await _frames(10)
+	_check(health.current < health.max_health, "dardo tira vida do jogador (%.1f de %.0f)" % [health.current, health.max_health])
+
+	# Andar contra uma caixa parada não machuca.
+	var before := health.current
+	var crate := _nearest_crate(arena, player)
+	player.global_position = crate.global_position + Vector3(0, -0.3, 1.5)
+	await _walk_toward(player, crate.global_position, 40)
+	_check(is_equal_approx(health.current, before), "andar contra caixa parada não machuca")
+
+	# Vida em 0: renasce no início com vida cheia e fica invencível por 0,5 s.
+	player.global_position = Vector3(5, 0.05, 0)
+	await _frames(3)
+	var respawned := [false]
+	health.respawned.connect(func() -> void: respawned[0] = true)
+	health.take_damage("Teste", health.current + 10.0)
+	_check(respawned[0] and is_equal_approx(health.current, health.max_health), "vida em 0: renasce com vida cheia")
+	_check(player.global_position.distance_to(arena.SPAWN) < 0.5, "renasce no ponto inicial")
+	_check(health.is_invulnerable(), "invencível logo após renascer")
+	health.take_damage("Teste", 30.0)
+	_check(is_equal_approx(health.current, health.max_health), "dano durante a invencibilidade é ignorado")
+	await _frames(int(DAMAGE.respawn_invulnerability * 60.0) + 3)
+	_check(not health.is_invulnerable(), "invencibilidade acaba em %.1f s" % DAMAGE.respawn_invulnerability)
+	health.take_damage("Teste", 30.0)
+	_check(health.current < health.max_health, "depois da invencibilidade, volta a tomar dano")
+	await _unload(arena)
+
+
+# Bot Psiônico agressivo: F6 chama e some, ataca, morre e renasce (design/gdd/combat-bot.md).
+func _test_combat_bot() -> void:
+	print("\n--- Bot psiônico (F6) ---")
+	var arena := await _load_arena("knight")
+	var player: Player = arena.player
+	var health := player.get_node("Health") as Health
+	_check(InputMap.has_action("spawn_bot"), "F6 registrado")
+	_press_key(KEY_F6)
+	await _frames(5)
+	var bot: PsionicBot = arena.combat_bot
+	_check(is_instance_valid(bot), "F6 chama o bot")
+	if not is_instance_valid(bot):
+		await _unload(arena)
+		return
+	_check(bot.class_data.id == &"psionic" and bot.class_data.attributes.intelligence == GameState.find_class("psionic").attributes.intelligence, "bot usa os atributos do Psiônico")
+
+	# Agressivo: em alguns segundos já acertou o jogador.
+	var start_health := health.current
+	var hit_time := -1.0
+	for frame in 480:
+		await _frames(1)
+		if health.current < start_health or health.is_invulnerable():
+			hit_time = frame / 60.0
+			break
+	_check(hit_time >= 0.0, "bot ataca e acerta o jogador (em %.1f s)" % hit_time)
+	_check(bot.get_mana() < bot.stats.max_mana, "bot gasta Mana nos disparos")
+
+	# O jogador acerta o bot; vida em 0 faz o bot renascer no ponto dele.
+	var bot_health := bot.health
+	bot.register_hit("Teste", 200.0)
+	_check(bot_health.current < bot_health.max_health, "golpe tira vida do bot")
+	bot.global_position = bot.spawn_point + Vector3(6, 0, 0)
+	await _frames(2)
+	bot_health.take_damage("Teste", bot_health.current + 5.0)
+	_check(is_equal_approx(bot_health.current, bot_health.max_health) and bot_health.is_invulnerable(), "bot renasce com vida cheia e invencível")
+	_check(bot.global_position.distance_to(bot.spawn_point) < 0.5, "bot renasce no ponto dele")
+
+	_press_key(KEY_F6)
+	await _frames(5)
+	_check(not is_instance_valid(bot), "F6 de novo faz o bot sumir")
+	await _unload(arena)
 
 
 func _test_damage_rules() -> void:

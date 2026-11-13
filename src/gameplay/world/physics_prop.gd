@@ -138,10 +138,15 @@ func _burn_out() -> void:
 
 
 func _on_body_entered(body: Node) -> void:
-	# Impacto pela velocidade relativa: bater num alvo que vem na sua direção dói mais.
-	var relative_speed := (last_velocity - DamageRules.velocity_of(body)).length()
-	if body.has_method("register_hit") and relative_speed > 2.0:
-		body.register_hit(get_display_name(), mass * relative_speed)
+	# Impacto pela velocidade de aproximação: bater num alvo que vem na sua direção dói mais.
+	# Só conta se o objeto vinha mesmo na direção do alvo (> 2 m/s): quem anda contra uma
+	# caixa parada não se machuca nela.
+	var receiver := DamageRules.receiver_of(body)
+	if receiver and body is Node3D:
+		var toward := (DamageRules.center_of(body as Node3D) - global_position).normalized()
+		var closing := (last_velocity - DamageRules.velocity_of(body)).dot(toward)
+		if last_velocity.dot(toward) > 2.0 and closing > 2.0 and not DamageRules.is_invulnerable(body):
+			receiver.register_hit(get_display_name(), mass * closing)
 	if not material_data.explosive or _exploded:
 		return
 	var impact := last_speed

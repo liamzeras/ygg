@@ -20,10 +20,14 @@ const STAIR_DEPTH := 0.35
 ## [raio (m), altura (m), velocidade (m/s; negativa = sentido contrário)].
 const TARGET_ORBITS := [[4.0, 2.6, 3.0], [6.0, 3.8, -5.0], [8.0, 5.0, 7.0]]
 const MAX_TARGETS := 9
+## Onde o bot de combate (F6) nasce e renasce: longe do jogador, do outro lado do boneco.
+const BOT_SPAWN := Vector3(-4, 0.05, -8)
+const BOT_PROFILE := preload("res://assets/data/enemies/psionic_bot.tres")
 
 var player: Player
 var dummy: TrainingDummy
 var flying_targets: Array[FlyingTarget] = []
+var combat_bot: PsionicBot
 
 @onready var _hud: CanvasLayer = $HUD
 
@@ -45,6 +49,8 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("spawn_bot"):
+		toggle_combat_bot()
 	if event.is_action_pressed("spawn_targets"):
 		spawn_flying_targets()
 	if event.is_action_pressed("reload_arena"):
@@ -66,11 +72,32 @@ func spawn_flying_targets() -> void:
 		flying_targets.pop_front().queue_free()
 
 
+## F6: chama o bot Psiônico agressivo; apertar de novo faz ele sumir.
+func toggle_combat_bot() -> void:
+	if is_instance_valid(combat_bot):
+		combat_bot.queue_free()
+		combat_bot = null
+		return
+	combat_bot = PsionicBot.new()
+	combat_bot.class_data = GameState.find_class("psionic")
+	combat_bot.rules = player.rules
+	combat_bot.profile = BOT_PROFILE
+	combat_bot.target = player
+	combat_bot.position = BOT_SPAWN
+	add_child(combat_bot)
+
+
 func _spawn_player() -> void:
 	player = PLAYER_SCENE.instantiate()
 	player.class_data = GameState.get_selected_class()
 	player.position = SPAWN
 	add_child(player)
+	# Vida do jogador: componente filho, para não mexer em player.gd (design/gdd/combat-bot.md).
+	var health := Health.new()
+	health.name = "Health"
+	player.add_child(health)
+	health.setup(player.stats.mult(Attributes.Kind.VITALITY))
+	player.stats_changed.connect(func() -> void: health.setup(player.stats.mult(Attributes.Kind.VITALITY)))
 	_hud.bind_player(player)
 	$DebugEditor.bind(player, dummy)
 

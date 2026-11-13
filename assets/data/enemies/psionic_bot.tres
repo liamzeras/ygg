@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="BotProfile" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/enemies/bot_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+preferred_range = 9.0
+min_range = 5.0
+sprint_range = 15.0
+strafe_switch_min = 1.0
+strafe_switch_max = 2.5
+dash_interval_min = 2.5
+dash_interval_max = 5.0
+jump_chance_per_second = 0.15
+charge_min = 0.35
+charge_max = 1.0
+pause_min = 0.15
+pause_max = 0.5
+aim_error_degrees = 2.0
+lead_factor = 0.8
+threat_range = 7.0

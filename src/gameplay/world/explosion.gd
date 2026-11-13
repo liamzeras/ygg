@@ -46,13 +46,18 @@ static func _affect(body: Node3D, origin: Vector3, impulse: float, heat: float, 
 	var distance := offset.length()
 	var direction := offset / distance if distance > 0.01 else Vector3.UP
 	direction = (direction + Vector3.UP * UPWARD_BIAS).normalized()
+	if DamageRules.is_invulnerable(body):
+		return
+	var receiver := DamageRules.receiver_of(body)
 	if body is RigidBody3D:
 		(body as RigidBody3D).apply_central_impulse(direction * impulse)
 	elif body.has_method("apply_knockback"):
 		body.apply_knockback(direction * impulse)
-	if body.has_method("register_hit"):
-		body.register_hit(source, impulse)
-	if heat > 0.0 and body.has_method("add_heat"):
+	if receiver:
+		receiver.register_hit(source, impulse)
+	if heat > 0.0 and receiver and receiver.has_method("add_heat"):
+		receiver.add_heat(heat)
+	elif heat > 0.0 and body.has_method("add_heat"):
 		body.add_heat(heat)
 
 

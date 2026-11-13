@@ -97,5 +97,5 @@ e `materials/*.tres`. Dá para editar no Inspetor do Godot sem tocar em código.
 
 ## Fora do escopo agora
 
-Combate contra inimigos com IA, vida/dano, inventário, missões, mundo aberto real,
+Inimigos de verdade (só existe o bot de teste do F6, ver `combat-bot.md`), inventário, missões, mundo aberto real,
 arte final, áudio, eletricidade (o campo `conductive` já existe nos materiais).
