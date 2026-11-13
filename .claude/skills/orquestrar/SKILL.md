@@ -39,7 +39,10 @@ Conforme o argumento:
 4. **Abrir a sessão.** Carregue a ferramenta com `ToolSearch`
    (`select:mcp__ccd_session__start_session`) e chame com `initiation: "user_asked"`,
    `context: "fresh"`, `use_worktree: true`, `name` e `branch_name` iguais a
-   `<frente>-<assunto-curto>`, e um `title` claro. Escreva antes o título em negrito e uma frase
+   `<frente>-<assunto-curto>`, e um `title` claro. Escolha `model` pelo orquestrador de versões
+   (seção 3 da skill `orquestrador`): frente que só executa um plano pronto vai em Sonnet; frente que
+   investiga, diagnostica ou escreve design fica no modelo desta conversa, que não pode ser superado.
+   Escreva antes o título em negrito e uma frase
    sobre o que a sessão fará. Monte `prompt` e `background` com o **Modelo de brief**.
 5. **Devolver a conversa.** Diga ao Liam em uma linha qual frente pegou o quê e volte ao trabalho.
    Não acompanhe a sessão por repetição: o app avisa quando ela termina.
@@ -67,6 +70,9 @@ REGRAS DA FRENTE
   Se a base já estiver falhando, pare e informe.
 - Ao terminar, rode de novo o teste e bash tools/frentes.sh fora <frente>
 - Faça commit no seu ramo, citando o documento de design ou a tarefa. Não junte à main nem faça push.
+- Escolha de design que esta tarefa não define: registre no relatório como pergunta, em vez de decidir.
+- Subagentes seguem o orquestrador de versões: extrair e relatar em haiku, executar plano em sonnet,
+  planejar e diagnosticar em opus.
 
 RELATÓRIO FINAL
 Nome do ramo, o que mudou, resultado do teste, avisos do comando "fora", pedidos a outras
