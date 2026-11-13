@@ -102,10 +102,14 @@ caminho_godot() {
 	echo "$principal/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 }
 
-# Cópia nova não tem a pasta .godot, e sem ela o Godot não encontra as classes do projeto.
+# Sem a pasta .godot, ou com o cache de classes mais velho que algum script, o Godot não
+# encontra as classes novas e o teste quebra inteiro. Por isso importa de novo nesses casos.
 cmd_preparar() {
-	[ -f "$RAIZ/.godot/global_script_class_cache.cfg" ] && return 0
-	echo "Importando o projeto nesta cópia (só na primeira vez)..."
+	local cache="$RAIZ/.godot/global_script_class_cache.cfg"
+	if [ -f "$cache" ] && [ -z "$(find "$RAIZ/src" "$RAIZ/tests" -name "*.gd" -newer "$cache" -print -quit)" ]; then
+		return 0
+	fi
+	echo "Importando o projeto nesta cópia..."
 	"$(caminho_godot)" --headless --path "$RAIZ" --import > /dev/null 2>&1
 	[ -f "$RAIZ/.godot/global_script_class_cache.cfg" ]
 }
