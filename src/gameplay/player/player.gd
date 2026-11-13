@@ -103,6 +103,7 @@ var _step_offset := 0.0
 var _step_offset_speed := 0.0
 var _step_hang_distance := 0.0
 var _step_hang_time := 0.0
+@onready var _floor_snap_length := floor_snap_length
 var _head_base_y := 0.0
 var _hint := ""
 var _spawn_point := Vector3.ZERO
@@ -646,6 +647,8 @@ func _move(delta: float) -> void:
 	var was_dashing := _dash_time > 0.0
 	var was_hanging := _step_hang_time > 0.0
 	_step_up(delta)
+	# Durante a subida, grudar no chão puxaria o corpo para dentro da quina do degrau.
+	floor_snap_length = 0.0 if _step_hang_time > 0.0 else _floor_snap_length
 	move_and_slide()
 	_push_bodies(delta)
 	if was_hanging:
@@ -653,6 +656,9 @@ func _move(delta: float) -> void:
 		_step_hang_distance -= get_position_delta().length()
 		if is_on_floor() or _step_hang_distance <= 0.0:
 			_step_hang_time = 0.0
+			# Pousa já: caindo esses milímetros, o próximo degrau chegaria com o corpo fora do chão.
+			floor_snap_length = _floor_snap_length
+			apply_floor_snap()
 	if was_dashing:
 		_dash_time -= delta
 		if _dash_time <= 0.0:

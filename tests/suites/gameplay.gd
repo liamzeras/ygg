@@ -5,6 +5,7 @@ extends "res://tests/suite_base.gd"
 func run() -> void:
 	await _test_steps()
 	await _test_stair_rhythm()
+	await _test_stair_no_jolt()
 	await _test_explosion_occlusion()
 	await _test_fire_spread()
 	await _test_dash()
@@ -84,6 +85,45 @@ func _test_stair_rhythm() -> void:
 	_check(intervals.size() >= 7 and intervals.max() - intervals.min() <= 1.0, "intervalo entre degraus regular (%s quadros)" % [intervals])
 	_check(speeds.max() <= player.stats.walk_speed * 1.15 and speeds.min() >= player.stats.walk_speed * 0.8, "velocidade constante na escada (%.2f a %.2f m/s)" % [speeds.min(), speeds.max()])
 	_check(max_camera_rise < 0.09, "câmera sobe sem tranco (máx %.3f m em 1/60 s)" % max_camera_rise)
+	await _unload(arena)
+
+
+# Regressão: passar pela quina do degrau não dá solavanco nem engasgo, andando ou correndo.
+# Pontos de partida em que o corpo era empurrado para cima ou parava contra o degrau seguinte.
+func _test_stair_no_jolt() -> void:
+	print("\n--- Escada sem solavanco ---")
+	var arena := await _load_arena("knight")
+	var player: Player = arena.player
+	for start: Array in [[false, 17.111], [false, 17.185], [true, 17.111], [true, 17.333]]:
+		var sprint: bool = start[0]
+		var label := "%s de z = %.3f" % ["correndo" if sprint else "andando", start[1]]
+		player.global_position = Vector3(-20, 0.05, start[1])
+		player.velocity = Vector3.ZERO
+		player.face_point(Vector3(-20, 1.6, -10))
+		await _frames(10)
+		if sprint:
+			Input.action_press("sprint")
+		Input.action_press("move_forward")
+		# Espera chegar à velocidade máxima, ainda antes do primeiro degrau.
+		await _frames(25)
+		var camera_trace := CameraTrace.new(player)
+		add_child(camera_trace)
+		var last_z := player.global_position.z
+		var min_speed := INF
+		for i in 120:
+			await _frames(1)
+			if player.global_position.y > 1.95:
+				break
+			min_speed = minf(min_speed, absf(player.global_position.z - last_z) * 60.0)
+			last_z = player.global_position.z
+		Input.action_release("move_forward")
+		Input.action_release("sprint")
+		camera_trace.queue_free()
+		var max_camera_rise := camera_trace.max_rise(1.0 / Engine.physics_ticks_per_second)
+		var goal := player.stats.sprint_speed if sprint else player.stats.walk_speed
+		_check(min_speed >= goal * 0.9, "%s não engasga na escada (mín %.2f de %.2f m/s)" % [label, min_speed, goal])
+		_check(max_camera_rise < 0.085, "%s não dá solavanco (máx %.3f m em 1/60 s)" % [label, max_camera_rise])
+		await _frames(15)
 	await _unload(arena)
 
 
