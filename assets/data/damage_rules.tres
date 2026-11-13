@@ -9,4 +9,7 @@ damage_per_impulse = 0.1
 damage_per_heat = 0.1
 combo_reset_time = 5.0
 blocked_explosion_factor = 0.15
+base_health = 100.0
+health_exponent = 0.5
+respawn_invulnerability = 0.5
 materialized_scale = 200.0

@@ -8,6 +8,7 @@ const TEXT := Color(0.9, 0.91, 0.94)
 const MUTED := Color(0.6, 0.63, 0.7)
 const READY := Color(0.55, 0.9, 0.55)
 const MANA_COLOR := Color(0.4, 0.55, 1.0)
+const HEALTH_COLOR := Color(0.85, 0.25, 0.25)
 ## Sem pulo duplo, a tela escurece abaixo desta fração do Vigor.
 const EXHAUSTED_FRACTION := 0.2
 const VIGNETTE_SHADER := """
@@ -38,6 +39,10 @@ var _guard_label: Label
 var _float_label: Label
 var _charge_bar: ProgressBar
 var _vignette: ColorRect
+var _health_bar: ProgressBar
+var _health_label: Label
+var _hurt_overlay: ColorRect
+var _hurt_flash := 0.0
 var _exhaustion := 0.0
 var _exhaustion_pulse := 0.0
 var _breath := 0.0
@@ -56,6 +61,11 @@ func _ready() -> void:
 	shader_material.shader = shader
 	_vignette.material = shader_material
 	_root.add_child(_vignette)
+	# Clarão vermelho rápido ao tomar dano.
+	_hurt_overlay = ColorRect.new()
+	_hurt_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hurt_overlay.color = Color(0.8, 0.05, 0.05, 0.0)
+	_root.add_child(_hurt_overlay)
 	_build_center()
 	_build_status()
 	_build_help()
@@ -86,6 +96,14 @@ func bind_player(player: Player) -> void:
 	player.hint_changed.connect(_on_hint_changed)
 	player.action_failed.connect(_on_action_failed)
 	_on_pool_changed(Player.Pool.MANA, player.get_pool(Player.Pool.MANA), player.get_pool_max(Player.Pool.MANA))
+	var health := player.get_node_or_null("Health") as Health
+	if health:
+		health.changed.connect(_on_health_changed)
+		health.damaged.connect(func(_source: String, amount: float) -> void: _hurt_flash = clampf(amount / 15.0, 0.25, 1.0))
+		health.respawned.connect(func() -> void: _show_toast("Você caiu e renasceu"))
+		_on_health_changed(health.current, health.max_health)
+	_health_label.visible = health != null
+	_health_bar.visible = health != null
 	_help.get_child(0).text = _help_text()
 
 
@@ -119,6 +137,8 @@ func _process(delta: float) -> void:
 	_float_label.visible = _player.is_floating()
 	_update_charge_bar()
 	_update_exhaustion(delta)
+	_hurt_flash = maxf(_hurt_flash - delta * 3.0, 0.0)
+	_hurt_overlay.color.a = _hurt_flash * 0.35
 
 
 ## Barra fina sob a mira enquanto carrega. Fica laranja quando a mira começa a tremer.
@@ -147,6 +167,27 @@ func _on_pool_changed(pool: Player.Pool, current: float, maximum: float) -> void
 	_bar.max_value = maximum
 	_bar.value = current
 	_bar_label.text = "Mana  %d / %d" % [roundi(current), roundi(maximum)]
+
+
+func _on_health_changed(current: float, maximum: float) -> void:
+	_health_bar.max_value = maximum
+	_health_bar.value = current
+	_health_label.text = "Vida  %d / %d" % [ceili(current), roundi(maximum)]
+
+
+func _make_bar(color: Color) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(300, 14)
+	var background := StyleBoxFlat.new()
+	background.bg_color = Color(0, 0, 0, 0.5)
+	background.set_corner_radius_all(3)
+	bar.add_theme_stylebox_override("background", background)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = color
+	fill.set_corner_radius_all(3)
+	bar.add_theme_stylebox_override("fill", fill)
+	return bar
 
 
 func _on_stats_changed() -> void:
@@ -232,7 +273,7 @@ func _build_status() -> void:
 	var left := VBoxContainer.new()
 	left.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	left.offset_left = 24
-	left.offset_top = -130
+	left.offset_top = -170
 	left.offset_right = 460
 	left.offset_bottom = -24
 	left.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -241,6 +282,10 @@ func _build_status() -> void:
 	left.add_child(_class_label)
 	_attr_label = _label("", 14, MUTED)
 	left.add_child(_attr_label)
+	_health_label = _label("", 16, TEXT)
+	left.add_child(_health_label)
+	_health_bar = _make_bar(HEALTH_COLOR)
+	left.add_child(_health_bar)
 	_bar_label = _label("", 16, TEXT)
 	left.add_child(_bar_label)
 	_bar = ProgressBar.new()
@@ -305,7 +350,7 @@ func _help_text() -> String:
 		primary = "Segurar carrega, soltar dispara"
 	for pair in pairs + [["sprint", "Correr"], ["dash", "Dash (com direção; padrão: frente)"], ["grab", "Pegar / soltar"],
 			["primary", primary], ["mobility", "Mobilidade"], ["special", "Especial"],
-			["reload_arena", "Recarregar arena"], ["debug_editor", "Editor de testes"], ["spawn_targets", "Alvos voadores"], ["pause", "Pausa"]]:
+			["reload_arena", "Recarregar arena"], ["debug_editor", "Editor de testes"], ["spawn_targets", "Alvos voadores"], ["spawn_bot", "Bot psiônico (aparece / some)"], ["pause", "Pausa"]]:
 		lines.append("%s — %s" % [InputBindings.label(pair[0]), pair[1]])
 	return "\n".join(lines)
 

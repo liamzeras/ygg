@@ -42,8 +42,9 @@ func activate(player: Player) -> void:
 			continue
 		if body is RigidBody3D:
 			(body as RigidBody3D).apply_central_impulse(push_direction * impulse)
-		if body.has_method("register_hit"):
-			body.register_hit(display_name, impulse)
+		var receiver := DamageRules.receiver_of(body)
+		if receiver:
+			receiver.register_hit(display_name, impulse)
 
 	player.add_shake(shake)
 	Fx.burst(player.get_tree().current_scene, origin + direction * 1.2, Color(0.7, 0.85, 1.0), 0.6)

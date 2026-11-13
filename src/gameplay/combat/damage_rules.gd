@@ -15,6 +15,14 @@ extends Resource
 @export var combo_reset_time := 5.0
 ## Fração do impulso e do calor de uma explosão que passa por uma parede ou pilar.
 @export_range(0.0, 1.0) var blocked_explosion_factor := 0.15
+
+@export_group("Vida (design/gdd/combat-bot.md)")
+## Vida de um personagem com Vitalidade humana.
+@export var base_health := 100.0
+## Peso da Vitalidade na vida: vida = base x mult(Vitalidade)^expoente.
+@export var health_exponent := 0.5
+## Segundos de invencibilidade ao renascer.
+@export var respawn_invulnerability := 0.5
 ## Objetos materializados por magia pesam gramas: 10 g a 30 m/s são só 0,3 N·s de verdade.
 ## Esta escala é a energia mágica concentrada neles; sem ela, nenhum passaria do limiar.
 @export var materialized_scale := 200.0
@@ -62,3 +70,19 @@ static func capsule_distance(feet: Vector3, height: float, radius: float, point:
 ## deles fica nos pés.
 static func center_of(node: Node3D) -> Vector3:
 	return node.get_center() if node.has_method("get_center") else node.global_position
+
+
+## Quem recebe o dano de um corpo: ele mesmo, se souber (`register_hit`), ou o componente
+## de vida filho dele (`Health`, como no jogador). Null se ninguém recebe.
+static func receiver_of(node: Node) -> Node:
+	if node == null:
+		return null
+	if node.has_method("register_hit"):
+		return node
+	return node.get_node_or_null("Health")
+
+
+## true durante a invencibilidade de quem acabou de renascer.
+static func is_invulnerable(node: Node) -> bool:
+	var receiver := receiver_of(node)
+	return receiver != null and receiver.has_method("is_invulnerable") and receiver.is_invulnerable()

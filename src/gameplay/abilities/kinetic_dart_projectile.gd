@@ -74,12 +74,13 @@ func _on_body_entered(body: Node) -> void:
 
 
 func _hit(body: Node, strength: float, direction: Vector3) -> void:
-	if is_instance_valid(body):
+	if is_instance_valid(body) and not DamageRules.is_invulnerable(body):
 		if body is RigidBody3D:
 			(body as RigidBody3D).apply_central_impulse(direction * strength)
 		elif body.has_method("apply_knockback"):
 			body.apply_knockback(direction * strength)
-		if body.has_method("register_hit"):
-			body.register_hit(source_name, strength)
+		var receiver := DamageRules.receiver_of(body)
+		if receiver:
+			receiver.register_hit(source_name, strength)
 	Fx.burst(get_tree().current_scene, global_position, COLOR, 0.3)
 	queue_free()

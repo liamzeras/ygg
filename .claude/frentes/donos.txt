@@ -63,12 +63,15 @@ design/gdd/class-*                classes
 # --- Monstros (combate, dano, inimigos e alvos de teste) ---
 src/gameplay/combat/*             monstros
 src/gameplay/creatures/*          monstros
+src/gameplay/enemies/*           monstros
 src/gameplay/world/training_dummy.gd  monstros
 src/gameplay/world/flying_target.gd   monstros
 assets/data/damage_rules.tres     monstros
 assets/data/creatures/*           monstros
+assets/data/enemies/*             monstros
 design/gdd/damage-and-testing.md  monstros
 design/gdd/creature-*             monstros
+design/gdd/combat-*               monstros
 
 # --- Equipamentos (itens, inventário, loot, economia) ---
 src/gameplay/items/*              equipamentos
