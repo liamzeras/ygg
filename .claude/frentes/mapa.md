@@ -18,7 +18,7 @@ agora" em `design/gdd/game-concept.md`.
 | `mundo` | Arena, fases, mapa aberto, ambientação | `level-designer` | `world-builder`, `godot-specialist`, `art-director` | `/team-level` | código na arena; mapa aberto só design |
 | `arte` | Direção de arte, efeitos visuais, shaders | `art-director` | `technical-artist`, `godot-shader-specialist` | `/asset-audit` | código nos efeitos; arte final só design |
 | `qualidade` | Testes, roteiros de QA, relatórios de playtest | `qa-lead` | `qa-tester`, `performance-analyst` | `/bug-report`, `/playtest-report` | código |
-| `monstros` | Inimigos com IA, combate, dano, alvos de teste | `game-designer` | `ai-programmer`, `systems-designer`, `gameplay-programmer` | `/team-combat` | código nos alvos de teste; inimigos só design |
+| `monstros` | Inimigos com IA, combate, dano, alvos de teste | `game-designer` | `ai-programmer`, `systems-designer`, `gameplay-programmer` | `/team-combat` | código (o bot de teste liberou inimigos com IA, 2026-11-13) |
 | `equipamentos` | Itens, inventário, loot, economia | `systems-designer` | `economy-designer`, `gameplay-programmer` | `/design-system` | só design |
 | `loop` | Ciclo principal, progressão, salvamento, visão do jogo | `game-designer` | `creative-director`, `economy-designer`, `producer` | `/map-systems` | só design |
 | `quests` | Sistema e conteúdo de missões | `narrative-director` | `level-designer`, `writer`, `gameplay-programmer` | `/design-system` | só design |
