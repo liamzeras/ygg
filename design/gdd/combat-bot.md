@@ -36,13 +36,16 @@ sinais claros: o orbe na mão dele cresce enquanto ele carrega o dardo.
 - **Kit e atributos:** os mesmos do Psiônico jogável (`psionic.tres`): mesma Mana, Vigor, vida e dano.
 - **Ataque:** carrega o Dardo Cinético por um tempo sorteado (35% a 100% da carga), mira prevendo 80% do seu
   movimento, com até 2° de erro, e dispara. Paga a Mana igual ao jogador: sem Mana, espera regenerar.
+  Como o dardo herda o movimento de quem atira, o bot compensa o próprio movimento de lado na mira. Ele não
+  dispara no meio de um dash.
+- **Sem visão** (o boneco no caminho, por exemplo): contorna pelo lado em vez de empurrar o obstáculo.
 - **Movimento:** tenta ficar a 9 m. Mais longe, ele se aproxima, e corre acima de 15 m. Mais perto que 5 m,
   ele recua. Na faixa certa, circula você e troca de lado a cada 1 a 2,5 s.
 - **Esquiva:** dash lateral a cada 2,5 a 5 s (gasta Vigor) e um pulo de vez em quando.
 - **Defesa:** quando um projétil seu vem na direção dele a menos de 7 m, ele ergue um Campo Lento em cima do
   projétil (custo e recarga do Campo Lento: 30 de Mana, 8 s).
-- **Visão:** só ataca com linha de visão. Paredes e terreno bloqueiam; caixas e personagens, não. Sem visão,
-  ele anda na sua direção (ainda não desvia de obstáculos).
+- **Visão:** só ataca com linha de visão. Paredes, terreno e o boneco bloqueiam; caixas e personagens, não. Sem visão,
+  ele circula e se aproxima (ainda não tem mapa de caminhos).
 
 ## Formulas (Fórmulas)
 
@@ -91,6 +94,7 @@ Automáticos (teste de fumaça, suíte `monstros`):
 - [x] Jogador tem vida pela Vitalidade; dardo tira vida; andar contra caixa parada não machuca.
 - [x] Vida em 0: renasce no início com vida cheia; dano nos 0,5 s seguintes é ignorado; depois volta a valer.
 - [x] F6 chama o bot com os atributos do Psiônico; ele acerta o jogador em poucos segundos e gasta Mana.
+- [x] Com o jogador parado no início, o bot acerta em todas as 20 rodadas do diagnóstico, entre 0,7 e 2,2 s (limite do teste: 8 s).
 - [x] Bot com vida em 0 renasce no ponto dele, cheio e invencível; F6 de novo faz ele sumir.
 
 Playtest (Liam):

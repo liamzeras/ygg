@@ -171,7 +171,14 @@ func _update_movement(delta: float, flat: Vector3, sees: bool) -> void:
 	var forward := flat / distance if distance > 0.01 else -global_basis.z
 	var side := forward.cross(Vector3.UP) * _strafe_sign
 	var wish: Vector3
-	if not sees or distance > profile.preferred_range + 2.0:
+	if not sees:
+		# Sem visão (algo no caminho, como o boneco): contorna pelo lado em vez de empurrar o
+		# obstáculo de frente. Bateu de lado também, troca de lado.
+		if is_on_wall():
+			_strafe_sign = -_strafe_sign
+			side = -side
+		wish = side + forward * 0.4
+	elif distance > profile.preferred_range + 2.0:
 		wish = forward + side * 0.3
 	elif distance < profile.min_range:
 		wish = -forward + side * 0.5
@@ -219,8 +226,16 @@ func _update_attack(delta: float, eye: Vector3, aim_point: Vector3, sees: bool) 
 		_charging = false
 		return
 	_charge_time += delta
-	if _current_charge() >= _charge_goal:
+	# No meio do dash, segura o disparo: a mira não acompanha uma arrancada de 15 m/s.
+	if _current_charge() >= _charge_goal and _dash_time <= 0.0:
 		_fire(eye, aim_point, _current_charge())
+
+
+## O dardo herda o movimento de quem atira (MaterializedProjectile). Para ele seguir na direção
+## `wanted`, o bot cancela a parte da própria velocidade que é de lado em relação ao tiro.
+func _compensate_own_motion(wanted: Vector3, speed: float) -> Vector3:
+	var sideways := velocity - wanted * velocity.dot(wanted)
+	return (wanted * speed - sideways).normalized()
 
 
 func _current_charge() -> float:
@@ -238,7 +253,7 @@ func _fire(eye: Vector3, aim_point: Vector3, charge: float) -> void:
 	# Antecipa o movimento do alvo pelo tempo de voo do dardo.
 	var flight_time := eye.distance_to(aim_point) / speed
 	var lead := aim_point + DamageRules.velocity_of(target) * flight_time * profile.lead_factor
-	var direction := (lead - eye).normalized()
+	var direction := _compensate_own_motion((lead - eye).normalized(), speed)
 	var error := deg_to_rad(profile.aim_error_degrees)
 	direction = direction.rotated(Vector3.UP, _rng.randf_range(-error, error))
 	var tilt_axis := direction.cross(Vector3.UP).normalized()
