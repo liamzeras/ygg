@@ -259,6 +259,23 @@ A batalha é **contra jogadores e contra monstros**. O que isso muda:
 - **O equilíbrio olha para dois lugares.** Um elemento fraco no duelo pode ser ótimo contra grupos, e vice-versa.
   Isso é aceitável se ninguém for fraco nos dois.
 
+## Fatia vertical: Fogo, Terra e Gravidade (decidido em 2026-11-16)
+
+São 3 elementos x 8 habilidades = 24. **Já existem 6**, e faltam 18:
+
+| Elemento | Já existe | Falta |
+|---|---|---|
+| Fogo | Bola de Fogo (ataque, Explosão) | 7: os 4 da Chama; movimento, defesa e terreno da Explosão |
+| Terra | Escada de Pedra (movimento, Rocha), Lamaçal (terreno, Areia) | 6 |
+| Gravidade | Flutuar (movimento), Telecinese (ataque) e Campo Lento (defesa), todos da Leveza | 5: os 4 do Peso e o terreno da Leveza |
+
+Também entram na fatia: a lei de cada um dos 3 elementos, as 2 maestrias de cada elemento e as interações entre
+eles (Gravidade e Terra: pedras flutuantes e esmagar; Fogo e Terra: lama apaga e pedra aquecida). A Água vem
+depois e já tem módulos no laboratório.
+
+**Por que estes três:** já têm código e cobrem os três tipos de lei. O Fogo muda o estado do material, a Terra
+depende do chão e a Gravidade mexe em tudo que tem massa.
+
 ## Riscos
 
 - **Escopo.** Com a opção C, são 7 elementos x 8 habilidades = **56 habilidades**. Sugestão de fatia vertical:
@@ -276,5 +293,5 @@ A batalha é **contra jogadores e contra monstros**. O que isso muda:
 2. ~~**Especializações**~~ Respondido: opção C (uma versão por função, maestria com as 4 da mesma ponta).
    Ainda abertos: quando e onde o jogador troca as versões, e o que cada maestria faz.
 3. ~~**O Cavaleiro**~~ Respondido: sai do jogo; toda classe é um mago elemental, escolhida na escola de magos.
-4. **Fatia vertical:** começamos por Fogo, Terra e Gravidade?
+4. ~~**Fatia vertical**~~ Respondido: Fogo, Terra e Gravidade; a Água vem em seguida.
 5. Os eixos dos 7 elementos fazem sentido, ou algum elemento tem outra especialização na sua cabeça?
