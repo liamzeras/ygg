@@ -2,6 +2,9 @@
 
 > Fichamento do Sábio, 2026-11-13. Frente: Inspiração. Semáforo: 🟢 em tudo, porque só usamos padrões de
 > regra, sem nomes, textos ou números do LoL. Nada aqui é decisão: as propostas esperam o Liam.
+>
+> **Revisto em 2026-11-16:** a visão mudou para magos de um elemento só. A abordagem e o destino das 6 ideias
+> estão em [magos-elementais.md](magos-elementais.md). A pesquisa abaixo continua válida.
 
 ## Resumo em uma frase
 

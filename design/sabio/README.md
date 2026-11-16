@@ -18,7 +18,8 @@
 - [Jogos sistêmicos: lições e alertas](inspiracao/jogos-sistemicos.md)
 - [Ideias para o Ygg](inspiracao/ideias-para-ygg.md) (backlog para o Liam decidir)
 - [Elementos × materiais](inspiracao/tabela-elementos-materiais.md) (rascunho de GDD; aguarda decisões)
-- [LoL: passivas como cola do kit](inspiracao/lol-passivas.md) (filosofia para as ativas; 6 ideias aguardam decisão)
+- [LoL: passivas como cola do kit](inspiracao/lol-passivas.md) (pesquisa; a aplicação foi revista)
+- [Magos de um elemento](inspiracao/magos-elementais.md) (lei, eixo e 4 funções dos 7 elementos; aguarda decisões)
 
 **Pesquisa científica**
 
