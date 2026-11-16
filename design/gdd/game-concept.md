@@ -47,7 +47,7 @@ dele vira a minha chance."
 - **Encontro (minutos):** enfrentar um monstro, um grupo de monstros ou um jogador. Cada um pede uma solução
   diferente: monstros de material (madeira queima, metal conduz) e monstros de elemento (obedecem à mesma lei de
   um mago).
-- **Progressão (horas):** ajustar a escolha das versões das 4 funções, buscar a maestria de uma especialização
+- **Progressão (horas):** voltar à escola de magos para ajustar a escolha das versões das 4 funções, buscar a maestria de uma especialização
   ou ficar no estilo misto, e aprender como o meu elemento conversa com os outros.
 
 ## Detailed Rules (Regras)
@@ -56,7 +56,8 @@ dele vira a minha chance."
 
 - O jogador começa **sem classe**.
 - Depois de uma **intro curta** e de uma **demonstração**, escolhe o elemento na **escola de magos**.
-- A intro e a demonstração serão desenhadas depois (ver Perguntas abertas). O Sábio sugere que a demonstração
+- A intro e a demonstração serão desenhadas depois e **não entram na implementação por enquanto** (ver Perguntas
+  para o Liam). O Sábio sugere que a demonstração
   mostre a lei de cada elemento e os rastros entre elementos, e que a escola deixe experimentar antes de decidir.
 
 ### O mago de um elemento
@@ -69,6 +70,7 @@ dele vira a minha chance."
     a Explosão, rápida e concentrada).
 - Todo mago tem **4 funções**: **movimento, ataque, defesa e terreno**, com a cara do elemento.
 - **Cada função tem 2 versões**, uma de cada especialização. O mago escolhe **uma versão por função**.
+- **Trocar versões só na escola de magos**, por enquanto (decidido em 2026-11-16).
 - **Maestria (opção C, escolhida em 2026-11-16):**
   - as 4 escolhas da mesma ponta → ganha a **maestria** dessa especialização, um efeito extra forte;
   - escolhas misturadas → mais flexível, sem maestria;
@@ -79,18 +81,19 @@ dele vira a minha chance."
 
 ### Os 7 elementos
 
-Elemento, lei e eixo de cada um estão propostos pelo Sábio em
-[`magos-elementais.md`](../sabio/inspiracao/magos-elementais.md#os-7-elementos). **Só os da fatia vertical estão
-decididos**; o resto é rascunho até o Liam aprovar (ver Perguntas abertas). As habilidades de cada elemento ficam
-nos GDDs de elemento da frente `classes`.
+Lei e eixo de cada um estão no material do Sábio em
+[`magos-elementais.md`](../sabio/inspiracao/magos-elementais.md#os-7-elementos). **Os 7 eixos foram aprovados pelo
+Liam em 2026-11-16.** As habilidades de cada elemento ficam nos GDDs de elemento da frente `classes`.
 
-| Elemento | Situação | Ideia da lei (resumo) |
-|---|---|---|
-| Fogo | fatia vertical | Calor acumula, espalha e consome combustível; precisa de ar |
-| Terra | fatia vertical | Massa e permanência; só trabalha o solo e a pedra que existem ali |
-| Gravidade | fatia vertical | Muda peso e direção da queda de tudo que tem massa; não cria matéria |
-| Água | logo depois da fatia | Muda de estado com a temperatura, escorre, molha |
-| Ar, Natureza, Eletricidade | depois | ver material do Sábio |
+| Elemento | Situação | Eixo (especializações) | Ideia da lei (resumo) |
+|---|---|---|---|
+| Fogo | fatia vertical | Chama ↔ Explosão | Calor acumula, espalha e consome combustível; precisa de ar |
+| Terra | fatia vertical | Rocha ↔ Areia | Massa e permanência; só trabalha o solo e a pedra que existem ali |
+| Gravidade | fatia vertical | Peso ↔ Leveza | Muda peso e direção da queda de tudo que tem massa; não cria matéria |
+| Água | logo depois da fatia | Gelo ↔ Maré | Muda de estado com a temperatura, escorre, molha |
+| Ar | depois | Vento ↔ Vácuo | Pressão; empurra sem tocar e carrega o que é leve |
+| Natureza | depois | Crescimento ↔ Podridão | Crescimento leva tempo e precisa de solo |
+| Eletricidade | depois | Descarga ↔ Magnetismo | A corrente segue o condutor até o chão |
 
 ### Rastro de um, gancho do outro
 
@@ -188,6 +191,7 @@ maestria, duração de controle contra jogador e contra monstro) serão definido
       fumaça automatizado.
 - [ ] Escolher as 4 versões da mesma ponta ativa a maestria dela; trocar uma só versão desativa. Nunca as duas
       ficam ativas.
+- [ ] As versões só podem ser trocadas na escola de magos; fora dela, a troca não está disponível.
 - [ ] Os verbos de movimento de Fogo, Terra e Gravidade são diferentes entre si.
 - [ ] Pelo menos uma interação entre elementos da fatia funciona nos dois sentidos (exemplo: lama apaga fogo;
       fogo seca lama).
@@ -203,16 +207,14 @@ maestria, duração de controle contra jogador e contra monstro) serão definido
 intro e demonstração da escola de magos (a desenhar); inventário; missões; mundo aberto real; arte final; áudio.
 Monstros com IA **saíram desta lista** em 2026-11-13.
 
-## Perguntas abertas para o Liam
+## Perguntas para o Liam
 
-Estas escolhas ainda não foram feitas. O documento não decide nenhuma delas.
-
-1. **Eixos dos 7 elementos:** os eixos propostos pelo Sábio (Fogo: Chama ↔ Explosão; Água: Gelo ↔ Maré; Terra:
-   Rocha ↔ Areia; Ar: Vento ↔ Vácuo; Natureza: Crescimento ↔ Podridão; Eletricidade: Descarga ↔ Magnetismo;
-   Gravidade: Peso ↔ Leveza) fazem sentido, ou algum elemento tem outra especialização na sua cabeça?
-2. **Efeito de cada maestria:** o que a maestria de cada especialização faz? (O Sábio sugere, por exemplo, que a
-   da Leveza seja o "campo guarda o momento".)
-3. **Quando e onde trocar versões:** o jogador troca as versões das funções a qualquer momento, só em certos
-   lugares (como a escola), ou com algum custo?
-4. **Intro e demonstração da escola:** como são a intro curta e a demonstração antes da escolha? O elemento
-   escolhido é permanente? O jogador pode experimentar antes de decidir?
+1. ~~**Eixos dos 7 elementos**~~ Respondido em 2026-11-16: os eixos propostos pelo Sábio ficam. Fogo: Chama ↔
+   Explosão; Água: Gelo ↔ Maré; Terra: Rocha ↔ Areia; Ar: Vento ↔ Vácuo; Natureza: Crescimento ↔ Podridão;
+   Eletricidade: Descarga ↔ Magnetismo; Gravidade: Peso ↔ Leveza.
+2. **Efeito de cada maestria:** a decidir. O que a maestria de cada especialização faz? (O Sábio sugere, por
+   exemplo, que a da Leveza seja o "campo guarda o momento".)
+3. ~~**Quando e onde trocar versões**~~ Respondido em 2026-11-16: **só na escola de magos, por enquanto.**
+4. **Intro e demonstração da escola:** ainda não pensado e **fora da implementação por enquanto**. Ficam em aberto:
+   como são a intro e a demonstração, se o elemento escolhido é permanente e se dá para experimentar antes de
+   decidir.
