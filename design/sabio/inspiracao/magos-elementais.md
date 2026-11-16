@@ -60,7 +60,7 @@ versão por função.
 - **Escolhas misturadas:** mais flexível, mas sem maestria.
 - **Nunca as duas maestrias.** A regra do Liam sai naturalmente.
 
-Isso é a opção **C** abaixo, a que recomendo. As outras ficam para comparar:
+Isso é a opção **C** abaixo, **escolhida pelo Liam em 2026-11-16**. As outras ficam registradas para comparação:
 
 | Opção | Como funciona | A favor | Contra |
 |---|---|---|---|
@@ -273,7 +273,8 @@ A batalha é **contra jogadores e contra monstros**. O que isso muda:
 ## Perguntas para o Liam
 
 1. ~~**Batalha contra quem?**~~ Respondido: jogadores e monstros (ver a seção acima).
-2. **Especializações:** a opção C (uma escolha por função, maestria com as 4 da mesma ponta) serve?
+2. ~~**Especializações**~~ Respondido: opção C (uma versão por função, maestria com as 4 da mesma ponta).
+   Ainda abertos: quando e onde o jogador troca as versões, e o que cada maestria faz.
 3. ~~**O Cavaleiro**~~ Respondido: sai do jogo; toda classe é um mago elemental, escolhida na escola de magos.
 4. **Fatia vertical:** começamos por Fogo, Terra e Gravidade?
 5. Os eixos dos 7 elementos fazem sentido, ou algum elemento tem outra especialização na sua cabeça?
