@@ -230,6 +230,24 @@ crescer para 7 x 7.
 | C2. Muralha guarda o golpe | Cavaleiro | **Descartar.** O ancorar do Peso cobre a fantasia sem guardar energia |
 | E1. O chão define o pilar | Elementalista | **Vira a lei da Terra** |
 
+## Jogadores e monstros (decidido em 2026-11-16)
+
+A batalha é **contra jogadores e contra monstros**. O que isso muda:
+
+- **Monstros obedecem às mesmas leis.** Um monstro de fogo acende madeira e é apagado pela lama, como um
+  mago. É a mesma regra do bot Psiônico, que já usa o kit do jogador. Assim, quem aprende a lutar contra
+  monstros aprende a lutar contra jogadores.
+- **Monstros podem ser só material.** Nem todo monstro precisa de elemento: um de madeira queima, um de metal
+  conduz. Isso cria problemas que cada elemento resolve de um jeito.
+- **As defesas precisam servir para os dois casos.** Contra jogador, a defesa responde a uma habilidade.
+  Contra um grupo de monstros, ela precisa durar ou cobrir área. Cada elemento precisa de pelo menos uma
+  versão de defesa que funcione contra vários alvos.
+- **O controle precisa de dois limites.** Prender ou atordoar um monstro é divertido, mas prender um
+  jogador por muito tempo é frustrante. Proposta: a mesma habilidade dura menos contra jogadores, e o efeito
+  aparece na tela para os dois lados.
+- **O equilíbrio olha para dois lugares.** Um elemento fraco no duelo pode ser ótimo contra grupos, e vice-versa.
+  Isso é aceitável se ninguém for fraco nos dois.
+
 ## Riscos
 
 - **Escopo.** Com a opção C, são 7 elementos x 8 habilidades = **56 habilidades**. Sugestão de fatia vertical:
@@ -243,8 +261,7 @@ crescer para 7 x 7.
 
 ## Perguntas para o Liam
 
-1. **Batalha contra quem?** Jogador contra jogador, contra monstros, ou as duas? Isso muda o peso das defesas e
-   do controle.
+1. ~~**Batalha contra quem?**~~ Respondido: jogadores e monstros (ver a seção acima).
 2. **Especializações:** a opção C (uma escolha por função, maestria com as 4 da mesma ponta) serve?
 3. **O Cavaleiro:** sai, vira monstro ou é repartido entre os elementos?
 4. **Fatia vertical:** começamos por Fogo, Terra e Gravidade?
