@@ -2,7 +2,7 @@
 
 ## Teste de fumaça (automático)
 
-Carrega a arena com o Elementalista e o Psiônico, usa as habilidades de cada, pega e arremessa
+Carrega a arena com os magos do Fogo, da Terra e da Gravidade, usa as habilidades de cada, pega e arremessa
 uma caixa, testa fogo, explosão, Dardo Cinético, Campo Lento, Flutuar, Bola de Fogo carregável,
 Escada de Pedra, Lamaçal, teto de pulo, degraus, dash, alvos voadores, impacto por massa e
 velocidade e as fórmulas de atributos.
@@ -25,7 +25,7 @@ verificação que falha aparece numa linha com `FALHA`, e o programa sai com có
 |---|---|
 | `smoke_test.gd` | Executor: acha as suítes, roda uma por vez (em ordem alfabética) e soma o resultado. Não contém testes. |
 | `suite_base.gd` | Auxiliares comuns: `_check`, `_frames`, `_load_arena`, `_unload`, `_nearest_crate`, `_first_prop`, `_press_key`, `_walk_toward`, `_peak_until_landing`. |
-| `suites/classes.gd` | Frente `classes`: percurso de cada classe, Psiônico, Elementalista, atributos e progressão. |
+| `suites/classes.gd` | Frente `classes`: percurso de cada classe, Gravidade, Fogo, Terra, atributos e progressão. |
 | `suites/gameplay.gd` | Frente `gameplay`: degraus, rampa, dash e arremesso em movimento. |
 | `suites/monstros.gd` | Frente `monstros`: regras de dano, impacto, boneco de treino e alvos voadores. |
 
@@ -44,7 +44,7 @@ func run() -> void:
 
 func _test_alguma_coisa() -> void:
 	print("\n--- Alguma coisa ---")
-	var arena := await _load_arena("mage")
+	var arena := await _load_arena("fire")
 	var player: Player = arena.player
 	await _frames(10)
 	_check(player.is_on_floor(), "jogador no chão")
@@ -86,7 +86,7 @@ Regras:
 ## Abrir a arena direto com uma classe
 
 ```bash
-"./Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64.exe" --path . res://src/levels/test_arena.tscn -- --class=mage
+"./Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64.exe" --path . res://src/levels/test_arena.tscn -- --class=fire
 ```
 
 ## Roteiro de playtest manual (QA)
@@ -95,6 +95,6 @@ Regras:
 2. Novo Jogo → cada classe. O texto dos cartões cabe e é claro?
 3. Pista de mobilidade: até que degrau cada classe sobe? Qual o maior vão que cada uma cruza?
 4. Boneco: compare o impulso de cada habilidade (o boneco mostra "x empurrão humano").
-5. Laboratório: incendeie a pirâmide **sem** Bola de Fogo (Psiônico + braseiro).
+5. Laboratório: incendeie a pirâmide **sem** Bola de Fogo (Terra ou Gravidade + braseiro).
 6. Exploda um barril perto da pirâmide. A reação em cadeia é legível?
 7. Esc durante o jogo: pausa, configurações e voltar ao menu funcionam?

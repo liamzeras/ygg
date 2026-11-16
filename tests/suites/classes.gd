@@ -1,6 +1,6 @@
 extends "res://tests/suite_base.gd"
 ## Suíte da frente classes: percurso completo de cada classe (habilidades, pulo, pegar e
-## arremessar, editor de atributos), Psiônico, Elementalista, atributos e progressão.
+## arremessar, editor de atributos), Gravidade, Fogo, Terra, atributos e progressão.
 
 const RULES := preload("res://assets/data/attribute_rules.tres")
 
@@ -10,12 +10,13 @@ var _throw_speeds := {}
 
 func run() -> void:
 	_test_attribute_curve()
-	for id in ["mage", "psionic"]:
+	for id in ["fire", "earth", "psionic"]:
 		await _test_class(id)
 	_check(_sprint_speeds.size() == GameState.CLASSES.size() and _sprint_speeds.all(func(s: float) -> bool: return is_equal_approx(s, _sprint_speeds[0])), "velocidade de corrida igual entre classes")
-	_check(_throw_speeds.get("psionic", 0.0) > _throw_speeds.get("mage", 0.0), "Telecinese Acelerada arremessa mais rápido que as mãos do Elementalista (%.1f x %.1f m/s)" % [_throw_speeds.get("psionic", 0.0), _throw_speeds.get("mage", 0.0)])
+	_check(_throw_speeds.get("psionic", 0.0) > _throw_speeds.get("fire", 0.0), "Telecinese Acelerada arremessa mais rápido que as mãos do Mago do Fogo (%.1f x %.1f m/s)" % [_throw_speeds.get("psionic", 0.0), _throw_speeds.get("fire", 0.0)])
 	await _test_psionic()
-	await _test_elementalist()
+	await _test_fire()
+	await _test_earth()
 	await _test_progression()
 	await _test_stair_auto_climb()
 
@@ -48,14 +49,21 @@ func _test_class(id: String) -> void:
 	player.face_point(dummy.global_position + Vector3.UP * 1.2)
 	await _frames(2)
 	var primary := player.get_ability(Player.SLOT_PRIMARY)
-	var before: float = player.get_pool(primary.cost_pool)
-	player.request_action(Player.SLOT_PRIMARY)
-	if primary.is_chargeable():
-		await _frames(2)
-		player.request_action(Player.ACTION_PRIMARY_RELEASE)
-	await _frames(45)
-	_check(player.get_pool(primary.cost_pool) < before, "%s: principal gastou %s" % [id, Player.POOL_NAMES[primary.cost_pool]])
-	_check(dummy.combo_damage > 0.0, "%s: boneco tomou dano (%.1f, DPS %.1f)" % [id, dummy.combo_damage, dummy.get_dps()])
+	if primary:
+		var before: float = player.get_pool(primary.cost_pool)
+		player.request_action(Player.SLOT_PRIMARY)
+		if primary.is_chargeable():
+			await _frames(2)
+			player.request_action(Player.ACTION_PRIMARY_RELEASE)
+		await _frames(45)
+		_check(player.get_pool(primary.cost_pool) < before, "%s: principal gastou %s" % [id, Player.POOL_NAMES[primary.cost_pool]])
+		_check(dummy.combo_damage > 0.0, "%s: boneco tomou dano (%.1f, DPS %.1f)" % [id, dummy.combo_damage, dummy.get_dps()])
+	else:
+		# Botão esquerdo vazio (a Terra ainda não tem ataque): não gasta nada nem dá erro.
+		var mana_before := player.get_pool(Player.Pool.MANA)
+		player.request_action(Player.SLOT_PRIMARY)
+		await _frames(45)
+		_check(not player.is_charging() and player.get_pool(Player.Pool.MANA) >= mana_before - 0.01 and dummy.combo_damage == 0.0, "%s: botão esquerdo vazio não faz nada" % id)
 
 	# Mobilidade (se a classe tiver).
 	if player.get_ability(Player.SLOT_MOBILITY):
@@ -110,7 +118,7 @@ func _test_class(id: String) -> void:
 	_check(peak - ground_y <= 2.02, "%s: pulo duplo com atributos no teto chega a no máximo 2 m (%.2f m)" % [id, peak - ground_y])
 	player.reset_attributes()
 
-	# Pegar e arremessar uma caixa (mãos para o Elementalista, telecinese para o Psiônico).
+	# Pegar e arremessar uma caixa (mãos para Fogo e Terra, telecinese para a Gravidade).
 	var crate := _nearest_crate(arena, player)
 	_check(crate != null, "%s: achou uma caixa" % id)
 	if crate:
@@ -246,15 +254,13 @@ func _test_psionic() -> void:
 	await _unload(arena)
 
 
-# Critérios de aceite de design/gdd/mage-elementalist.md.
-func _test_elementalist() -> void:
-	print("\n--- Elementalista: bola de fogo, pilar, lamaçal ---")
-	var arena := await _load_arena("mage")
+# Critérios de aceite de design/gdd/mage-elementalist.md (parte do Fogo).
+func _test_fire() -> void:
+	print("\n--- Fogo: bola de fogo ---")
+	var arena := await _load_arena("fire")
 	var player: Player = arena.player
 	var dummy: TrainingDummy = arena.dummy
 	var fireball := player.get_ability(Player.SLOT_PRIMARY) as FireballAbility
-	var pillar_ability := player.get_ability(Player.SLOT_MOBILITY) as StonePillarAbility
-	var mud := player.get_ability(Player.SLOT_SPECIAL) as MudAbility
 	var mana := Player.Pool.MANA
 
 	# Bola de Fogo: clique x carga cheia.
@@ -275,9 +281,20 @@ func _test_elementalist() -> void:
 		damages.append(dummy.combo_damage)
 		_check(absf(spent - test[2]) < 0.8, "bola de fogo %s gastou %.1f de Mana (esperado %.0f)" % [test[0], spent, test[2]])
 	_check(damages[1] > damages[0] and damages[0] > 0.0, "carga cheia dá mais dano (%.1f x %.1f)" % [damages[1], damages[0]])
+	await _unload(arena)
+
+
+# Critérios de aceite de design/gdd/mage-elementalist.md (parte da Terra).
+func _test_earth() -> void:
+	print("\n--- Terra: pilar, lamaçal ---")
+	var arena := await _load_arena("earth")
+	var player: Player = arena.player
+	var dummy: TrainingDummy = arena.dummy
+	var pillar_ability := player.get_ability(Player.SLOT_MOBILITY) as StonePillarAbility
+	var mud := player.get_ability(Player.SLOT_SPECIAL) as MudAbility
+	var mana := Player.Pool.MANA
 
 	# Pilar mirado no céu: não nasce e não gasta Mana.
-	player.respawn()
 	await _frames(10)
 	player.face_point(player.get_aim_origin() + Vector3(0, 10, 3))
 	var before_sky := player.get_pool(mana)
@@ -419,7 +436,7 @@ func _test_progression() -> void:
 		_check(RULES.is_legal_build(data.attributes, level), "%s é uma build válida no nível %d" % [data.display_name, level])
 
 	# Subir de nível e gastar pontos no jogador; o editor volta ao nível 1.
-	var arena := await _load_arena("mage")
+	var arena := await _load_arena("fire")
 	var player: Player = arena.player
 	var editor: Node = arena.get_node("DebugEditor")
 	editor._apply_level_one()
@@ -439,7 +456,7 @@ func _test_progression() -> void:
 # Degraus da Escada de Pedra: W sobe sozinho; sem W, não (design/gdd/mage-elementalist.md).
 func _test_stair_auto_climb() -> void:
 	print("\n--- Escada de Pedra: subir com W ---")
-	var arena := await _load_arena("mage")
+	var arena := await _load_arena("earth")
 	var player: Player = arena.player
 	var pillar_ability := player.get_ability(Player.SLOT_MOBILITY) as StonePillarAbility
 	player.debug_infinite_resources = true
