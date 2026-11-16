@@ -4,8 +4,6 @@
 [ext_resource type="Script" path="res://src/gameplay/stats/attributes.gd" id="2_attrs"]
 [ext_resource type="Script" path="res://src/gameplay/abilities/fireball_ability.gd" id="3_fire"]
 [ext_resource type="Script" path="res://src/gameplay/abilities/arcane_leap_ability.gd" id="4_leap"]
-[ext_resource type="Script" path="res://src/gameplay/abilities/stone_pillar_ability.gd" id="5_pillar"]
-[ext_resource type="Script" path="res://src/gameplay/abilities/mud_ability.gd" id="6_mud"]
 
 [ext_resource type="Script" path="res://src/gameplay/abilities/dash_ability.gd" id="9_dash"]
 
@@ -39,42 +37,6 @@ cooldown = 0.4
 scaling_attribute = 4
 charge_time = 0.8
 
-[sub_resource type="Resource" id="pillar"]
-script = ExtResource("5_pillar")
-width = 1.0
-step_heights = Array[float]([0.85, 1.7, 2.55])
-auto_climb_height = 0.9
-aimed_step = 1
-rise_time = 0.35
-lifetime = 8.0
-sink_time = 0.6
-stone_density = 350.0
-impact_transfer = 0.05
-reach = 12.0
-max_slope = 45.0
-display_name = "Escada de Pedra"
-description = "Ergue uma escada de 3 pilares; o do meio nasce no chão mirado. Segure W para subir os degraus. Objetos em cima são arremessados."
-cost = 30.0
-cost_pool = 1
-cooldown = 3.0
-scaling_attribute = 4
-
-[sub_resource type="Resource" id="mud"]
-script = ExtResource("6_mud")
-radius = 2.5
-base_duration = 4.0
-drag = 3.0
-cooling = 50.0
-character_speed = 0.5
-reach = 12.0
-max_slope = 45.0
-display_name = "Lamaçal"
-description = "Amolece o chão mirado: objetos param, fogo apaga e quem pisa (você também) fica lento."
-cost = 25.0
-cost_pool = 1
-cooldown = 6.0
-scaling_attribute = 4
-
 [sub_resource type="Resource" id="leap"]
 script = ExtResource("4_leap")
 display_name = "Pulo Arcano"
@@ -98,11 +60,11 @@ scaling_attribute = 0
 
 [resource]
 script = ExtResource("1_class")
-id = &"mage"
-display_name = "Mago Elementalista"
-role = "Artilharia: fogo, pedra e lama"
-description = "Cria matéria e energia: incendeia, ergue pedra e amolece o chão. Projétil lento e em arco, mas deixa o terreno diferente."
-color = Color(0.55, 0.5, 1, 1)
+id = &"fire"
+display_name = "Mago do Fogo"
+role = "Explosão: calor que empurra e incendeia"
+description = "O calor acumula, espalha e consome o que queima. Por enquanto só a Bola de Fogo: as outras habilidades do Fogo ainda não existem."
+color = Color(1, 0.5, 0.25, 1)
 attributes = SubResource("attrs")
 body_mass = 70.0
 regen_delay = 1.0
@@ -112,7 +74,5 @@ air_control = 0.45
 hand_range = 2.2
 hold_distance = 1.4
 primary_ability = SubResource("fireball")
-mobility_ability = SubResource("pillar")
-special_ability = SubResource("mud")
 air_jump_ability = SubResource("leap")
 dash_ability = SubResource("dash")

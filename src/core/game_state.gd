@@ -6,8 +6,8 @@ const CLASS_SELECT := "res://src/ui/class_select.tscn"
 const ARENA := "res://src/levels/test_arena.tscn"
 
 const CLASSES: Array[PlayerClassData] = [
-	preload("res://assets/data/classes/knight.tres"),
-	preload("res://assets/data/classes/mage.tres"),
+	preload("res://assets/data/classes/fire.tres"),
+	preload("res://assets/data/classes/earth.tres"),
 	preload("res://assets/data/classes/psionic.tres"),
 ]
 
@@ -16,7 +16,7 @@ var selected_class: PlayerClassData
 
 func _ready() -> void:
 	# Permite escolher a classe pela linha de comando (útil para testes):
-	# Godot --path . res://src/levels/test_arena.tscn -- --class=mage
+	# Godot --path . res://src/levels/test_arena.tscn -- --class=fire
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--class="):
 			selected_class = find_class(arg.trim_prefix("--class="))
