@@ -213,11 +213,18 @@ crescer para 7 x 7.
 | Postura de Muralha | Gravidade, defesa (Peso) |
 | Golpe de Escudo | Ar, ataque (Vento) |
 | Dardo Cinético | Ar, ataque (Vácuo), ou sai |
-| Investida | Gravidade (Peso) ou Terra; decisão do Liam |
+| Investida | Gravidade (Peso), como alternativa de movimento à queda meteoro: o mago fica pesado enquanto corre, e o impacto continua sendo massa x velocidade |
 | Laboratório: água, gelo, molhado | Água |
 | Laboratório: teia, óleo | Natureza, ou ficam como materiais do mundo |
 
-**O Cavaleiro não cabe na visão.** Ou sai, ou vira um monstro, ou suas habilidades são repartidas como acima.
+**O Cavaleiro é repartido entre os elementos** (decidido em 2026-11-16). Nenhuma habilidade dele se perde:
+
+- Golpe de Escudo vai para o Ar, Postura de Muralha e Investida vão para a Gravidade (Peso).
+- Dash e Pulo Duplo já são de todos e continuam assim.
+- Os valores atuais servem de ponto de partida, porque já foram testados. O que muda é a explicação: a força vem
+  do elemento, não do corpo, e o custo passa de Vigor para Mana.
+- **Ainda não muda o jogo.** Tirar o Cavaleiro do menu e mover o código é trabalho da frente `classes`, depois
+  que a fatia vertical for decidida. Até lá, ele continua jogável para os testes.
 
 ## As 6 ideias do LoL, revistas
 
@@ -263,6 +270,6 @@ A batalha é **contra jogadores e contra monstros**. O que isso muda:
 
 1. ~~**Batalha contra quem?**~~ Respondido: jogadores e monstros (ver a seção acima).
 2. **Especializações:** a opção C (uma escolha por função, maestria com as 4 da mesma ponta) serve?
-3. **O Cavaleiro:** sai, vira monstro ou é repartido entre os elementos?
+3. ~~**O Cavaleiro**~~ Respondido: repartido entre os elementos (ver "O que já temos e para onde vai").
 4. **Fatia vertical:** começamos por Fogo, Terra e Gravidade?
 5. Os eixos dos 7 elementos fazem sentido, ou algum elemento tem outra especialização na sua cabeça?
