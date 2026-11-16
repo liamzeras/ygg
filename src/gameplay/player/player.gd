@@ -85,9 +85,6 @@ var _dash_time := 0.0
 var _dash_impact := 0.0
 var _dash_source := ""
 var _dash_hits: Array[Object] = []
-var _guard_time := 0.0
-var _guard_reduction := 0.0
-var _guard_speed := 1.0
 var _shake := 0.0
 var _charging := false
 var _charge := 0.0
@@ -263,8 +260,10 @@ func is_air_jump_available() -> bool:
 	return class_data.air_jump_ability != null and not _air_jump_used
 
 
+## Nenhuma classe tem postura de guarda desde que o Cavaleiro saiu (2026-11-16).
+## Fica só porque o hud.gd ainda lê; remover junto com o rótulo "EM GUARDA" do HUD.
 func is_guarding() -> bool:
-	return _guard_time > 0.0
+	return false
 
 
 func is_charging() -> bool:
@@ -414,12 +413,6 @@ func start_dash(dash_velocity: Vector3, duration: float, impact: float, source: 
 	_dash_hits.clear()
 
 
-func start_guard(duration: float, reduction: float, speed_factor: float) -> void:
-	_guard_time = duration
-	_guard_reduction = reduction
-	_guard_speed = speed_factor
-
-
 ## Pontos ainda não distribuídos (negativo = build de teste acima do que o nível paga).
 func get_free_points() -> int:
 	return rules.points_at_level(level) - rules.spent_points(class_data.attributes)
@@ -460,8 +453,6 @@ func get_center() -> Vector3:
 
 ## Recebe um empurrão (N·s). A velocidade muda conforme a massa do personagem.
 func apply_knockback(impulse: Vector3) -> void:
-	if is_guarding():
-		impulse *= 1.0 - _guard_reduction
 	velocity += impulse / class_data.body_mass
 	add_shake(clampf(impulse.length() / 400.0, 0.0, 0.6))
 
@@ -613,7 +604,6 @@ func _jump() -> void:
 func _update_timers(delta: float) -> void:
 	for slot in _cooldowns.keys():
 		_cooldowns[slot] = maxf(_cooldowns[slot] - delta, 0.0)
-	_guard_time = maxf(_guard_time - delta, 0.0)
 
 
 func _move(delta: float) -> void:
@@ -627,15 +617,13 @@ func _move(delta: float) -> void:
 	wish.y = 0.0
 	_wish = wish.normalized() * minf(input.length(), 1.0)
 	var wants_sprint := input_enabled and Input.is_action_pressed("sprint")
-	_sprinting = wants_sprint and input.length() > 0.1 and get_pool(Pool.STAMINA) > 0.0 and not is_guarding()
+	_sprinting = wants_sprint and input.length() > 0.1 and get_pool(Pool.STAMINA) > 0.0
 
 	if _dash_time > 0.0:
 		velocity.x = _dash_velocity.x
 		velocity.z = _dash_velocity.z
 	else:
 		var speed := stats.sprint_speed if _sprinting else stats.walk_speed
-		if is_guarding():
-			speed *= _guard_speed
 		speed *= get_speed_factor()
 		# No ar sem input, mantém o embalo (pulos não "freiam").
 		if is_on_floor() or input.length() > 0.1:

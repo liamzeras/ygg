@@ -6,7 +6,6 @@ const CLASS_SELECT := "res://src/ui/class_select.tscn"
 const ARENA := "res://src/levels/test_arena.tscn"
 
 const CLASSES: Array[PlayerClassData] = [
-	preload("res://assets/data/classes/knight.tres"),
 	preload("res://assets/data/classes/mage.tres"),
 	preload("res://assets/data/classes/psionic.tres"),
 ]

@@ -2,7 +2,7 @@
 
 ## Teste de fumaça (automático)
 
-Carrega a arena com o Cavaleiro, o Elementalista e o Psiônico, usa as habilidades de cada, pega e arremessa
+Carrega a arena com o Elementalista e o Psiônico, usa as habilidades de cada, pega e arremessa
 uma caixa, testa fogo, explosão, Dardo Cinético, Campo Lento, Flutuar, Bola de Fogo carregável,
 Escada de Pedra, Lamaçal, teto de pulo, degraus, dash, alvos voadores, impacto por massa e
 velocidade e as fórmulas de atributos.
@@ -44,7 +44,7 @@ func run() -> void:
 
 func _test_alguma_coisa() -> void:
 	print("\n--- Alguma coisa ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("mage")
 	var player: Player = arena.player
 	await _frames(10)
 	_check(player.is_on_floor(), "jogador no chão")
@@ -95,6 +95,6 @@ Regras:
 2. Novo Jogo → cada classe. O texto dos cartões cabe e é claro?
 3. Pista de mobilidade: até que degrau cada classe sobe? Qual o maior vão que cada uma cruza?
 4. Boneco: compare o impulso de cada habilidade (o boneco mostra "x empurrão humano").
-5. Laboratório: incendeie a pirâmide **sem** Bola de Fogo (cavaleiro + braseiro).
+5. Laboratório: incendeie a pirâmide **sem** Bola de Fogo (Psiônico + braseiro).
 6. Exploda um barril perto da pirâmide. A reação em cadeia é legível?
 7. Esc durante o jogo: pausa, configurações e voltar ao menu funcionam?

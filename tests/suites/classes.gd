@@ -10,9 +10,9 @@ var _throw_speeds := {}
 
 func run() -> void:
 	_test_attribute_curve()
-	for id in ["knight", "mage", "psionic"]:
+	for id in ["mage", "psionic"]:
 		await _test_class(id)
-	_check(_sprint_speeds.size() == 3 and _sprint_speeds.all(func(s: float) -> bool: return is_equal_approx(s, _sprint_speeds[0])), "velocidade de corrida igual entre classes")
+	_check(_sprint_speeds.size() == GameState.CLASSES.size() and _sprint_speeds.all(func(s: float) -> bool: return is_equal_approx(s, _sprint_speeds[0])), "velocidade de corrida igual entre classes")
 	_check(_throw_speeds.get("psionic", 0.0) > _throw_speeds.get("mage", 0.0), "Telecinese Acelerada arremessa mais rápido que as mãos do Elementalista (%.1f x %.1f m/s)" % [_throw_speeds.get("psionic", 0.0), _throw_speeds.get("mage", 0.0)])
 	await _test_psionic()
 	await _test_elementalist()
@@ -42,7 +42,7 @@ func _test_class(id: String) -> void:
 	print("  stats: carga %.0f kg, pulo %.2f m, corrida %.1f m/s, vigor %.0f, mana %.0f" % [
 		player.stats.carry_mass, player.stats.jump_height, player.stats.sprint_speed, player.stats.max_stamina, player.stats.max_mana])
 
-	# Habilidade principal de perto do boneco (alcance do Golpe de Escudo é curto).
+	# Habilidade principal de perto do boneco.
 	player.global_position = dummy.global_position + Vector3(0, 0.05, 1.8)
 	await _frames(10)
 	player.face_point(dummy.global_position + Vector3.UP * 1.2)
@@ -57,11 +57,7 @@ func _test_class(id: String) -> void:
 	_check(player.get_pool(primary.cost_pool) < before, "%s: principal gastou %s" % [id, Player.POOL_NAMES[primary.cost_pool]])
 	_check(dummy.combo_damage > 0.0, "%s: boneco tomou dano (%.1f, DPS %.1f)" % [id, dummy.combo_damage, dummy.get_dps()])
 
-	# Especial e mobilidade (se a classe tiver).
-	if id == "knight":
-		player.request_action(Player.SLOT_SPECIAL)
-		await _frames(3)
-		_check(player.is_guarding(), "knight: Postura de Muralha ativa")
+	# Mobilidade (se a classe tiver).
 	if player.get_ability(Player.SLOT_MOBILITY):
 		# Mira o chão atrás (longe do boneco): o Pilar de Pedra precisa de chão firme.
 		player.face_point(player.get_aim_origin() - player.get_flat_forward() * 4.0 + Vector3.DOWN * 1.6)
@@ -114,7 +110,7 @@ func _test_class(id: String) -> void:
 	_check(peak - ground_y <= 2.02, "%s: pulo duplo com atributos no teto chega a no máximo 2 m (%.2f m)" % [id, peak - ground_y])
 	player.reset_attributes()
 
-	# Pegar e arremessar uma caixa (mãos para o cavaleiro, telecinese para o mago).
+	# Pegar e arremessar uma caixa (mãos para o Elementalista, telecinese para o Psiônico).
 	var crate := _nearest_crate(arena, player)
 	_check(crate != null, "%s: achou uma caixa" % id)
 	if crate:
@@ -423,7 +419,7 @@ func _test_progression() -> void:
 		_check(RULES.is_legal_build(data.attributes, level), "%s é uma build válida no nível %d" % [data.display_name, level])
 
 	# Subir de nível e gastar pontos no jogador; o editor volta ao nível 1.
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("mage")
 	var player: Player = arena.player
 	var editor: Node = arena.get_node("DebugEditor")
 	editor._apply_level_one()

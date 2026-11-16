@@ -66,7 +66,7 @@ func _test_health_and_respawn() -> void:
 # Bot Psiônico agressivo: F6 chama e some, ataca, morre e renasce (design/gdd/combat-bot.md).
 func _test_combat_bot() -> void:
 	print("\n--- Bot psiônico (F6) ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("mage")
 	var player: Player = arena.player
 	var health := player.get_node("Health") as Health
 	_check(InputMap.has_action("spawn_bot"), "F6 registrado")
@@ -114,7 +114,7 @@ func _test_damage_rules() -> void:
 
 func _test_dummy_fire_and_reset() -> void:
 	print("\n--- Boneco: fogo próximo e reset ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("mage")
 	var dummy: TrainingDummy = arena.dummy
 	var crate := _nearest_crate(arena, arena.player)
 	crate.freeze = true
