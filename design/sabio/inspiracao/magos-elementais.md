@@ -117,7 +117,7 @@ cada elemento e que **os verbos de movimento não se repetem**.
 | Função | Vento | Vácuo |
 |---|---|---|
 | Movimento | **Planar**, dependendo do vento: sobe em correntes, e o fogo cria corrente para cima | Super salto com ar comprimido sob os pés |
-| Ataque | Rajada em cone (o Golpe de Escudo vira isto) | Bolha comprimida que estoura (concussão) |
+| Ataque | Rajada em cone | Bolha comprimida que estoura (concussão) |
 | Defesa | Redemoinho que desvia projéteis leves | Bolha sem ar: apaga fogo e corta a onda de explosão |
 | Terreno | Vento constante numa área | Bolsão sem ar onde o fogo não acende |
 
@@ -164,7 +164,7 @@ O gás do pântano é metano, que existe de verdade e é o melhor gancho para o 
 |---|---|---|
 | Movimento | Queda meteoro: despenca e causa impacto | Flutuar (já existe) |
 | Ataque | Poço que puxa tudo para um ponto | Telecinese com arremesso (já existe) |
-| Defesa | Ancorar: imune a empurrões (a Postura de Muralha vira isto) | Campo Lento (já existe) |
+| Defesa | Ancorar: imune a empurrões | Campo Lento (já existe) |
 | Terreno | Esmagar: afundar o chão, derrubar estruturas | Pedras flutuantes como plataformas |
 
 **Planar (Ar) e Flutuar (Gravidade) não são iguais:** planar depende do vento e de correntes, é barato e sem
@@ -210,21 +210,25 @@ crescer para 7 x 7.
 | Escada de Pedra | Terra, movimento (Rocha) |
 | Lamaçal | Terra, terreno (Areia) |
 | Flutuar, Telecinese, Campo Lento | Gravidade (Leveza) |
-| Postura de Muralha | Gravidade, defesa (Peso) |
-| Golpe de Escudo | Ar, ataque (Vento) |
 | Dardo Cinético | Ar, ataque (Vácuo), ou sai |
-| Investida | Gravidade (Peso), como alternativa de movimento à queda meteoro: o mago fica pesado enquanto corre, e o impacto continua sendo massa x velocidade |
 | Laboratório: água, gelo, molhado | Água |
 | Laboratório: teia, óleo | Natureza, ou ficam como materiais do mundo |
 
-**O Cavaleiro é repartido entre os elementos** (decidido em 2026-11-16). Nenhuma habilidade dele se perde:
+**O Cavaleiro sai do jogo** (decidido em 2026-11-16). Toda classe selecionável é um mago elemental, e as
+habilidades do Cavaleiro não precisam ser aproveitadas. Dash e Pulo Duplo continuam de todos. Tirar o Cavaleiro do
+menu e do código é trabalho da frente `classes`.
 
-- Golpe de Escudo vai para o Ar, Postura de Muralha e Investida vão para a Gravidade (Peso).
-- Dash e Pulo Duplo já são de todos e continuam assim.
-- Os valores atuais servem de ponto de partida, porque já foram testados. O que muda é a explicação: a força vem
-  do elemento, não do corpo, e o custo passa de Vigor para Mana.
-- **Ainda não muda o jogo.** Tirar o Cavaleiro do menu e mover o código é trabalho da frente `classes`, depois
-  que a fatia vertical for decidida. Até lá, ele continua jogável para os testes.
+## Começo do jogo: a escola de magos (decidido em 2026-11-16)
+
+O jogador começa **sem classe**. Depois de uma intro curta e de uma demonstração, escolhe o elemento na **escola de
+magos**. A intro e a demonstração serão desenhadas depois. O que esta pesquisa já sugere para elas:
+
+- **A demonstração mostra a lei de cada elemento**, não uma lista de habilidades. Exemplo: ver a água apagar um
+  fogo e depois conduzir um raio ensina mais que ler "Gelo e Maré".
+- **Mostrar os rastros entre elementos.** Ver dois magos combinando poça e raio já diz ao jogador que o elemento
+  escolhido conversa com os outros.
+- **A escolha precisa dizer o que é para sempre.** Hoje o elemento é único e fixo. Se for permanente, a escola
+  precisa deixar o jogador experimentar antes de decidir.
 
 ## As 6 ideias do LoL, revistas
 
@@ -270,6 +274,6 @@ A batalha é **contra jogadores e contra monstros**. O que isso muda:
 
 1. ~~**Batalha contra quem?**~~ Respondido: jogadores e monstros (ver a seção acima).
 2. **Especializações:** a opção C (uma escolha por função, maestria com as 4 da mesma ponta) serve?
-3. ~~**O Cavaleiro**~~ Respondido: repartido entre os elementos (ver "O que já temos e para onde vai").
+3. ~~**O Cavaleiro**~~ Respondido: sai do jogo; toda classe é um mago elemental, escolhida na escola de magos.
 4. **Fatia vertical:** começamos por Fogo, Terra e Gravidade?
 5. Os eixos dos 7 elementos fazem sentido, ou algum elemento tem outra especialização na sua cabeça?
