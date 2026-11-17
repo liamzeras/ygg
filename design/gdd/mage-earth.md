@@ -121,6 +121,8 @@ alturas, chance de estalagmite, pedregulhos e duração do Terremoto.
 7. Relevo com alturas entre 0,2 e 2 m e pelo menos uma estalagmite no tamanho máximo; tudo some depois de 5 s.
 8. Nenhuma classe tem dash; E pega e arremessa em todas.
 - Socos seguidos num pilar o racham em estágios e, no fim, o desfazem em 6 pedaços que seguem o golpe.
+- Na Escada erguida pelo próprio Q: o soco racha e quebra o degrau do meio (1,7 m) e o chute, o degrau baixo
+  (0,85 m), que o soco não alcança.
 - Escada, Lamaçal e Terremoto só nascem sobre terra ou pedra (lei da Terra); a massa do pilar vem de earth_construct.tres.
 
 ## Medido no teste automático (2026-11-16)
