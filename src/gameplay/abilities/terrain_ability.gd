@@ -7,6 +7,9 @@ extends Ability
 @export var reach := 12.0
 ## Inclinação máxima (graus) do chão onde a magia pode nascer.
 @export var max_slope := 45.0
+## Lei da Terra: só nasce sobre material que a Terra trabalha (solo, pedra; ver
+## PropMaterial.earth_workable). Magias de Terra ligam; as de outros elementos não.
+@export var needs_earth := false
 
 
 ## Ponto e normal do chão mirado ({position, normal}), ou {} se não houver chão válido.
@@ -27,12 +30,22 @@ func find_ground(player: Player) -> Dictionary:
 			return {}
 	if not _is_ground(hit.collider) or (hit.normal as Vector3).angle_to(Vector3.UP) > deg_to_rad(max_slope):
 		return {}
+	if needs_earth and not _is_earth(hit.collider):
+		return {}
 	return {"position": hit.position, "normal": hit.normal}
 
 
 func get_block_reason(player: Player) -> String:
-	return "" if not find_ground(player).is_empty() else "Precisa de chão firme"
+	if not find_ground(player).is_empty():
+		return ""
+	return "Precisa de terra ou pedra" if needs_earth else "Precisa de chão firme"
 
 
 func _is_ground(collider: Object) -> bool:
 	return collider is StaticBody3D and not collider is AnimatableBody3D and not collider is TrainingDummy
+
+
+## Lei da Terra: o material do chão (PropMaterial.of) pode ser trabalhado pela Terra.
+func _is_earth(collider: Object) -> bool:
+	var material := PropMaterial.of(collider as Node)
+	return material != null and material.earth_workable

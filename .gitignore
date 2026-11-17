@@ -7,3 +7,6 @@ production/session-logs/
 # Teste profundo: resultados brutos ficam só no computador; o histórico vai para o git
 production/perf/*.json
 production/perf/auditoria-*.md
+
+# Saída da exportação do jogo
+build/

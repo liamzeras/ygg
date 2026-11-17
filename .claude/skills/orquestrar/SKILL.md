@@ -81,6 +81,19 @@ Nome do ramo, o que mudou, resultado do teste, avisos do comando "fora", pedidos
 frentes e um roteiro curto para o Liam testar no jogo.
 ```
 
+Tarefa que vem do teste profundo (desempenho ou organização) leva também este bloco no fim do `prompt`:
+
+```text
+TESTE PROFUNDO
+- O jogo não pode mudar de comportamento: só desempenho ou organização.
+- Antes e depois da mudança, rode: bash tools/teste-profundo.sh medir
+  Uma medição por vez, nunca em fila, e só com nenhum outro Godot aberto (o script confere).
+- Informe no relatório o p95, o p99 e os trancos da fase afetada, antes e depois.
+- Mudança que não melhorar a medição ou a auditoria volta atrás.
+```
+
+Anote no quadro, na coluna Tarefa, `(profundo)` e a fase afetada. É isso que dispara a medição ao integrar.
+
 ## Quando uma sessão termina
 
 O aviso da sessão é um relato, não uma prova. Antes de falar em pronto, confira no ramo dela:
@@ -104,7 +117,11 @@ Só junte com ordem do próprio Liam. Nunca faça push dos ramos.
    mostre ao Liam em português simples e deixe ele decidir.
 5. Rode `bash tools/frentes.sh teste` depois de cada junção. Se falhar, pare, mostre a falha e não
    junte o próximo.
-6. Atualize o quadro: libere travas, mova a tarefa para concluídas e ofereça a próxima da fila.
+6. Se a tarefa tem `(profundo)` no quadro, meça depois de juntar (passo 6 da skill `teste-profundo`).
+   Avise o Liam antes: a medição abre o jogo em janela por ~2,5 min. Rode uma vez por junção, nunca
+   várias em fila, e acrescente a linha em `production/perf/historico.md`. Se a fase afetada piorou,
+   mostre ao Liam e ofereça desfazer a junção.
+7. Atualize o quadro: libere travas, mova a tarefa para concluídas e ofereça a próxima da fila.
 
 ## Status
 

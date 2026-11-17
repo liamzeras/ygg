@@ -102,7 +102,10 @@ Regras:
 ## Teste profundo (manual)
 
 Mede os quadros com o jogo renderizando de verdade e audita código e arquivos. Só roda quando o Liam
-pede, pela skill `/teste-profundo` ou por `/orquestrar profundo`. Abre uma janela por ~30 s.
+pede, pela skill `/teste-profundo` ou por `/orquestrar profundo`. Abre uma janela por ~2,5 min.
+
+**Uma medição por vez, com nenhum outro Godot aberto** (jogo, editor ou outra sessão). O script se recusa
+a medir se achar outro Godot rodando: além de estragar o número, várias medições juntas já travaram o PC.
 
 ```bash
 bash tools/teste-profundo.sh medir
@@ -110,6 +113,15 @@ bash tools/teste-profundo.sh medir
 
 | Arquivo | O que faz |
 |---|---|
-| `perf_test.gd` | Arena com 4 fases de carga (parado, física, magia, combate), sem vsync; grava `production/perf/quadros-<data>.json` |
+| `perf_test.gd` | Arena como cena principal, sem vsync. Aquecimento (não julgado) e 5 fases, cada uma 3 x 7 s numa arena nova: parado, criação, explosão, magia, combate. Grava `production/perf/quadros-<data>.json` |
+
+Reprova (código 1) se alguma fase tiver **p99 acima de 33 ms** (trancos frequentes) ou **um quadro acima de
+100 ms** (travada isolada, como a explosão dos barris). Para conferir que a reprovação funciona:
+
+```bash
+bash tools/teste-profundo.sh medir -- --injetar-tranco=50:20
+```
+
+Isso põe um atraso de mentira de 50 ms a cada 20 quadros, e toda fase deve reprovar.
 
 O histórico das medições fica em `production/perf/historico.md`.

@@ -23,6 +23,10 @@ func run() -> void:
 	await _test_earthquake()
 	await _test_fire_kit()
 	await _test_gravity_kit()
+	await _test_playtest_fire()
+	await _test_playtest_gravity()
+	await _test_playtest_earth()
+	await _test_playtest_earth_stairs()
 
 
 func _test_attribute_curve() -> void:
@@ -928,7 +932,7 @@ func _test_gravity_kit() -> void:
 	await _frames(3)
 
 	# Mibune: puxa a caixa, não puxa quem lançou, é arremessado e some.
-	var pulled: PhysicsProp = arena._prop(wood, box, size, site + Vector3(1.5, 0.31, -6))
+	var pulled: PhysicsProp = arena._prop(wood, box, size, site + Vector3(1.5, 0.31, -2.5))
 	_place(player, site)
 	await _frames(30)
 	player.face_point(site + Vector3(0, 1.6, -10))
@@ -939,10 +943,13 @@ func _test_gravity_kit() -> void:
 	_check(hole != null, "Mibune criado à frente")
 	if hole:
 		var before := pulled.global_position.distance_to(hole.global_position)
-		await _frames(30)
+		var start := player.global_position
+		await _frames(10)
+		# Antes de a caixa chegar: o mago, colado no Mibune, não se mexe.
+		_check(player.global_position.distance_to(start) < 0.05, "Mibune não puxa quem lançou (%.2f m)" % player.global_position.distance_to(start))
+		await _frames(20)
 		var after := pulled.global_position.distance_to(hole.global_position)
 		_check(after < before - 0.3, "Mibune puxa a caixa próxima (de %.1f para %.1f m)" % [before, after])
-		_check(player.global_position.distance_to(site) < 0.3, "Mibune não puxa quem lançou")
 		player.request_action(Player.SLOT_SECONDARY)
 		await _frames(2)
 		_check(hole.thrown and hole.velocity.length() > 15.0, "segunda conjuração arremessa o Mibune (%.0f m/s)" % hole.velocity.length())
@@ -978,7 +985,8 @@ func _test_gravity_kit() -> void:
 	arena.add_child(enemy_zone)
 	enemy_zone.global_position = site
 	await _frames(3)
-	_check(is_equal_approx(player.get_speed_factor(), 1.0 - dream.strength) and is_equal_approx(player.get_effect(Player.EFFECT_WEIGHT), 1.0 + dream.strength), "adversário na zona fica mais lento e pesado")
+	_check(is_equal_approx(player.get_speed_factor(), 1.0 - dream.strength), "adversário na zona fica mais lento")
+	_check(is_equal_approx(player.get_effect(Player.EFFECT_WEIGHT), 1.0), "mas um mago não fica mais pesado pela zona de outro (Liam, 2026-11-17)")
 	enemy_zone.queue_free()
 	await _frames(3)
 
@@ -1059,3 +1067,308 @@ func _test_gravity_kit() -> void:
 	_check(not player.is_ability_locked() and player.get_ability(Player.SLOT_PRIMARY) == push, "fora da zona, o kit normal volta")
 	dummy.global_position = dummy_home
 	await _unload(arena)
+
+
+
+# Notas do playtest de 2026-11-17 (design/gdd/mage-fire.md, mage-gravity.md, mage-earth.md)
+# e leis do mundo (design/gdd/physics-magic-system.md).
+func _test_playtest_fire() -> void:
+	print("\n--- Playtest: o Fogo não queima quem lança; Almôndega; lama abafa a lava ---")
+	var arena := await _load_arena("fire")
+	var player: Player = arena.player
+	var dummy: TrainingDummy = arena.dummy
+	var fireball := player.get_ability(Player.SLOT_PRIMARY) as FireballAbility
+	var lava := player.get_ability(Player.SLOT_MOBILITY) as LavaFloorAbility
+	var shield := player.get_ability(Player.SLOT_SPECIAL) as FireShieldAbility
+	var health := player.get_node("Health") as Health
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	player.set_level(99)
+	var dummy_home := dummy.global_position
+	var site := Vector3(40, 0, 40)
+
+	# Lava em cima do próprio mago: o boneco queima, o mago não.
+	dummy.global_position = site + Vector3(0, 0, -3)
+	dummy.reset()
+	_place(player, site)
+	await _frames(20)
+	player.face_point(site + Vector3(0, 0, -1.5))
+	await _frames(3)
+	var hp := health.current
+	player.request_action(Player.SLOT_MOBILITY)
+	await _frames(90)
+	var pool := lava.get_active_pool()
+	_check(pool != null and pool.overlaps_body(player), "o mago está em cima da própria lava")
+	_check(dummy.fire_damage > 1.0, "a lava queima o boneco (%.1f)" % dummy.fire_damage)
+	_check(health.current >= hp, "a lava não queima quem lançou (%.1f de %.1f)" % [health.current, hp])
+
+	# Lama em cima da lava: a lava para de aquecer (lei do Fogo: sem ar).
+	if pool:
+		var mud := MudPatch.new()
+		mud.radius = 6.0
+		mud.duration = 5.0
+		arena.add_child(mud)
+		mud.global_position = pool.global_position
+		await _frames(10)
+		var before := dummy.fire_damage
+		await _frames(60)
+		_check(dummy.fire_damage - before < 0.5, "lama sobre a lava abafa o calor (%.1f a mais)" % (dummy.fire_damage - before))
+		mud.queue_free()
+		pool.queue_free()
+	await _frames(5)
+
+	# Bola de Fogo no próprio pé: explode, mas não fere quem lançou.
+	_place(player, site)
+	await _frames(10)
+	player.face_point(site + Vector3(0, 0, -1.0))
+	await _frames(3)
+	hp = health.current
+	player.request_action(Player.SLOT_PRIMARY)
+	await _frames(2)
+	player.request_action(Player.ACTION_PRIMARY_RELEASE)
+	await _frames(40)
+	_check(health.current >= hp, "a própria Bola de Fogo não fere o mago (%.1f de %.1f)" % [health.current, hp])
+
+	# Almôndega: explosão de fora não fere o mago; o boneco dentro queima.
+	dummy.global_position = site + Vector3(0, 0, -1.0)
+	dummy.reset()
+	_place(player, site)
+	await _frames(10)
+	player.request_action(Player.SLOT_SPECIAL)
+	await _frames(3)
+	var ball := shield.get_active_shield()
+	_check(ball != null, "Almôndega ativa")
+	hp = health.current
+	Explosion.detonate(arena, site + Vector3(2.6, 1.0, 0), 4.0, 400.0, 300.0)
+	await _frames(60)
+	_check(health.current >= hp, "com a Almôndega, explosão de fora não fere o mago (%.1f de %.1f)" % [health.current, hp])
+	_check(dummy.fire_damage > 0.5, "quem está dentro da Almôndega queima (%.1f)" % dummy.fire_damage)
+	dummy.global_position = dummy_home
+	await _unload(arena)
+
+
+func _test_playtest_gravity() -> void:
+	print("\n--- Playtest: Mibune sai do mago; zonas da Gravidade são áreas de gravidade ---")
+	var arena := await _load_arena("gravity")
+	var player: Player = arena.player
+	var mibune := player.get_ability(Player.SLOT_SECONDARY) as MibuneAbility
+	var dream := player.get_ability(Player.SLOT_MOBILITY) as DreamGravityAbility
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	player.set_level(99)
+	var site := Vector3(40, 0, 40)
+	var g: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+
+	# Mibune: surge na mira; a segunda conjuração sai da frente do mago, na direção da mira.
+	_place(player, site)
+	await _frames(20)
+	player.face_point(site + Vector3(0, 1.6, -10))
+	await _frames(2)
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(3)
+	var hole := mibune.get_active()
+	var ahead := Vector2(hole.global_position.x - player.global_position.x, hole.global_position.z - player.global_position.z).length() if hole else -1.0
+	_check(hole != null and hole.global_position.distance_to(mibune.spawn_point(player)) < 0.05 and absf(ahead - (Player.BODY_RADIUS + mibune.spawn_offset)) < 0.05, "Mibune se forma %.1f m à frente do corpo do mago (%.2f m do centro), não na mira" % [mibune.spawn_offset, ahead])
+	_check(hole != null and absf(hole.global_position.y - (player.global_position.y + Player.BODY_HEIGHT / 2.0)) < 0.05, "na altura do peito")
+	if hole:
+		# Mira para o lado antes de disparar: ele deve sair da frente do mago, para o novo lado.
+		player.face_point(site + Vector3(10, 1.6, 0))
+		await _frames(2)
+		player.request_action(Player.SLOT_SECONDARY)
+		await _frames(1)
+		var aim := player.get_aim_direction()
+		var from_face := hole.global_position.distance_to(player.get_aim_origin())
+		_check(hole.thrown and from_face < mibune.spawn_offset + 1.0, "segunda conjuração: Mibune sai da frente do mago (%.1f m)" % from_face)
+		_check(hole.velocity.normalized().dot(aim) > 0.95 and hole.velocity.length() >= mibune.throw_speed - 0.1, "e dispara na direção da mira (%.0f m/s)" % hole.velocity.length())
+		hole.queue_free()
+	await _frames(3)
+
+	# Mibune disparado contra uma parede: para, fere quem está perto e some logo (Liam, 2026-11-17).
+	var dummy: TrainingDummy = arena.dummy
+	var dummy_home := dummy.global_position
+	var wall: StaticBody3D = arena._static_box(site + Vector3(0, 1.5, -6), Vector3(4, 3, 0.4), null)
+	dummy.global_position = site + Vector3(1.0, 0, -5.2)
+	dummy.reset()
+	_place(player, site)
+	await _frames(10)
+	player.face_point(site + Vector3(0, 1.6, -6))
+	await _frames(2)
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(3)
+	var shot := mibune.get_active()
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(15)
+	_check(shot != null and is_instance_valid(shot) and shot.impacted and shot.global_position.z > site.z - 6.0, "Mibune disparado para na parede")
+	_check(dummy.combo_damage > 0.0, "o impacto do Mibune fere quem está perto (%.1f)" % dummy.combo_damage)
+	await _frames(int(mibune.impact_linger * 60.0) + 5)
+	_check(mibune.get_active() == null, "e some logo depois (%.1f s)" % mibune.impact_linger)
+	wall.queue_free()
+	dummy.global_position = dummy_home
+	await _frames(3)
+
+	# Mibune é área de gravidade): um objeto perto dele pesa diferente do peso normal.
+	var box: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), site + Vector3(3, 0.31, 0))
+	await _frames(20)
+	var normal_weight := box.get_weight()
+	_check(absf(normal_weight - box.mass * g) < 0.5, "fora das zonas, peso = massa x g (%.0f N)" % normal_weight)
+	player.face_point(box.global_position)
+	await _frames(2)
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(5)
+	_check(absf(box.get_weight() - normal_weight) > 1.0, "perto do Mibune o peso da caixa muda (%.0f N x %.0f N)" % [box.get_weight(), normal_weight])
+	if mibune.get_active():
+		mibune.get_active().queue_free()
+	await _frames(5)
+
+	# Gravidade dos Sonhos: objetos dentro pesam (1 + força) vezes mais.
+	box.global_position = site + Vector3(1.5, 0.31, 0)
+	box.linear_velocity = Vector3.ZERO
+	_place(player, site)
+	await _frames(10)
+	player.request_action(Player.SLOT_MOBILITY)
+	await _frames(5)
+	var ratio := box.get_weight() / (box.mass * g)
+	_check(dream.get_active_zone() != null and absf(ratio - (1.0 + dream.strength)) < 0.05, "dentro da Gravidade dos Sonhos o objeto pesa %.2fx" % ratio)
+	# Magia de um rival da mesma classe aparece mais escura; a do jogador e a de outra classe não.
+	var rival := PsionicBot.new()
+	rival.class_data = GameState.find_class("gravity")
+	var other := PsionicBot.new()
+	other.class_data = GameState.find_class("fire")
+	var base := Color(0.5, 0.3, 0.9, 0.2)
+	var dark := CasterLook.tint(base, rival)
+	_check(dark.v < base.v and is_equal_approx(dark.a, base.a), "magia do rival da mesma classe aparece mais escura")
+	_check(CasterLook.tint(base, player) == base and CasterLook.tint(base, other) == base, "a do jogador e a de outra classe ficam com a cor normal")
+	_check(CasterLook.is_mage(rival) and CasterLook.is_mage(player), "bot com ficha de classe conta como mago")
+	rival.free()
+	other.free()
+	box.queue_free()
+	await _unload(arena)
+
+
+func _test_playtest_earth() -> void:
+	print("\n--- Playtest: soco e chute quebram as construções da Terra; lei da Terra ---")
+	var arena := await _load_arena("earth")
+	var player: Player = arena.player
+	var punch := player.get_ability(Player.SLOT_PRIMARY) as StoneStrikeAbility
+	var stairs := player.get_ability(Player.SLOT_MOBILITY) as StonePillarAbility
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	var site := Vector3(40, 0, 40)
+	var construct: PropMaterial = load("res://assets/data/materials/earth_construct.tres")
+	_check(stairs.construct_material == construct and earth_quake_material(player) == construct, "pilares e colunas feitos de pedra moldada (earth_construct.tres)")
+
+	# Pilar à frente: cada soco racha um ou mais estágios; no último, vira pedaços que voam.
+	var pillar := StonePillar.new()
+	pillar.width = 1.0
+	pillar.height = 2.0
+	pillar.rise_time = 0.1
+	pillar.lifetime = 30.0
+	pillar.material = construct
+	pillar.pillar_mass = 1.0 * 1.0 * 2.0 * construct.density
+	arena.add_child(pillar)
+	pillar.start(site + Vector3(0, 0, -1.4), Vector3.FORWARD)
+	await _frames(15)
+	_check(PropMaterial.of(pillar) == construct, "o pilar se declara de pedra moldada para a Terra")
+	var stages: Array[int] = []
+	pillar.stage_changed.connect(func(stage: int) -> void: stages.append(stage))
+	var shattered_pieces: Array = []
+	pillar.shattered.connect(func(pieces: Array) -> void: shattered_pieces.append_array(pieces))
+	player.remove_meta(&"stone_coat_hands")
+	await _strike(player, site, Player.SLOT_PRIMARY)
+	_check(punch.is_coated(player), "socar o pilar de pedra reveste a mão")
+	var strikes := 1
+	while is_instance_valid(pillar) and strikes < 8:
+		await _frames(int(punch.cooldown * 60.0) + 2)
+		await _strike(player, site, Player.SLOT_PRIMARY)
+		strikes += 1
+	await _frames(3)
+	_check(stages.size() >= 2 and stages[0] >= 1 and stages[0] < PropMaterial.BREAK_STAGES, "socos racham o pilar em estágios antes de quebrar (%s; %.0f N·s por estágio)" % [stages, construct.stage_impulse(2.0 * construct.density)])
+	var chunks: Array = shattered_pieces.duplicate()
+	_check(not is_instance_valid(pillar), "depois de %d golpes o pilar se desfaz" % strikes)
+	var drift := 0.0
+	for chunk: Variant in shattered_pieces:
+		if is_instance_valid(chunk):
+			drift += (chunk as PhysicsProp).linear_velocity.z
+	_check(stages.has(PropMaterial.BREAK_STAGES) and chunks.size() == construct.break_pieces, "no último estágio vira %d pedaços (estágios %s)" % [chunks.size(), stages])
+	_check(drift < 0.0, "os pedaços saem na direção do golpe (soma vz %.2f m/s)" % drift)
+	for chunk: Variant in chunks:
+		if is_instance_valid(chunk):
+			(chunk as Node).queue_free()
+
+	# Lei da Terra: superfície fixa de madeira não reveste; chão de madeira não aceita a Escada.
+	var wall: StaticBody3D = arena._static_box(site + Vector3(0, 1.0, -1.3), Vector3(2, 2, 0.4), null)
+	wall.set_meta(&"material_data", arena.WOOD)
+	player.remove_meta(&"stone_coat_hands")
+	await _frames(int(punch.cooldown * 60.0) + 2)
+	await _strike(player, site, Player.SLOT_PRIMARY)
+	_check(not punch.is_coated(player), "socar parede de madeira não reveste a mão")
+	var floor_material := PropMaterial.ground_under(player, site + Vector3.UP * 0.5)
+	_check(not stairs._is_earth(wall) and floor_material != null and floor_material.earth_workable, "a Escada só nasce sobre terra ou pedra (chão da arena sim, madeira não)")
+	wall.queue_free()
+	await _unload(arena)
+
+
+func earth_quake_material(player: Player) -> PropMaterial:
+	var quake := player.get_ability(Player.SLOT_SPECIAL) as EarthquakeAbility
+	return quake.construct_material if quake else null
+
+
+# Pedido do Liam (2026-11-17): soco e chute acertam e quebram o que o próprio Q da Terra ergue.
+func _test_playtest_earth_stairs() -> void:
+	print("\n--- Playtest: soco e chute quebram a Escada de Pedra (Q) ---")
+	var arena := await _load_arena("earth")
+	var player: Player = arena.player
+	var punch := player.get_ability(Player.SLOT_PRIMARY) as StoneStrikeAbility
+	var kick := player.get_ability(Player.SLOT_SECONDARY) as StoneStrikeAbility
+	var stairs := player.get_ability(Player.SLOT_MOBILITY) as StonePillarAbility
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	var site := Vector3(40, 0, 40)
+	_place(player, site)
+	await _frames(20)
+	player.face_point(site + Vector3(0, 0, -4))
+	await _frames(3)
+	player.request_action(Player.SLOT_MOBILITY)
+	await _frames(int(stairs.rise_time * 60.0) + 10)
+	var steps := stairs.get_active_pillars()
+	_check(steps.size() == 3, "Q ergue a Escada de 3 pilares (%d)" % steps.size())
+	if steps.size() == 3:
+		# Soco no degrau do meio (1,7 m: o soco pega da cintura para cima).
+		var punched := await _break_step(player, steps[1], Player.SLOT_PRIMARY, punch)
+		_check(punched[0] >= 1 and punched[0] < PropMaterial.BREAK_STAGES, "soco racha o pilar da Escada (1º estágio: %d)" % punched[0])
+		_check(punched[1] > 0, "socos quebram o pilar da Escada em %d pedaços" % punched[1])
+		# Chute no degrau baixo (0,85 m: só o chute alcança).
+		var kicked := await _break_step(player, steps[0], Player.SLOT_SECONDARY, kick)
+		_check(kicked[0] >= 1 and kicked[0] < PropMaterial.BREAK_STAGES, "chute racha o pilar da Escada (1º estágio: %d)" % kicked[0])
+		_check(kicked[1] > 0, "chutes quebram o pilar da Escada em %d pedaços" % kicked[1])
+		for piece: Variant in punched[2] + kicked[2]:
+			if is_instance_valid(piece):
+				(piece as Node).queue_free()
+	# A Escada nasce na cena atual (não na arena): limpa o que sobrou para não pesar nas outras suítes.
+	for pillar in stairs.get_active_pillars():
+		pillar.queue_free()
+	await _unload(arena)
+	# Dá tempo à física de soltar os pedaços antes da próxima suíte (que mede o custo deles).
+	await _frames(30)
+
+
+## Golpeia `pillar` pelo lado até ele quebrar (no máximo 10 golpes).
+## Devolve [primeiro estágio visto, quantos pedaços saíram, os pedaços].
+func _break_step(player: Player, pillar: StonePillar, slot: StringName, strike: StoneStrikeAbility) -> Array:
+	var stages: Array[int] = []
+	var pieces: Array = []
+	pillar.stage_changed.connect(func(stage: int) -> void: stages.append(stage))
+	pillar.shattered.connect(func(list: Array) -> void: pieces.append_array(list))
+	var ground := Vector3(pillar.global_position.x, 0.0, pillar.global_position.z)
+	# De lado: na frente e atrás estão os outros degraus da Escada.
+	var toward := pillar.global_basis.x
+	var stand := ground - toward * (pillar.width / 2.0 + Player.BODY_RADIUS + 0.4)
+	var hits := 0
+	while is_instance_valid(pillar) and not pillar.is_queued_for_deletion() and hits < 10:
+		_place(player, stand)
+		player.face_point(Vector3(ground.x, 1.4, ground.z))
+		await _frames(2)
+		player.request_action(slot)
+		await _frames(int(strike.cooldown * 60.0) + 2)
+		hits += 1
+	return [stages[0] if not stages.is_empty() else 0, pieces.size(), pieces]
