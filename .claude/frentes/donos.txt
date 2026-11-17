@@ -123,3 +123,4 @@ design/ux/*                       interface
 tests/*                           qualidade
 production/playtests/*            qualidade
 production/qa/*                   qualidade
+production/perf/*                 qualidade

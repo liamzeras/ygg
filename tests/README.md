@@ -98,3 +98,18 @@ Regras:
 5. Laboratório: incendeie a pirâmide **sem** Bola de Fogo (Terra ou Gravidade + braseiro).
 6. Exploda um barril perto da pirâmide. A reação em cadeia é legível?
 7. Esc durante o jogo: pausa, configurações e voltar ao menu funcionam?
+
+## Teste profundo (manual)
+
+Mede os quadros com o jogo renderizando de verdade e audita código e arquivos. Só roda quando o Liam
+pede, pela skill `/teste-profundo` ou por `/orquestrar profundo`. Abre uma janela por ~30 s.
+
+```bash
+bash tools/teste-profundo.sh medir
+```
+
+| Arquivo | O que faz |
+|---|---|
+| `perf_test.gd` | Arena com 4 fases de carga (parado, física, magia, combate), sem vsync; grava `production/perf/quadros-<data>.json` |
+
+O histórico das medições fica em `production/perf/historico.md`.
