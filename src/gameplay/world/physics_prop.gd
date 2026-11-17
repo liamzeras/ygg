@@ -54,11 +54,19 @@ var is_piece := false
 var _damage := 0.0
 var _stage := 0
 var _shattered := false
+## Limite por quadro (BreakRules): explosão que ficou para o quadro seguinte.
+var _explode_pending := false
 var _volume := 1.0
 var _life_left := INF
+## Pedaço guardado na reserva (escondido, congelado, sem colisão) esperando reaproveitamento.
+var _retired := false
+var _box_mesh: BoxMesh
+var _box_shape: BoxShape3D
 
 ## Pedaços vivos, do mais antigo ao mais novo (para o limite de BreakRules.max_pieces).
 static var _alive_pieces: Array[PhysicsProp] = []
+## Pedaços aposentados, prontos para virar pedaços de outro objeto sem criar nós novos.
+static var _piece_pool: Array[PhysicsProp] = []
 
 
 func _ready() -> void:
@@ -66,17 +74,44 @@ func _ready() -> void:
 		push_warning("%s sem material_data; usando padrão." % name)
 		material_data = PropMaterial.new()
 	add_to_group(&"physics_props")
-	add_to_group(&"heat_receivers")
 	_build()
 	_base_mass = mass
 	_burn_left = material_data.burn_time
-	if is_piece and _is_small_piece():
-		# Física simplificada: sem calor e sem aviso de contato.
-		remove_from_group(&"heat_receivers")
+	_apply_detail()
+	if not is_piece and _pool_size() == 0 and alive_piece_count() == 0:
+		_prewarm_pieces.call_deferred()
+
+
+## Cria a reserva de pedaços (escondidos e congelados) quando a cena carrega, para que a
+## primeira quebra grande não precise criar nós no meio do jogo.
+func _prewarm_pieces() -> void:
+	if not is_inside_tree() or _pool_size() > 0:
 		return
-	contact_monitor = true
+	var rules := BreakRules.current()
+	for i in rules.max_pieces:
+		var piece := PhysicsProp.new()
+		piece.is_piece = true
+		piece.material_data = material_data
+		piece.size = Vector3.ONE * rules.small_piece_size * 2.0
+		piece.collision_layer = 0
+		piece.collision_mask = 0
+		piece.visible = false
+		get_parent().add_child(piece)
+		piece.global_position = Vector3(0.0, KILL_HEIGHT * 0.5, 0.0)
+		piece._retire()
+
+
+## Calor e aviso de contato. Pedaços pequenos usam física simplificada: sem calor e sem contato.
+func _apply_detail() -> void:
+	var simple := is_piece and _is_small_piece()
+	if simple:
+		remove_from_group(&"heat_receivers")
+	else:
+		add_to_group(&"heat_receivers")
+	contact_monitor = not simple
 	max_contacts_reported = 4
-	body_entered.connect(_on_body_entered)
+	if not simple and not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
 
 
 func get_display_name() -> String:
@@ -87,13 +122,16 @@ func _physics_process(delta: float) -> void:
 	last_velocity = linear_velocity
 	last_speed = linear_velocity.length()
 	if global_position.y < KILL_HEIGHT:
-		queue_free()
+		_leave()
 		return
 	if is_piece:
 		_life_left -= delta
 		if _life_left <= 0.0:
-			queue_free()
+			_retire()
 			return
+	if _explode_pending:
+		explode()
+		return
 	if _fuse_left >= 0.0:
 		_fuse_left -= delta
 		if _fuse_left <= 0.0:
@@ -172,7 +210,8 @@ func ignite(source: Node = null) -> void:
 	_fire = Fx.make_fire(maxf(size.x, size.z) * 0.4)
 	add_child(_fire)
 	if material_data.explosive:
-		_fuse_left = material_data.fuse_time
+		var jitter := material_data.fuse_jitter
+		_fuse_left = material_data.fuse_time * (1.0 + randf_range(-jitter, jitter))
 	ignited.emit()
 
 
@@ -194,9 +233,14 @@ func cool(amount: float) -> void:
 	heat = maxf(heat - amount, 0.0)
 
 
+## Explode. Se o limite de explosões deste tick acabou (BreakRules), explode no tick seguinte.
 func explode() -> void:
 	if _exploded:
 		return
+	if not BreakRules.take_slot(&"explosion", BreakRules.current().max_explosions_per_frame):
+		_explode_pending = true
+		return
+	_explode_pending = false
 	_exploded = true
 	exploded.emit()
 	Explosion.detonate(self, global_position, material_data.explosion_radius,
@@ -293,10 +337,18 @@ func add_damage(amount: float, push := Vector3.ZERO) -> void:
 		return
 	if not burning:
 		_visual_material.albedo_color = _surface_color()
-	Fx.burst(get_tree().current_scene, global_position, _surface_color(), maxf(size.x, size.y) * 0.4)
+	_dust(global_position, _surface_color(), maxf(size.x, size.y) * 0.4)
+
+
+## Poeira de rachar, quebrar ou virar cinzas, até BreakRules.max_bursts_per_frame por quadro.
+func _dust(at: Vector3, color: Color, radius: float) -> void:
+	if BreakRules.take_slot(&"burst", BreakRules.current().max_bursts_per_frame):
+		Fx.burst(get_tree().current_scene, at, color, radius)
 
 
 ## Parte o objeto em pedaços agora. Barril de pólvora explode em vez de partir.
+## Não há limite de quebras por quadro: medido no teste profundo, adiar quebras deixa a cena
+## pesada por mais quadros e piora o tranco (production/perf/historico.md).
 ## Devolve os pedaços criados (vazio se explodiu ou se já tinha quebrado).
 func shatter(push := Vector3.ZERO) -> Array[PhysicsProp]:
 	var none: Array[PhysicsProp] = []
@@ -326,7 +378,7 @@ func shatter(push := Vector3.ZERO) -> Array[PhysicsProp]:
 	if is_instance_valid(_fire):
 		_fire.queue_free()
 	burning = false
-	Fx.burst(get_tree().current_scene, global_position, _surface_color(), maxf(size.x, size.y))
+	_dust(global_position, _surface_color(), maxf(size.x, size.y))
 	shattered.emit(pieces)
 	queue_free()
 	return pieces
@@ -348,17 +400,23 @@ static func spawn_pieces(parent: Node, xform: Transform3D, box: Vector3, materia
 	for cell in cells:
 		var offset: Vector3 = cell[0]
 		var cell_size: Vector3 = cell[1]
-		var piece := PhysicsProp.new()
-		piece.is_piece = true
-		piece.material_data = material
-		piece.shape_kind = Form.BOX
-		piece.size = cell_size
-		piece.display_name = "Pedaço"
-		piece.collision_layer = rules.piece_layer
-		piece.collision_mask = rules.piece_mask
-		piece._life_left = rules.piece_lifetime
-		parent.add_child(piece)
-		piece.global_transform = Transform3D(xform.basis, xform * offset)
+		var piece := _take_from_pool(parent)
+		if piece == null:
+			piece = PhysicsProp.new()
+			piece.is_piece = true
+			piece.material_data = material
+			piece.shape_kind = Form.BOX
+			piece.size = cell_size
+			piece.display_name = "Pedaço"
+			piece.collision_layer = rules.piece_layer
+			piece.collision_mask = rules.piece_mask
+			piece._life_left = rules.piece_lifetime
+			parent.add_child(piece)
+			piece.global_transform = Transform3D(xform.basis, xform * offset)
+		else:
+			piece._revive(material, cell_size, rules)
+			piece.global_transform = Transform3D(xform.basis, xform * offset)
+			piece.freeze = false
 		piece.mass = maxf(total_mass * cell_size.x * cell_size.y * cell_size.z / total_volume, 0.05)
 		piece._base_mass = piece.mass
 		var outward := (xform.basis * offset).normalized()
@@ -394,18 +452,114 @@ static func split_box(box: Vector3, count: int) -> Array:
 ## Quantos pedaços estão vivos agora.
 static func alive_piece_count() -> int:
 	var alive: Array[PhysicsProp] = []
-	for piece in _alive_pieces:
-		if is_instance_valid(piece) and not piece.is_queued_for_deletion():
-			alive.append(piece)
+	for entry: Variant in _alive_pieces:
+		if is_instance_valid(entry) and not (entry as PhysicsProp).is_queued_for_deletion() and not (entry as PhysicsProp)._retired:
+			alive.append(entry as PhysicsProp)
 	_alive_pieces = alive
 	return _alive_pieces.size()
+
+
+## true se este pedaço saiu de cena (fim da vida, limite de pedaços) e está guardado na reserva.
+## Para quem segura uma referência: trate como se o pedaço tivesse sumido.
+func is_retired() -> bool:
+	return _retired
+
+
+## Pedaços somem por aqui: vão para a reserva (escondidos, congelados, sem colisão, fora dos
+## grupos) para virar pedaços de outro objeto. Criar nós novos é a parte cara de quebrar.
+func _retire() -> void:
+	if _retired or is_queued_for_deletion():
+		return
+	_alive_pieces.erase(self)
+	if not is_piece or not is_inside_tree() or _pool_size() >= BreakRules.current().max_pieces:
+		queue_free()
+		return
+	_retired = true
+	if is_instance_valid(_fire):
+		_fire.queue_free()
+	_fire = null
+	burning = false
+	visible = false
+	collision_layer = 0
+	collision_mask = 0
+	freeze = true
+	linear_velocity = Vector3.ZERO
+	angular_velocity = Vector3.ZERO
+	contact_monitor = false
+	set_physics_process(false)
+	remove_from_group(&"physics_props")
+	remove_from_group(&"heat_receivers")
+	_piece_pool.append(self)
+
+
+## Sai do mundo: pedaço vai para a reserva; objeto inteiro é apagado.
+func _leave() -> void:
+	if is_piece:
+		_retire()
+	else:
+		queue_free()
+
+
+## Um pedaço da reserva que ainda está na cena (a reserva de uma cena apagada é descartada).
+static func _take_from_pool(parent: Node) -> PhysicsProp:
+	while not _piece_pool.is_empty():
+		var entry: Variant = _piece_pool.pop_back()
+		if not is_instance_valid(entry):
+			continue
+		var piece := entry as PhysicsProp
+		if piece.is_queued_for_deletion() or not piece.is_inside_tree():
+			continue
+		if piece.get_parent() != parent:
+			piece.reparent(parent, false)
+		return piece
+	return null
+
+
+## Volta da reserva como um pedaço novo: mesmo estado de um pedaço recém-criado.
+func _revive(material: PropMaterial, cell_size: Vector3, rules: BreakRules) -> void:
+	_retired = false
+	material_data = material
+	size = cell_size
+	display_name = "Pedaço"
+	_box_mesh.size = cell_size
+	_box_shape.size = cell_size
+	_visual_material.albedo_color = material.color
+	_visual_material.roughness = material.roughness
+	_visual_material.metallic = material.metallic
+	physics_material_override.friction = material.friction
+	physics_material_override.bounce = material.bounce
+	_volume = cell_size.x * cell_size.y * cell_size.z
+	mass = maxf(_volume * material.density, 0.5)
+	_base_mass = mass
+	_burn_left = material.burn_time
+	heat = 0.0
+	heat_owner = null
+	burning = false
+	_fuse_left = -1.0
+	_exploded = false
+	_damage = 0.0
+	_stage = 0
+	_shattered = false
+	_explode_pending = false
+	_air = 1.0
+	_air_frame = -10
+	gravity_scale = 1.0
+	last_velocity = Vector3.ZERO
+	last_speed = 0.0
+	collision_layer = rules.piece_layer
+	collision_mask = rules.piece_mask
+	_life_left = rules.piece_lifetime
+	visible = true
+	add_to_group(&"physics_props")
+	_apply_detail()
+	set_physics_process(true)
 
 
 static func _track_piece(piece: PhysicsProp, max_pieces: int) -> void:
 	alive_piece_count()
 	_alive_pieces.append(piece)
 	while _alive_pieces.size() > max_pieces:
-		_alive_pieces.pop_front().queue_free()
+		_alive_pieces.pop_front()._retire()
 
 
 ## Caixa com o mesmo volume do objeto e a proporção do contorno dele (pedaços são caixas).
@@ -448,8 +602,8 @@ func _crack_on_impact(body: Node) -> void:
 
 func _burn_out() -> void:
 	burned_out.emit()
-	Fx.burst(get_tree().current_scene, global_position, Color(0.3, 0.3, 0.3), maxf(size.x, size.y))
-	queue_free()
+	_dust(global_position, Color(0.3, 0.3, 0.3), maxf(size.x, size.y))
+	_leave()
 
 
 func _on_body_entered(body: Node) -> void:
@@ -480,8 +634,10 @@ func _build() -> void:
 	match shape_kind:
 		Form.BOX:
 			var box_mesh := BoxMesh.new()
+			_box_mesh = box_mesh
 			box_mesh.size = size
 			var box_shape := BoxShape3D.new()
+			_box_shape = box_shape
 			box_shape.size = size
 			mesh = box_mesh
 			shape = box_shape
@@ -539,3 +695,13 @@ func _build() -> void:
 	physics_material.friction = material_data.friction
 	physics_material.bounce = material_data.bounce
 	physics_material_override = physics_material
+
+
+## Tamanho da reserva, descartando pedaços apagados (a reserva de uma cena que saiu).
+static func _pool_size() -> int:
+	var kept: Array[PhysicsProp] = []
+	for entry: Variant in _piece_pool:
+		if is_instance_valid(entry) and not (entry as PhysicsProp).is_queued_for_deletion() and (entry as PhysicsProp).is_inside_tree():
+			kept.append(entry as PhysicsProp)
+	_piece_pool = kept
+	return _piece_pool.size()

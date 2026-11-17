@@ -69,6 +69,9 @@ const BREAK_STAGES := 4
 @export var explosive := false
 ## Segundos queimando antes de explodir.
 @export var fuse_time := 1.5
+## Variação do pavio, para mais ou para menos (0,1 = até 10%). Barris acesos juntos não
+## explodem todos no mesmo tick.
+@export_range(0.0, 0.5) var fuse_jitter := 0.1
 @export var explosion_radius := 5.0
 @export var explosion_impulse := 900.0
 @export var explosion_heat := 150.0

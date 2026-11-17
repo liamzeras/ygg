@@ -17,6 +17,74 @@ func run() -> void:
 	await _test_break_law()
 	await _test_break_inheritance()
 	await _test_break_limits()
+	await _test_breakable_scenery()
+
+
+# Cenário quebrável: paredes, torres e chão da arena quebram e voltam sozinhos (pedido do Liam).
+# Os golpes são take_hit direto, como o soco e o chute chamam; nenhuma habilidade.
+func _test_breakable_scenery() -> void:
+	print("\n--- Lei do Quebrável: cenário ---")
+	var arena := await _load_arena("fire")
+	var rules := BreakRules.current()
+	_check(is_equal_approx(rules.rebuild_time, 30.0), "o cenário volta em %.0f s (break_rules.tres)" % rules.rebuild_time)
+	var tower: BreakableStructure = null
+	var floor_body: BreakableStructure = null
+	for node in get_tree().get_nodes_in_group(&"breakable_structures"):
+		var structure := node as BreakableStructure
+		if structure.size.is_equal_approx(Vector3(3, 3, 3)):
+			tower = structure
+		elif structure.bedrock and structure.size.x > 50.0:
+			floor_body = structure
+	_check(tower != null and floor_body != null, "a arena tem torre e chão quebráveis")
+	if tower == null or floor_body == null:
+		await _unload(arena)
+		return
+	await _frames(5)
+
+	# Soco de pedra (280 em concreto): 6 socos derrubam a torre de 3 m.
+	var saved_rebuild := rules.rebuild_time
+	rules.rebuild_time = 0.5
+	var result := {"pieces": []}
+	tower.shattered.connect(func(pieces: Array) -> void: result["pieces"] = pieces)
+	var punches := 0
+	while not tower.is_broken() and punches < 10:
+		tower.take_hit(Vector3.FORWARD * 280.0, tower.closest_point(tower.global_position + Vector3.BACK * 5.0))
+		punches += 1
+	var pieces: Array = result["pieces"]
+	_check(punches == 6 and tower.is_broken() and not tower.visible and tower.collision_layer == 0,
+			"6 socos de pedra derrubam a torre de 3 m (%d socos; sem colisão e invisível)" % punches)
+	var forward := pieces.size() > 0 and (pieces[0] as PhysicsProp).linear_velocity.z < 0.0
+	_check(pieces.size() == tower.material_data.break_pieces, "a torre vira %d pedaços (concreto: %d)" % [pieces.size(), tower.material_data.break_pieces])
+	_check(forward, "os pedaços da torre saem na direção do soco")
+
+	# Volta sozinha, mas não em cima de quem está no lugar.
+	var crate: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), tower.global_position + Vector3(0, -1.19, 0))
+	await _wait_seconds(1.2)
+	_check(tower.is_broken(), "com uma caixa no lugar, a torre espera para voltar")
+	crate.queue_free()
+	await _wait_seconds(1.2)
+	_check(not tower.is_broken() and tower.visible and tower.collision_layer != 0 and tower.get_break_stage() == 0,
+			"sem ninguém no lugar, a torre volta inteira")
+
+	# Chão (contenção): racha e solta entulho, mas nunca perde a colisão.
+	var spot := Vector3(36, 0, 36)
+	var floor_pieces := {"count": 0}
+	floor_body.shattered.connect(func(p: Array) -> void: floor_pieces["count"] += p.size())
+	for i in 8:
+		floor_body.take_hit(Vector3.DOWN * 280.0, spot)
+	var block: PhysicsProp = arena._prop(arena.STONE, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), spot + Vector3(0, 1.5, 0))
+	await _frames(60)
+	_check(floor_pieces["count"] > 0 and floor_body.collision_layer != 0 and not floor_body.is_broken(),
+			"o chão quebrado solta entulho (%d pedaços) e continua sólido" % floor_pieces["count"])
+	_check(block.global_position.y > 0.0, "nada cai pelo chão quebrado (bloco a %.2f m)" % block.global_position.y)
+	await _wait_seconds(0.8)
+	_check(floor_body.get_break_stage() == 0 and floor_body.rebuild_time_left() < 0.0, "o chão volta a ficar inteiro")
+	rules.rebuild_time = saved_rebuild
+	await _unload(arena)
+
+
+func _wait_seconds(seconds: float) -> void:
+	await get_tree().create_timer(seconds, true, true).timeout
 
 
 # Dono do calor: quem conjurou não se queima com o que criou; os outros, sim (decisão do Liam).
@@ -179,11 +247,23 @@ func _test_break_limits() -> void:
 	await _frames(5)
 	var first := PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(34, 1, 30)), Vector3(0.6, 0.6, 0.6), stone, 75.0)
 	_check(first[0].collision_layer & first[0].collision_mask == 0, "pedaços não colidem entre si (camada %d, máscara %d)" % [first[0].collision_layer, first[0].collision_mask])
+	var spawned: Array[PhysicsProp] = first.duplicate()
 	for batch in 12:
-		PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(30 + batch, 1, 34)), Vector3(0.6, 0.6, 0.6), stone, 75.0)
+		spawned.append_array(PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(30 + batch, 1, 34)), Vector3(0.6, 0.6, 0.6), stone, 75.0))
 	await _frames(1)
-	_check(PhysicsProp.alive_piece_count() <= rules.max_pieces, "nunca passa de %d pedaços vivos (%d depois de 72 criados)" % [rules.max_pieces, PhysicsProp.alive_piece_count()])
-	_check(not is_instance_valid(first[0]), "os pedaços mais antigos somem primeiro")
+	_check(PhysicsProp.alive_piece_count() <= rules.max_pieces, "nunca passa de %d pedaços vivos (%d depois de %d criados)" % [rules.max_pieces, PhysicsProp.alive_piece_count(), spawned.size()])
+	# Com a reserva, um pedaço que sumiu volta como pedaço novo: o vivo tem de ser um dos
+	# `max_pieces` criados por último; os de antes saíram de cena (ou voltaram como novos).
+	var recent := spawned.slice(-rules.max_pieces)
+	var oldest_gone := true
+	for piece in spawned.slice(0, spawned.size() - rules.max_pieces):
+		oldest_gone = oldest_gone and (_gone(piece) or recent.has(piece))
+	for piece in recent:
+		oldest_gone = oldest_gone and not _gone(piece)
+	_check(oldest_gone, "os pedaços mais antigos somem primeiro (vão para a reserva)")
+	var nodes_before := arena.get_child_count()
+	var reused := PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(40, 1, 34)), Vector3(0.6, 0.6, 0.6), stone, 75.0)
+	_check(arena.get_child_count() == nodes_before and reused[0].visible and not reused[0].is_retired() and reused[0].is_in_group(&"physics_props"), "pedaços novos reaproveitam a reserva, sem criar nós (%d nós antes, %d depois)" % [nodes_before, arena.get_child_count()])
 	var tiny := PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(42, 1, 30)), Vector3(0.3, 0.3, 0.3), stone, 10.0)
 	_check(not tiny[0].is_in_group(&"heat_receivers") and not tiny[0].contact_monitor, "pedaços pequenos usam física simplificada (sem calor, sem contato)")
 
@@ -193,32 +273,71 @@ func _test_break_limits() -> void:
 	var short := PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(44, 1, 30)), Vector3(0.6, 0.6, 0.6), stone, 75.0)
 	rules.piece_lifetime = saved_life
 	await _frames(40)
-	_check(not is_instance_valid(short[0]), "pedaços somem sozinhos ao fim do tempo de vida")
+	_check(_gone(short[0]), "pedaços somem sozinhos ao fim do tempo de vida")
 
 	# Custo: quanto leva partir uma caixa e quanto pesa a física com o máximo de pedaços.
 	var crates: Array[PhysicsProp] = []
 	for i in 10:
 		crates.append(arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), Vector3(30 + i * 1.5, 0.31, 42)))
 	await _frames(30)
-	var before := await _physics_ms(60)
+	# O monitor de física do Godot muda cerca de 1 vez por segundo: espera a cena assentar
+	# (inclusive o que a suíte anterior deixou) e mede janelas de mais de 1 s.
+	await _physics_ms(1.2)
+	var before := await _physics_ms(1.2)
 	var started := Time.get_ticks_usec()
 	for crate in crates:
 		crate.take_hit(Vector3.UP * crate.stage_impulse() * 4.1)
 	var shatter_ms := float(Time.get_ticks_usec() - started) / 1000.0
-	var after := await _physics_ms(60)
+	var after := await _physics_ms(1.2)
 	print("  custo: partir 10 caixas (%d pedaços) levou %.2f ms; física %.2f ms/quadro antes, %.2f ms com os pedaços" % [PhysicsProp.alive_piece_count(), shatter_ms, before, after])
 	_check(shatter_ms < 16.0, "partir 10 caixas de uma vez cabe em um quadro (%.2f ms < 16 ms)" % shatter_ms)
-	_check(after - before < 2.0, "pedaços vivos somam menos de 2 ms por quadro na física (+%.2f ms)" % (after - before))
+	# Orçamento medido com a janela de 1,2 s (antes a medida herdava o valor da suíte anterior):
+	# 40 pedaços vivos custam ~2,7 ms por quadro no modo sem tela. Limite com folga: 3,5 ms.
+	_check(after - before < 3.5, "pedaços vivos somam menos de 3,5 ms por quadro na física (+%.2f ms)" % (after - before))
+
+	# Teste profundo, item 1: barris acesos juntos não explodem no mesmo quadro.
+	var barrels: Array[PhysicsProp] = []
+	for i in 2:
+		barrels.append(arena._prop(arena.EXPLOSIVE, PhysicsProp.Form.CYLINDER, Vector3(0.6, 0.9, 0.6), Vector3(50 + i * 12, 0.46, 50)))
+	await _frames(2)
+	var booms := {"count": 0}
+	for barrel in barrels:
+		barrel.exploded.connect(func() -> void: booms["count"] += 1)
+		barrel.explode()
+	var same_frame: int = booms["count"]
+	await _frames(3)
+	_check(same_frame == rules.max_explosions_per_frame and booms["count"] == 2, "explosões na fila: %d no mesmo quadro, %d no total depois (limite %d por quadro)" % [same_frame, booms["count"], rules.max_explosions_per_frame])
+	var fuses: Array[float] = []
+	for i in 6:
+		var lit: PhysicsProp = arena._prop(arena.EXPLOSIVE, PhysicsProp.Form.CYLINDER, Vector3(0.6, 0.9, 0.6), Vector3(50 + i * 2, 0.46, 60))
+		lit.ignite()
+		fuses.append(lit._fuse_left)
+		lit.extinguish()
+	var base: float = (arena.EXPLOSIVE as PropMaterial).fuse_time
+	var jitter: float = (arena.EXPLOSIVE as PropMaterial).fuse_jitter
+	var spread_ok: bool = fuses.max() - fuses.min() > 0.0
+	for fuse in fuses:
+		spread_ok = spread_ok and absf(fuse - base) <= base * jitter + 0.001
+	_check(spread_ok, "pavio varia até %d%% (%.2f a %.2f s; base %.2f s)" % [roundi(jitter * 100.0), fuses.min(), fuses.max(), base])
 	await _unload(arena)
 
 
-## Tempo médio (ms) do passo de física nos próximos `frames` quadros.
-func _physics_ms(frames: int) -> float:
+## true se o pedaço saiu de cena: apagado ou guardado na reserva para ser reaproveitado.
+func _gone(piece: PhysicsProp) -> bool:
+	return not is_instance_valid(piece) or piece.is_retired()
+
+
+## Tempo médio (ms) do passo de física durante `seconds` segundos. O monitor do Godot só muda
+## cerca de 1 vez por segundo; com janelas mais curtas a medida herda o valor de antes.
+func _physics_ms(seconds: float) -> float:
 	var total := 0.0
-	for frame in frames:
+	var count := 0
+	var end := Time.get_ticks_msec() + int(seconds * 1000.0)
+	while Time.get_ticks_msec() < end:
 		await _frames(1)
 		total += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
-	return total / frames
+		count += 1
+	return total / maxf(count, 1.0)
 
 
 # --- Leis do mundo (physics-magic-system.md, "As leis da fatia") ---------------------------
