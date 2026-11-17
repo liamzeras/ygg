@@ -23,6 +23,11 @@ const MAX_TARGETS := 9
 ## Onde o bot de combate (F6) nasce e renasce: longe do jogador, do outro lado do boneco.
 const BOT_SPAWN := Vector3(-4, 0.05, -8)
 const BOT_PROFILE := preload("res://assets/data/enemies/psionic_bot.tres")
+## Pré-aquecimento dos efeitos (diagnóstico de desempenho, item 5): distância à frente da câmera e
+## profundidade sob o chão onde os efeitos aparecem escondidos ao carregar, e quanto tempo ficam.
+const WARM_UP_AHEAD := 8.0
+const WARM_UP_DEPTH := -2.5
+const WARM_UP_TIME := 0.5
 
 var player: Player
 var dummy: TrainingDummy
@@ -46,6 +51,7 @@ func _ready() -> void:
 	_build_material_lab()
 	_build_dummy()
 	_spawn_player()
+	_warm_up_effects.call_deferred()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -307,3 +313,30 @@ func _grid_material(a: Color, b: Color) -> StandardMaterial3D:
 	material.uv1_scale = Vector3.ONE * 0.5
 	material.roughness = 0.9
 	return material
+
+
+## Mostra uma vez, escondidos sob o chão mas dentro da vista da câmera, os efeitos de fogo, explosão
+## e Bola de Fogo. A placa de vídeo prepara o desenho deles agora, ao carregar, e não no meio do jogo
+## (a primeira explosão travava). Ver production/perf/diagnostico-2026-11-17.md, item 5.
+func _warm_up_effects() -> void:
+	var camera := get_viewport().get_camera_3d()
+	var forward := Vector3.FORWARD
+	var origin := SPAWN
+	if camera != null:
+		origin = camera.global_position
+		forward = -camera.global_basis.z
+	forward.y = 0.0
+	forward = forward.normalized() if forward.length() > 0.01 else Vector3.FORWARD
+	var at := origin + forward * WARM_UP_AHEAD
+	at.y = WARM_UP_DEPTH
+	var root := Node3D.new()
+	root.name = "WarmUpEffects"
+	add_child(root)
+	root.global_position = at
+	root.add_child(Fx.make_fire(0.3))
+	var ball := MeshInstance3D.new()
+	ball.mesh = FireballProjectile._shared_mesh(false)
+	root.add_child(ball)
+	Fx.burst(self, at, EXPLOSIVE.color, 0.3)
+	Fx.burst(self, at, WOOD.color, 0.3)
+	get_tree().create_timer(WARM_UP_TIME).timeout.connect(root.queue_free)
