@@ -47,6 +47,7 @@ src/gameplay/world/prop_material.gd   gameplay
 src/gameplay/world/explosion.gd   gameplay
 src/gameplay/world/heat_zone.gd   gameplay
 src/gameplay/world/break_rules.gd  gameplay
+src/gameplay/world/breakable_structure.gd  gameplay
 assets/data/materials/*           gameplay
 design/gdd/physics-magic-system.md  gameplay
 
