@@ -51,7 +51,7 @@ func _ready() -> void:
 	stats = rules.derive(class_data.attributes)
 	_dart = class_data.primary_ability as KineticDartAbility
 	_field = class_data.mobility_ability as SlowFieldAbility
-	_dash = class_data.dash_ability as DashAbility
+	_dash = class_data.utility_ability as DashAbility
 	_mana = stats.max_mana
 	_stamina = stats.max_stamina
 	spawn_point = global_position

@@ -8,7 +8,6 @@
 [ext_resource type="Script" path="res://src/gameplay/abilities/slow_field_ability.gd" id="6_field"]
 [ext_resource type="Script" path="res://src/gameplay/abilities/float_ability.gd" id="7_float"]
 
-[ext_resource type="Script" path="res://src/gameplay/abilities/dash_ability.gd" id="9_dash"]
 
 [sub_resource type="Resource" id="attrs"]
 script = ExtResource("2_attrs")
@@ -88,18 +87,6 @@ cost_pool = 1
 cooldown = 0.0
 scaling_attribute = 4
 
-[sub_resource type="Resource" id="dash"]
-script = ExtResource("9_dash")
-distance = 3.0
-duration = 0.2
-momentum_transfer = 0.1
-display_name = "Dash"
-description = "Arrancada curta na direção do movimento, ou para a frente se parado. Não atravessa paredes."
-cost = 20.0
-cost_pool = 0
-cooldown = 1.0
-scaling_attribute = 0
-
 [resource]
 script = ExtResource("1_class")
 id = &"psionic"
@@ -119,5 +106,4 @@ primary_ability = SubResource("dart")
 mobility_ability = SubResource("field")
 special_ability = SubResource("telekinesis")
 air_jump_ability = SubResource("leap")
-dash_ability = SubResource("dash")
 float_ability = SubResource("float")

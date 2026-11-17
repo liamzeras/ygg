@@ -132,6 +132,12 @@ func _process(delta: float) -> void:
 			var remaining := _player.get_cooldown(slot)
 			ok = remaining <= 0.0
 			status.text = "Pronto" if ok else "%.1fs" % remaining
+			# Estado extra da habilidade (ex.: "Pedra 5s" no Soco de Pedra revestido).
+			var ability := _player.get_ability(slot)
+			if ok and ability and ability.has_method("get_status_text"):
+				var extra: String = ability.get_status_text(_player)
+				if extra != "":
+					status.text = extra
 		status.add_theme_color_override("font_color", READY if ok else MUTED)
 	_guard_label.visible = _player.is_guarding()
 	_float_label.visible = _player.is_floating()
@@ -345,11 +351,15 @@ func _help_text() -> String:
 	var pairs := [["move_forward", "Andar"], ["jump", "Pular"], ["air_jump", "Pulo duplo (gasta Vigor)"]]
 	if _player and _player.get_ability(Player.SLOT_FLOAT):
 		pairs.append(["float", "Flutuar ao cair (gasta Mana)"])
-	var primary := "Habilidade principal / arremessar"
+	var primary := "Habilidade principal"
 	if _player and _player.get_ability(Player.SLOT_PRIMARY) and _player.get_ability(Player.SLOT_PRIMARY).is_chargeable():
 		primary = "Segurar carrega, soltar dispara"
-	for pair in pairs + [["sprint", "Correr"], ["dash", "Dash (com direção; padrão: frente)"], ["grab", "Pegar / soltar"],
-			["primary", primary], ["mobility", "Mobilidade"], ["special", "Especial"],
+	var extra := []
+	for slot_pair in [[Player.SLOT_SECONDARY, "Habilidade secundária"], [Player.SLOT_UTILITY, "Habilidade extra"]]:
+		if _player and _player.get_ability(slot_pair[0]):
+			extra.append([String(slot_pair[0]), "%s (%s)" % [slot_pair[1], _player.get_ability(slot_pair[0]).display_name]])
+	for pair in pairs + [["sprint", "Correr"], ["grab", "Pegar / arremessar"],
+			["primary", primary]] + extra + [["mobility", "Mobilidade"], ["special", "Especial"],
 			["reload_arena", "Recarregar arena"], ["debug_editor", "Editor de testes"], ["spawn_targets", "Alvos voadores"], ["spawn_bot", "Bot psiônico (aparece / some)"], ["pause", "Pausa"]]:
 		lines.append("%s — %s" % [InputBindings.label(pair[0]), pair[1]])
 	return "\n".join(lines)

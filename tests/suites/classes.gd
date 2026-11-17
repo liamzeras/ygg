@@ -19,6 +19,8 @@ func run() -> void:
 	await _test_earth()
 	await _test_progression()
 	await _test_stair_auto_climb()
+	await _test_earth_strikes()
+	await _test_earthquake()
 
 
 func _test_attribute_curve() -> void:
@@ -131,7 +133,7 @@ func _test_class(id: String) -> void:
 		_check(player.held_body == crate, "%s: segurou a caixa" % id)
 		player.face_point(player.get_aim_origin() + player.get_flat_forward() * 5.0)
 		await _frames(20)
-		player.request_action(Player.SLOT_PRIMARY)
+		player.request_action(Player.ACTION_GRAB)
 		await _frames(2)
 		print("  velocidade da caixa: %.1f m/s (massa %.1f kg)" % [crate.linear_velocity.length(), crate.mass])
 		_throw_speeds[id] = crate.linear_velocity.length()
@@ -291,7 +293,7 @@ func _test_earth() -> void:
 	var player: Player = arena.player
 	var dummy: TrainingDummy = arena.dummy
 	var pillar_ability := player.get_ability(Player.SLOT_MOBILITY) as StonePillarAbility
-	var mud := player.get_ability(Player.SLOT_SPECIAL) as MudAbility
+	var mud := player.get_ability(Player.SLOT_UTILITY) as MudAbility
 	var mana := Player.Pool.MANA
 
 	# Pilar mirado no céu: não nasce e não gasta Mana.
@@ -371,7 +373,7 @@ func _test_earth() -> void:
 	player.respawn()
 	await _frames(10)
 	player.face_point(player.get_aim_origin() + player.get_flat_forward() * 5.0 + Vector3.DOWN * 1.6)
-	player.request_action(Player.SLOT_SPECIAL)
+	player.request_action(Player.SLOT_UTILITY)
 	await _frames(3)
 	var patch := mud.get_active_patch()
 	_check(patch != null, "lamaçal criado no chão mirado")
@@ -486,3 +488,188 @@ func _test_stair_auto_climb() -> void:
 	_check(peak > 2.5, "segurando W sobe até o topo (%.2f m)" % peak)
 	await _unload(arena)
 
+
+
+# Soco e Chute de Pedra (design/gdd/mage-earth.md, critérios 1 a 4).
+func _test_earth_strikes() -> void:
+	print("\n--- Terra: soco e chute de pedra ---")
+	var arena := await _load_arena("earth")
+	var player: Player = arena.player
+	var dummy: TrainingDummy = arena.dummy
+	var punch := player.get_ability(Player.SLOT_PRIMARY) as StoneStrikeAbility
+	var kick := player.get_ability(Player.SLOT_SECONDARY) as StoneStrikeAbility
+	_check(punch != null and kick != null, "Terra tem soco no botão esquerdo e chute no direito")
+	if punch == null or kick == null:
+		await _unload(arena)
+		return
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	var dummy_home := dummy.global_position
+	var site := Vector3(40, 0, 40)
+	var ahead := site + Vector3(0, 0, -1.2)
+
+	# Pedra e madeira no alto de um pedestal: a pedra recebe o dobro da quantidade de movimento.
+	var momenta: Array[float] = []
+	for material: PropMaterial in [arena.STONE, arena.WOOD]:
+		var pedestal: StaticBody3D = arena._static_box(ahead + Vector3(0, 0.45, 0), Vector3(0.5, 0.9, 0.5), null)
+		var block: PhysicsProp = arena._prop(material, PhysicsProp.Form.BOX, Vector3(0.4, 0.4, 0.4), ahead + Vector3(0, 1.11, 0))
+		_place(player, site)
+		await _frames(30)
+		await _strike(player, site, Player.SLOT_PRIMARY)
+		momenta.append(-block.linear_velocity.z * block.mass)
+		block.queue_free()
+		pedestal.queue_free()
+		await _frames(3)
+	var ratio := momenta[0] / maxf(momenta[1], 0.001)
+	_check(momenta[1] > 0.0 and absf(ratio - punch.earth_multiplier) < 0.3, "soco dá %.1fx mais impulso na pedra que na madeira (%.0f x %.0f N·s)" % [ratio, momenta[0], momenta[1]])
+
+	# Caixa no chão: o soco passa por cima, o chute acerta.
+	var crate: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), ahead + Vector3(0, 0.31, 0))
+	_place(player, site)
+	await _frames(30)
+	await _strike(player, site, Player.SLOT_PRIMARY)
+	await _frames(3)
+	_check(crate.linear_velocity.length() < 0.2, "soco não atinge caixa no chão (%.2f m/s)" % crate.linear_velocity.length())
+	await _strike(player, site, Player.SLOT_SECONDARY)
+	_check(crate.linear_velocity.length() > 1.0, "chute atinge caixa no chão (%.1f m/s)" % crate.linear_velocity.length())
+	crate.queue_free()
+	await _frames(3)
+
+	# Boneco: soco e chute acertam.
+	dummy.global_position = Vector3(ahead.x, 0.0, ahead.z)
+	dummy.reset()
+	await _strike(player, site, Player.SLOT_PRIMARY)
+	var plain := dummy.combo_damage
+	_check(plain > 0.0, "soco acerta o boneco (%.1f de dano)" % plain)
+	dummy.reset()
+	await _strike(player, site, Player.SLOT_SECONDARY)
+	_check(dummy.combo_damage > 0.0, "chute acerta o boneco (%.1f de dano)" % dummy.combo_damage)
+	dummy.global_position = dummy_home
+	await _frames(3)
+
+	# Socar o ar sem revestimento não lança pedregulho.
+	var pebbles := _pebble_count()
+	await _strike(player, site, Player.SLOT_PRIMARY)
+	_check(_pebble_count() == pebbles and not punch.is_coated(player), "soco no ar sem revestimento não lança pedregulho")
+
+	# Socar a parede reveste as mãos (não os pés).
+	var wall: StaticBody3D = arena._static_box(ahead + Vector3(0, 1.2, -0.3), Vector3(2, 2.4, 0.3), null)
+	await _frames(2)
+	await _strike(player, site, Player.SLOT_PRIMARY)
+	_check(punch.is_coated(player) and punch.get_status_text(player) != "", "soco na parede reveste as mãos (%s)" % punch.get_status_text(player))
+	_check(not kick.is_coated(player), "revestir as mãos não reveste os pés")
+
+	# Revestido, o soco no boneco dá mais dano.
+	dummy.global_position = Vector3(ahead.x, 0.0, ahead.z + 0.3)
+	dummy.reset()
+	await _strike(player, site, Player.SLOT_PRIMARY)
+	_check(dummy.combo_damage > plain, "revestido, o soco dá mais dano (%.1f x %.1f)" % [dummy.combo_damage, plain])
+	dummy.global_position = dummy_home
+	wall.queue_free()
+	await _frames(3)
+
+	# Revestido, socar o ar lança um pedregulho.
+	pebbles = _pebble_count()
+	await _strike(player, site, Player.SLOT_PRIMARY)
+	var thrown := _pebble_count() - pebbles
+	_check(thrown == 1, "revestido, soco no ar lança 1 pedregulho (%d)" % thrown)
+	await _unload(arena)
+
+
+# Terremoto (design/gdd/mage-earth.md, critérios 5 a 7).
+func _test_earthquake() -> void:
+	print("\n--- Terra: terremoto ---")
+	var arena := await _load_arena("earth")
+	var player: Player = arena.player
+	var dummy: TrainingDummy = arena.dummy
+	var quake := player.get_ability(Player.SLOT_SPECIAL) as EarthquakeAbility
+	_check(quake != null, "Terra tem Terremoto no F")
+	if quake == null:
+		await _unload(arena)
+		return
+	_check(is_equal_approx(quake.side_for_level(99, 99), 9.0), "nível 99 = 9 x 9 m")
+	var share := pow(quake.side_for_level(50, 99), 2) / 81.0
+	_check(absf(share - 50.0 / 99.0) < 0.001, "nível 50 = %.1f%% da área máxima" % (share * 100.0))
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	player.set_level(99)
+	var site := Vector3(40, 0, 40)
+	dummy.global_position = site + Vector3(0, 0, -2)
+	dummy.reset()
+	var crate: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), site + Vector3(2, 0.31, -1.5))
+	_place(player, site + Vector3(0, 0, 1))
+	await _frames(30)
+	var health := player.get_node("Health") as Health
+	var hp := health.current
+	player.face_point(site + Vector3(0, 0, -1.5))
+	await _frames(2)
+	player.request_action(Player.SLOT_SPECIAL)
+	await _frames(3)
+	var zone := quake.get_active_zone()
+	_check(zone != null, "terremoto criado no chão mirado")
+	if zone == null:
+		await _unload(arena)
+		return
+	_check(crate.linear_velocity.y > 3.0, "caixa na área é jogada para cima (%.1f m/s)" % crate.linear_velocity.y)
+	_check(dummy.combo_damage > 10.0, "boneco na área toma dano (%.1f)" % dummy.combo_damage)
+	_check(health.current >= hp, "quem lançou não toma dano")
+	await _frames(30)
+	var pillars := zone.get_pillars()
+	_check(pillars.size() == 81, "nível 99: 9 x 9 colunas (%d)" % pillars.size())
+	var lowest := INF
+	var highest := 0.0
+	var spikes := 0
+	for pillar in pillars:
+		lowest = minf(lowest, pillar.get_top_height() - site.y)
+		highest = maxf(highest, pillar.get_top_height() - site.y)
+		if pillar.width < 0.99:
+			spikes += 1
+	_check(lowest >= quake.min_height - 0.02 and highest <= quake.max_height + 0.02, "relevo entre %.2f e %.2f m" % [lowest, highest])
+	_check(spikes >= 1, "tem estalagmites (%d)" % spikes)
+	var boulders := []
+	boulders.assign(zone.get_boulders())
+	_check(not boulders.is_empty(), "tem pedregulhos soltos (%d)" % boulders.size())
+	await _frames(int((quake.lifetime + quake.sink_time) * 60.0) + 30)
+	_check(not is_instance_valid(zone) and _all_freed(boulders), "relevo e pedregulhos somem depois de %.0f s" % quake.lifetime)
+
+	# Nível 1: uma coluna só.
+	player.set_level(1)
+	player.respawn()
+	await _frames(10)
+	player.face_point(player.get_aim_origin() + player.get_flat_forward() * 4.0 + Vector3.DOWN * 1.6)
+	await _frames(2)
+	player.request_action(Player.SLOT_SPECIAL)
+	await _frames(3)
+	var small := quake.get_active_zone()
+	_check(small != null and small.get_pillars().size() == 1, "nível 1: uma coluna só")
+	crate.queue_free()
+	await _unload(arena)
+
+
+func _place(player: Player, at: Vector3) -> void:
+	player.global_position = at + Vector3(0, 0.05, 0)
+	player.velocity = Vector3.ZERO
+
+
+## Golpeia da posição `site`, olhando para −z na altura do peito.
+func _strike(player: Player, site: Vector3, slot: StringName) -> void:
+	_place(player, site)
+	player.face_point(site + Vector3(0, 1.4, -10))
+	await _frames(2)
+	player.request_action(slot)
+	await _frames(2)
+
+
+func _pebble_count() -> int:
+	var count := 0
+	for node in get_tree().get_nodes_in_group(&"physics_props"):
+		if node is PhysicsProp and (node as PhysicsProp).display_name == "Pedregulho":
+			count += 1
+	return count
+
+
+func _all_freed(list: Array) -> bool:
+	for item: Variant in list:
+		if is_instance_valid(item):
+			return false
+	return true

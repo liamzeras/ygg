@@ -47,7 +47,7 @@ func _add_card(data: PlayerClassData) -> Button:
 	box.add_child(_text("Atributos  (build de teste: nível %d)" % RULES.level_for_build(data.attributes), 18, data.color))
 	box.add_child(_text(_attributes_line(data.attributes), 16))
 	box.add_child(_text("Habilidades", 18, data.color))
-	for entry in [["Botão esq.", data.primary_ability], ["Q", data.mobility_ability], ["F", data.special_ability], ["Espaço 2x", data.air_jump_ability], ["Segurar Espaço", data.float_ability]]:
+	for entry in [["Botão esq.", data.primary_ability], ["Botão dir.", data.secondary_ability], ["Q", data.mobility_ability], ["F", data.special_ability], ["Ctrl", data.utility_ability], ["Espaço 2x", data.air_jump_ability], ["Segurar Espaço", data.float_ability]]:
 		var ability: Ability = entry[1]
 		if ability:
 			box.add_child(_text("[%s] %s — %s" % [entry[0], ability.display_name, ability.description], 15))

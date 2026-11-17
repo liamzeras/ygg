@@ -4,7 +4,7 @@
 
 Carrega a arena com os magos do Fogo, da Terra e da Gravidade, usa as habilidades de cada, pega e arremessa
 uma caixa, testa fogo, explosão, Dardo Cinético, Campo Lento, Flutuar, Bola de Fogo carregável,
-Escada de Pedra, Lamaçal, teto de pulo, degraus, dash, alvos voadores, impacto por massa e
+Escada de Pedra, Lamaçal, teto de pulo, degraus, Soco e Chute de Pedra, Terremoto, pegar com E, alvos voadores, impacto por massa e
 velocidade e as fórmulas de atributos.
 Leva ~1 minuto e não abre janela. O comando é sempre o mesmo, não importa quantas suítes existam.
 
@@ -26,7 +26,7 @@ verificação que falha aparece numa linha com `FALHA`, e o programa sai com có
 | `smoke_test.gd` | Executor: acha as suítes, roda uma por vez (em ordem alfabética) e soma o resultado. Não contém testes. |
 | `suite_base.gd` | Auxiliares comuns: `_check`, `_frames`, `_load_arena`, `_unload`, `_nearest_crate`, `_first_prop`, `_press_key`, `_walk_toward`, `_peak_until_landing`. |
 | `suites/classes.gd` | Frente `classes`: percurso de cada classe, Gravidade, Fogo, Terra, atributos e progressão. |
-| `suites/gameplay.gd` | Frente `gameplay`: degraus, rampa, dash e arremesso em movimento. |
+| `suites/gameplay.gd` | Frente `gameplay`: degraus, rampa, explosões, fogo, pegar e arremessar com E. |
 | `suites/monstros.gd` | Frente `monstros`: regras de dano, impacto, boneco de treino e alvos voadores. |
 
 ### Como acrescentar testes
@@ -38,7 +38,7 @@ verificação que falha aparece numa linha com `FALHA`, e o programa sai com có
 
 ```gdscript
 func run() -> void:
-	await _test_dash()
+	await _test_grab_and_throw()
 	await _test_alguma_coisa()
 
 
