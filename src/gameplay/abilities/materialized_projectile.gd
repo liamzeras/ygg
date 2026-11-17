@@ -9,10 +9,17 @@ extends RigidBody3D
 
 const DAMAGE: DamageRules = preload("res://assets/data/damage_rules.tres")
 
+## Grupo com todos os projéteis materializados em voo (o bot procura ameaças nele).
+const GROUP := &"materialized_projectiles"
+
 ## mult(atributo) de quem lançou.
 var power := 1.0
 
 var _flight_velocity := Vector3.ZERO
+
+
+func _enter_tree() -> void:
+	add_to_group(GROUP)
 
 
 ## Lança com a velocidade da magia somada ao movimento de quem lançou.

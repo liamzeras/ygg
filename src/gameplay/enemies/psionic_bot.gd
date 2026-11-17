@@ -41,11 +41,16 @@ var _charge_goal := 0.0
 var _charge_time := 0.0
 var _shot_cooldown := 0.0
 var _field_cooldown := 0.0
+var _threat_timer := 0.0
 var _visual: Node3D
 var _orb: MeshInstance3D
 var _label: Label3D
 var _body_material: StandardMaterial3D
 var _flash := 0.0
+
+## Viseira e orbe são iguais em todos os bots: criados uma vez e reaproveitados.
+static var _visor_mesh: BoxMesh
+static var _orb_mesh: SphereMesh
 
 
 func _ready() -> void:
@@ -150,7 +155,7 @@ func _physics_process(delta: float) -> void:
 			rotation.y = atan2(-flat.x, -flat.z)
 		_update_movement(delta, flat, sees)
 		_update_attack(delta, eye, aim_point, sees)
-		_react_to_threats()
+		_react_to_threats(delta)
 	else:
 		_brake(delta)
 	move_and_slide()
@@ -294,13 +299,21 @@ func _fire(eye: Vector3, aim_point: Vector3, charge: float) -> void:
 
 # --- Defesa: Campo Lento contra projéteis --------------------------------------
 
-func _react_to_threats() -> void:
+## Procura projéteis vindo no bot a cada `profile.threat_check_interval` s, só no grupo dos
+## projéteis (production/perf/diagnostico-2026-11-17.md, item 6). Como antes, vale só o que está
+## direto na cena principal.
+func _react_to_threats(delta: float) -> void:
+	_threat_timer -= delta
+	if _threat_timer > 0.0:
+		return
+	_threat_timer = profile.threat_check_interval
 	if _field == null or _field_cooldown > 0.0 or _mana < _field.cost:
 		return
 	var center := get_center()
-	for node in get_tree().current_scene.get_children():
+	var scene := get_tree().current_scene
+	for node in get_tree().get_nodes_in_group(MaterializedProjectile.GROUP):
 		var projectile := node as MaterializedProjectile
-		if projectile == null or projectile.get_meta(&"caster", null) == self:
+		if projectile == null or projectile.get_parent() != scene or projectile.get_meta(&"caster", null) == self:
 			continue
 		var to_me := center - projectile.global_position
 		var incoming := projectile.linear_velocity
@@ -357,22 +370,10 @@ func _build() -> void:
 	head_mesh.material = _body_material
 	_add_mesh(head_mesh, Vector3(0, 1.62, 0))
 	# Viseira escura: mostra para onde o bot está olhando.
-	var visor := BoxMesh.new()
-	visor.size = Vector3(0.24, 0.07, 0.06)
-	var visor_material := StandardMaterial3D.new()
-	visor_material.albedo_color = Color(0.05, 0.05, 0.08)
-	visor.material = visor_material
-	_add_mesh(visor, Vector3(0, 1.65, -0.16))
+	_add_mesh(_shared_visor_mesh(), Vector3(0, 1.65, -0.16))
 
-	var orb_mesh := SphereMesh.new()
-	orb_mesh.radius = 0.06
-	orb_mesh.height = 0.12
-	var orb_material := StandardMaterial3D.new()
-	orb_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	orb_material.albedo_color = KineticDartProjectile.COLOR
-	orb_mesh.material = orb_material
 	_orb = MeshInstance3D.new()
-	_orb.mesh = orb_mesh
+	_orb.mesh = _shared_orb_mesh()
 	_orb.position = Vector3(0.28, 1.3, -0.45)
 	_orb.visible = false
 	add_child(_orb)
@@ -385,6 +386,28 @@ func _build() -> void:
 	_label.outline_size = 10
 	_label.no_depth_test = true
 	add_child(_label)
+
+
+static func _shared_visor_mesh() -> BoxMesh:
+	if _visor_mesh == null:
+		_visor_mesh = BoxMesh.new()
+		_visor_mesh.size = Vector3(0.24, 0.07, 0.06)
+		var visor_material := StandardMaterial3D.new()
+		visor_material.albedo_color = Color(0.05, 0.05, 0.08)
+		_visor_mesh.material = visor_material
+	return _visor_mesh
+
+
+static func _shared_orb_mesh() -> SphereMesh:
+	if _orb_mesh == null:
+		_orb_mesh = SphereMesh.new()
+		_orb_mesh.radius = 0.06
+		_orb_mesh.height = 0.12
+		var orb_material := StandardMaterial3D.new()
+		orb_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		orb_material.albedo_color = KineticDartProjectile.COLOR
+		_orb_mesh.material = orb_material
+	return _orb_mesh
 
 
 func _add_mesh(mesh: Mesh, at: Vector3) -> void:

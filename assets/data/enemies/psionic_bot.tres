@@ -19,3 +19,4 @@ pause_max = 0.5
 aim_error_degrees = 2.0
 lead_factor = 0.8
 threat_range = 7.0
+threat_check_interval = 0.1
