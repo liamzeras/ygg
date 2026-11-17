@@ -38,6 +38,14 @@ const PATH := "res://assets/data/materials/break_rules.tres"
 ## Lado (m) do bloco de entulho que o chão e os muros da borda soltam no ponto do golpe.
 @export var bedrock_chunk_size := 0.8
 
+@export_group("Calor (HeatSensor)")
+## Folga (m) da esfera do sensor além do raio do calor, para achar quem tem o ponto de referência
+## perto da borda da própria colisão (a vida do jogador fica nos pés). Não muda o alcance do calor.
+@export var heat_sensor_margin := 0.25
+## A cada quantos segundos o sensor refaz a lista de quem recebe calor sem colisão (além de refazer
+## sempre que o grupo muda de tamanho).
+@export var heat_loose_refresh := 0.5
+
 ## Quanto de cada limite já foi gasto neste quadro.
 static var _spent_tick := -1
 static var _spent: Dictionary[StringName, int] = {}
