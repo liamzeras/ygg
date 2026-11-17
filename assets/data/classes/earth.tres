@@ -9,16 +9,8 @@
 [ext_resource type="Script" path="res://src/gameplay/abilities/earthquake_ability.gd" id="8_quake"]
 [ext_resource type="Resource" path="res://assets/data/materials/stone.tres" id="10_stone"]
 [ext_resource type="Resource" path="res://assets/data/materials/metal.tres" id="11_metal"]
-[ext_resource type="Script" path="res://src/gameplay/abilities/stone_break_rules.gd" id="12_break"]
-
-[sub_resource type="Resource" id="break"]
-script = ExtResource("12_break")
-material = ExtResource("10_stone")
-break_impulse = 120.0
-chunk_count = 4
-chip_size = 0.3
-throw_share = 0.8
-chunk_lifetime = 8.0
+[ext_resource type="Resource" path="res://assets/data/materials/earth_construct.tres" id="12_construct"]
+[ext_resource type="Resource" path="res://assets/data/materials/concrete.tres" id="13_concrete"]
 
 [sub_resource type="Resource" id="attrs"]
 script = ExtResource("2_attrs")
@@ -37,7 +29,7 @@ width = 0.9
 reach = 1.4
 coated_reach = 2.4
 base_impulse = 140.0
-earth_materials = Array[Resource]([ExtResource("10_stone"), ExtResource("11_metal")])
+earth_materials = Array[Resource]([ExtResource("10_stone"), ExtResource("11_metal"), ExtResource("13_concrete"), ExtResource("12_construct")])
 earth_multiplier = 2.0
 coat_duration = 6.0
 coated_multiplier = 1.5
@@ -63,7 +55,7 @@ width = 0.9
 reach = 1.4
 coated_reach = 2.4
 base_impulse = 170.0
-earth_materials = Array[Resource]([ExtResource("10_stone"), ExtResource("11_metal")])
+earth_materials = Array[Resource]([ExtResource("10_stone"), ExtResource("11_metal"), ExtResource("13_concrete"), ExtResource("12_construct")])
 earth_multiplier = 2.0
 coat_duration = 6.0
 coated_multiplier = 1.5
@@ -90,7 +82,7 @@ aimed_step = 1
 rise_time = 0.35
 lifetime = 8.0
 sink_time = 0.6
-breaking = SubResource("break")
+construct_material = ExtResource("12_construct")
 stone_density = 350.0
 impact_transfer = 0.05
 reach = 12.0
@@ -120,7 +112,7 @@ sink_time = 0.6
 base_damage_impulse = 250.0
 launch_impulse = 420.0
 launch_speed = 6.0
-breaking = SubResource("break")
+construct_material = ExtResource("12_construct")
 reach = 12.0
 max_slope = 45.0
 needs_earth = true

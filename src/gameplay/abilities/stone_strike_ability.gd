@@ -4,9 +4,10 @@ extends Ability
 ## Golpe instantâneo à frente, só na faixa do corpo definida aqui: o soco da cintura para cima,
 ## o chute da cintura para baixo. Atinge o alvo mais próximo:
 ## - personagem ou boneco: dano pelo impulso e empurrão;
-## - objeto solto: impulso (x2 se o material for de terra); ele voa e conserva a energia;
+## - objeto solto: impulso (x2 se o material for de terra) pela lei do Quebrável (take_hit): voa,
+##   conserva a energia, racha e, ao quebrar, os pedaços saem na direção do golpe;
 ## - construção da Terra (pilar, coluna): racha em estágios e solta pedaços na direção do golpe
-##   (ver StoneBreakRules); também reveste o membro, porque é pedra;
+##   (mesma lei do Quebrável, material earth_construct.tres); também reveste o membro, porque é pedra;
 ## - superfície fixa de terra ou pedra (PropMaterial.earth_workable): reveste o membro de pedra
 ##   por `coat_duration` s (mais alcance e impulso). Madeira e metal fixos não revestem.
 ## Revestido, golpear o ar arremessa um pedregulho de pedra.
@@ -91,13 +92,17 @@ func activate(player: Player) -> void:
 		if target.has_method("apply_knockback"):
 			target.apply_knockback(direction * impulse)
 		player.add_shake(0.25)
+	elif target is PhysicsProp:
+		# Lei do Quebrável: empurra, racha e, ao quebrar, os pedaços saem na direção do golpe.
+		(target as PhysicsProp).take_hit(direction * impulse)
+		player.add_shake(0.25)
 	elif target is RigidBody3D:
 		(target as RigidBody3D).apply_central_impulse(direction * impulse)
 		player.add_shake(0.25)
 	else:
 		# Construção da Terra (pilar, coluna): racha e solta pedaços na direção do golpe.
-		if target.has_method("take_strike"):
-			target.take_strike(impulse, direction, _band_center(player, Player.BODY_RADIUS + reach))
+		if target.has_method("take_hit"):
+			target.take_hit(direction * impulse, _band_center(player, Player.BODY_RADIUS + reach))
 		# Lei da Terra: só reveste o membro se a superfície for terra ou pedra.
 		var material := PropMaterial.of(target as Node)
 		if material and material.earth_workable:

@@ -5,8 +5,11 @@ extends AnimatableBody3D
 ## personagens em cima (elevador), passa a velocidade da subida para objetos soltos
 ## (catapulta) e acerta o que tem `register_hit` com massa x velocidade x transferência.
 
-## O pilar rachou mais um estágio (ou se desfez, no último).
-signal cracked(stage: int)
+## Lei do Quebrável (design/gdd/physics-magic-system.md), igual à dos objetos: avançou um estágio
+## (1 a 3 = rachado; PropMaterial.BREAK_STAGES = virou pedaços).
+signal stage_changed(stage: int)
+## Virou pedaços. `pieces` são os PhysicsProp novos (já no mundo).
+signal shattered(pieces: Array)
 
 enum State { RISING, STANDING, SINKING }
 
@@ -30,10 +33,9 @@ var impact_transfer := 0.05
 var quiet := false
 ## Quem ergueu (para a cor do rival da mesma classe).
 var caster: Node3D
-## Como quebra com socos e chutes (null = não quebra).
-var breaking: StoneBreakRules
-## Estágio de quebra: 0 inteiro ... StoneBreakRules.LAST_STAGE em pedaços.
-var break_stage := 0
+## Material da construção (pedra moldada, earth_construct.tres): dá a regra do Quebrável e o tipo
+## para a Terra. Null = não quebra.
+var material: PropMaterial
 
 var _state := State.RISING
 var _time := 0.0
@@ -50,6 +52,9 @@ static var _shared_materials := {}
 static var _cracked_materials: Array[StandardMaterial3D] = []
 
 var _mesh_instance: MeshInstance3D
+var _damage := 0.0
+var _stage := 0
+var _shattered := false
 
 
 func _ready() -> void:
@@ -72,8 +77,8 @@ func _ready() -> void:
 
 	_top_shape = BoxShape3D.new()
 	_top_shape.size = Vector3(width, RIDE_TOLERANCE * 2.0, width)
-	if breaking and breaking.material:
-		set_meta(&"material_data", breaking.material)
+	if material:
+		set_meta(&"material_data", material)
 
 
 ## Posiciona o pilar enterrado no ponto do chão (topo rente ao chão), virado para
@@ -171,61 +176,52 @@ static func stone_material(rival := false) -> StandardMaterial3D:
 	return _shared_materials[rival]
 
 
-## Soco ou chute de pedra acertou o pilar em `at`, na direção `direction`. Avança
-## impulso / break_impulse estágios; nos intermediários solta uma lasca, no último se desfaz em
-## blocos arremessados na direção do golpe. Devolve o estágio atual.
-func take_strike(impulse: float, direction: Vector3, at: Vector3) -> int:
-	if breaking == null or breaking.material == null or breaking.break_impulse <= 0.0 or is_sinking():
-		return break_stage
-	var stages := int(impulse / breaking.break_impulse)
-	if stages < 1:
-		return break_stage
-	break_stage = mini(break_stage + stages, StoneBreakRules.LAST_STAGE)
-	cracked.emit(break_stage)
-	if break_stage >= StoneBreakRules.LAST_STAGE:
-		_shatter(impulse, direction)
-	else:
-		_mesh_instance.material_override = _cracked_material(break_stage)
-		# A lasca sai pelo lado oposto ao golpe, na altura em que ele acertou.
-		var flat := Vector3(direction.x, 0.0, direction.z).normalized()
-		var y := clampf(at.y, global_position.y - _rise + breaking.chip_size, global_position.y - breaking.chip_size / 2.0)
-		var spot := Vector3(global_position.x, y, global_position.z) + flat * (width / 2.0 + breaking.chip_size)
-		var chip := _spawn_chunk(Vector3.ONE * breaking.chip_size, spot)
-		chip.apply_central_impulse(direction * impulse * breaking.throw_share / stages / 2.0)
-	return break_stage
+## Estágio do Quebrável: 0 inteiro, 1 a 3 rachado (PropMaterial.BREAK_STAGES = pedaços).
+func get_break_stage() -> int:
+	return _stage
 
 
-## Desfaz o pilar em blocos empilhados, todos arremessados na direção do golpe.
-func _shatter(impulse: float, direction: Vector3) -> void:
-	var count := maxi(breaking.chunk_count, 1)
-	var piece_height := _rise / count
-	if piece_height < 0.05:
-		queue_free()
+## Impulso (N·s) que avança um estágio neste pilar (regra do material para a massa dele).
+func stage_impulse() -> float:
+	return material.stage_impulse(pillar_mass) if material else INF
+
+
+## Golpe no pilar (soco, chute, Mibune), com a mesma assinatura de PhysicsProp.take_hit. O pilar não
+## se move; o golpe acumula dano pela lei do Quebrável e, no último estágio, ele vira pedaços que
+## saem com a velocidade do golpe (impulso / massa).
+func take_hit(impulse: Vector3, _point := Vector3.INF) -> void:
+	if material == null or _shattered or is_sinking():
 		return
-	var piece := Vector3(width * 0.9, piece_height * 0.9, width * 0.9)
-	for i in count:
-		var center := global_position - global_basis.y * (piece_height * (i + 0.5))
-		var chunk := _spawn_chunk(piece, center)
-		chunk.apply_central_impulse(direction * impulse * breaking.throw_share / count)
-	Fx.burst(get_parent(), global_position - Vector3.UP * _rise / 2.0, COLOR, width)
+	_damage += material.hit_damage(impulse.length(), pillar_mass)
+	var stage := material.stage_for(_damage, pillar_mass)
+	if stage == _stage:
+		return
+	_stage = stage
+	stage_changed.emit(_stage)
+	if _stage >= PropMaterial.BREAK_STAGES:
+		_shatter(impulse)
+	else:
+		_mesh_instance.material_override = _cracked_material(_stage)
+
+
+## Vira pedaços (só a parte acima do chão) e sai da física no mesmo quadro.
+func _shatter(impulse: Vector3) -> void:
+	_shattered = true
+	var pieces: Array[PhysicsProp] = []
+	if _rise > 0.05:
+		var visible_mass := pillar_mass * _rise / height
+		var center := Transform3D(global_basis, global_position - Vector3.UP * _rise / 2.0)
+		pieces = PhysicsProp.spawn_pieces(get_parent(), center, Vector3(width, _rise, width), material, visible_mass, impulse / visible_mass)
+	for child in get_children():
+		if child is CollisionShape3D:
+			(child as CollisionShape3D).disabled = true
+	collision_layer = 0
+	shattered.emit(pieces)
 	queue_free()
-
-
-func _spawn_chunk(size: Vector3, at: Vector3) -> PhysicsProp:
-	var chunk := PhysicsProp.new()
-	chunk.material_data = breaking.material
-	chunk.shape_kind = PhysicsProp.Form.BOX
-	chunk.size = size
-	chunk.display_name = "Pedaço de pedra"
-	get_parent().add_child(chunk)
-	chunk.global_position = at
-	chunk.get_tree().create_timer(breaking.chunk_lifetime).timeout.connect(chunk.queue_free)
-	return chunk
-
 
 ## Pedra mais escura a cada estágio de rachadura (compartilhada entre os pilares).
 static func _cracked_material(stage: int) -> StandardMaterial3D:
-	while _cracked_materials.size() < StoneBreakRules.LAST_STAGE:
+	while _cracked_materials.size() < PropMaterial.BREAK_STAGES - 1:
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = COLOR.darkened(0.15 * (_cracked_materials.size() + 1))
 		mat.roughness = 1.0

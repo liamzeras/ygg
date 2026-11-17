@@ -35,6 +35,7 @@ func activate(player: Player) -> void:
 	pool.duration = duration(player)
 	pool.heat_per_second = heat_per_second * power(player)
 	pool.caster = player
+	pool.heat_owner = player
 	player.get_parent().add_child(pool)
 	pool.global_transform = Transform3D(Basis.looking_at(player.get_flat_forward(), Vector3.UP), ground.position)
 	_active = pool

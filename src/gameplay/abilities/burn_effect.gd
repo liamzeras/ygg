@@ -9,12 +9,14 @@ const NODE_NAME := "BurnEffect"
 
 var duration := 10.0
 var heat_per_second := 20.0
+## Quem conjurou (dono do calor): não se queima com ela.
+var heat_owner: Node
 
 var _time := 0.0
 
 
 ## Põe `target` em chamas no ponto `at` (ou reinicia a queimadura que ele já tem).
-static func attach(target: Node3D, at: Vector3, burn_duration: float, heat: float) -> BurnEffect:
+static func attach(target: Node3D, at: Vector3, burn_duration: float, heat: float, owner_node: Node = null) -> BurnEffect:
 	var effect := target.get_node_or_null(NODE_NAME) as BurnEffect
 	if effect == null:
 		effect = BurnEffect.new()
@@ -24,6 +26,7 @@ static func attach(target: Node3D, at: Vector3, burn_duration: float, heat: floa
 	effect.global_position = at
 	effect.duration = burn_duration
 	effect.heat_per_second = heat
+	effect.heat_owner = owner_node
 	effect._time = 0.0
 	return effect
 
@@ -48,8 +51,9 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 	var receiver := heat_receiver_of(target)
-	if receiver:
-		receiver.add_heat(heat_per_second * delta)
+	var owner_node := heat_owner if is_instance_valid(heat_owner) else null
+	if receiver and not PhysicsProp.is_heat_owner(receiver, owner_node):
+		PhysicsProp.give_heat(receiver, heat_per_second * delta, owner_node)
 
 
 ## Quem recebe calor de um corpo: ele mesmo, se souber, ou o filho `Health` (jogador). Null se ninguém.

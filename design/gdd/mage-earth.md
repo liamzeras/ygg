@@ -40,11 +40,12 @@ transforma um pedaço da arena em relevo, com estalagmites e pedras soltas, e jo
   quando existir), o impulso dobra. O objeto não perde velocidade artificial: voa com a energia que recebeu
   e, ao bater em algo, causa dano por massa x velocidade (regra que já existe nos objetos).
 - **Personagem ou boneco:** toma dano pelo impulso (regra de dano já existente) e é empurrado.
-- **Construção da Terra** (pilar da Escada, coluna do Terremoto), playtest de 2026-11-17: racha em estágios
-  (inteiro, 3 rachados, pedaços). Cada `break_impulse` N·s de golpe avança um estágio; nos rachados sai uma
-  lasca pelo lado oposto ao golpe; no último o pilar some e vira `chunk_count` blocos de pedra arremessados na
-  direção do golpe. Como é pedra, também reveste o membro. Valores em `StoneBreakRules` (earth.tres).
-  Provisório até o mundo ter a propriedade "quebrável" (frente gameplay); depois os pilares usam a dela.
+- **Construção da Terra** (pilar da Escada, coluna do Terremoto), playtest de 2026-11-17: segue a lei do
+  Quebrável do mundo (design/gdd/physics-magic-system.md) com o material `earth_construct.tres` (pedra moldada).
+  Cada golpe soma `hit_damage(impulso, massa)`; o estágio é `stage_for(dano, massa)` (0 inteiro, 1 a 3 rachado e
+  mais escuro, 4 pedaços). No 4, a parte acima do chão vira `break_pieces` pedaços que saem com a velocidade
+  do golpe (impulso / massa). Como é pedra, também reveste o membro.
+- **Objeto solto:** o golpe usa `PhysicsProp.take_hit`: empurra, racha e, ao quebrar, os pedaços seguem o golpe.
 - **Superfície que não se move** de terra ou pedra (lei da Terra, `earth_workable`): reveste o membro de pedra
   por alguns segundos. O soco reveste as mãos e o chute reveste os pés, separadamente. Madeira e metal fixos
   não revestem.
@@ -119,8 +120,8 @@ alturas, chance de estalagmite, pedregulhos e duração do Terremoto.
 6. Terremoto joga para cima e fere o boneco e as caixas na área, e não fere quem lançou.
 7. Relevo com alturas entre 0,2 e 2 m e pelo menos uma estalagmite no tamanho máximo; tudo some depois de 5 s.
 8. Nenhuma classe tem dash; E pega e arremessa em todas.
-- Socos seguidos num pilar de pedra o racham e, no fim, o desfazem em blocos que voam na direção do golpe.
-- Escada, Lamaçal e Terremoto só nascem sobre terra ou pedra (lei da Terra); a massa do pilar vem de stone.tres.
+- Socos seguidos num pilar o racham em estágios e, no fim, o desfazem em 6 pedaços que seguem o golpe.
+- Escada, Lamaçal e Terremoto só nascem sobre terra ou pedra (lei da Terra); a massa do pilar vem de earth_construct.tres.
 
 ## Medido no teste automático (2026-11-16)
 

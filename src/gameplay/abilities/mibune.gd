@@ -132,8 +132,9 @@ func _impact() -> void:
 		var receiver := DamageRules.receiver_of(node)
 		if receiver and not DamageRules.is_invulnerable(node):
 			receiver.register_hit(SOURCE_NAME, impulse)
-		if node.has_method("take_strike"):
-			node.take_strike(impulse, direction, global_position)
+		# Objetos e construções: empurrão e Quebrável (PhysicsProp.take_hit, StonePillar.take_hit).
+		if node.has_method("take_hit"):
+			node.take_hit(direction * impulse, global_position)
 	Fx.burst(get_parent(), global_position, HALO_COLOR, impact_radius)
 
 

@@ -25,8 +25,8 @@ extends TerrainAbility
 ## Empurrão para cima em personagens (N·s) e velocidade para cima em objetos (m/s).
 @export var launch_impulse := 420.0
 @export var launch_speed := 6.0
-## Como as colunas quebram com socos e chutes de pedra.
-@export var breaking: StoneBreakRules
+## Material das colunas (pedra moldada): massa e regra do Quebrável.
+@export var construct_material: PropMaterial
 
 var _active: EarthquakeZone
 

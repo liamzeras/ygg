@@ -62,8 +62,11 @@ func _burn(body: Node) -> void:
 		var target := body as Node3D
 		# Corpos pequenos queimam no centro; paredes e chão, onde o fátuo bateu.
 		var at := DamageRules.center_of(target) if (target is RigidBody3D or DamageRules.receiver_of(target)) else global_position
-		BurnEffect.attach(target, at, ability.burn_duration, ability.burn_heat_per_second * power)
+		BurnEffect.attach(target, at, ability.burn_duration, ability.burn_heat_per_second * power, caster)
 		if target.has_method("ignite"):
-			target.ignite()
+			if target.get_method_argument_count(&"ignite") >= 1:
+				target.ignite(caster)
+			else:
+				target.ignite()
 	Fx.burst(get_parent(), global_position, COLOR, 0.5)
 	queue_free()

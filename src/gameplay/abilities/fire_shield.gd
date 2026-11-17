@@ -78,11 +78,11 @@ func _physics_process(delta: float) -> void:
 				stopped += 1
 				body.linear_velocity = Vector3.ZERO
 				if body.has_method("add_heat"):
-					body.add_heat(prop_heat)
+					PhysicsProp.give_heat(body, prop_heat, owner_body)
 		# Quem está dentro queima.
 		var receiver := BurnEffect.heat_receiver_of(node)
-		if receiver:
-			receiver.add_heat(inside_heat)
+		if receiver and not PhysicsProp.is_heat_owner(receiver, owner_body):
+			PhysicsProp.give_heat(receiver, inside_heat, owner_body)
 
 
 ## O mago não recebe dano enquanto a bola durar.

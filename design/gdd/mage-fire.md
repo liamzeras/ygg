@@ -46,6 +46,9 @@ sozinha; a lava fecha um pedaço da arena; e a Almôndega transforma o tiro do i
 - Tudo que estiver em cima recebe calor por segundo, **menos quem lançou** (regra do Liam, playtest de
   2026-11-17: o mago nunca se machuca com as próprias magias de fogo). Objetos inflamáveis pegam fogo.
 - É uma zona de calor do mundo (`HeatZone`): coberta por lama (zona sem ar), para de aquecer.
+- Dono do calor: lava, Fogo-Fátuo e Almôndega passam o mago como dono (`heat_owner`, `add_heat(q, mago)`,
+  `ignite(mago)`). A regra do mundo faz o dono não se queimar com esse calor nem com o que ele acende.
+  A explosão da Bola de Fogo exclui o mago (a explosão do mundo ainda não recebe dono).
 - Uma lava por vez: lançar outra apaga a anterior.
 
 ### Almôndega de Fogo (F)

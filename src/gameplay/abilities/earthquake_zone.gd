@@ -92,7 +92,9 @@ func _add_pillar(ground: Vector3, width: float, height: float, spike: bool) -> S
 	pillar.sink_time = ability.sink_time
 	pillar.impact_transfer = 0.0
 	pillar.quiet = true
-	pillar.breaking = ability.breaking
+	pillar.material = ability.construct_material
+	if ability.construct_material:
+		pillar.pillar_mass = width * width * height * ability.construct_material.density
 	pillar.caster = caster
 	get_parent().add_child(pillar)
 	pillar.start(ground, global_basis * Vector3.FORWARD)

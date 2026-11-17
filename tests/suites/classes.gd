@@ -1248,9 +1248,8 @@ func _test_playtest_earth() -> void:
 	player.debug_infinite_resources = true
 	player.debug_no_cooldowns = true
 	var site := Vector3(40, 0, 40)
-	_check(stairs.breaking != null and stairs.breaking.material == arena.STONE, "pilares feitos de pedra (stone.tres)")
-	var pillar_mass: float = stairs.width * stairs.width * 1.7 * arena.STONE.density
-	_check(stairs.breaking != null and is_equal_approx(stairs.breaking.material.density, arena.STONE.density), "massa do pilar vem da densidade da pedra (%.0f kg num degrau de 1,7 m)" % pillar_mass)
+	var construct: PropMaterial = load("res://assets/data/materials/earth_construct.tres")
+	_check(stairs.construct_material == construct and earth_quake_material(player) == construct, "pilares e colunas feitos de pedra moldada (earth_construct.tres)")
 
 	# Pilar à frente: cada soco racha um ou mais estágios; no último, vira pedaços que voam.
 	var pillar := StonePillar.new()
@@ -1258,14 +1257,18 @@ func _test_playtest_earth() -> void:
 	pillar.height = 2.0
 	pillar.rise_time = 0.1
 	pillar.lifetime = 30.0
-	pillar.breaking = stairs.breaking
+	pillar.material = construct
+	pillar.pillar_mass = 1.0 * 1.0 * 2.0 * construct.density
 	arena.add_child(pillar)
 	pillar.start(site + Vector3(0, 0, -1.4), Vector3.FORWARD)
 	await _frames(15)
-	_check(PropMaterial.of(pillar) == arena.STONE, "o pilar se declara de pedra para a Terra")
+	_check(PropMaterial.of(pillar) == construct, "o pilar se declara de pedra moldada para a Terra")
+	var stages: Array[int] = []
+	pillar.stage_changed.connect(func(stage: int) -> void: stages.append(stage))
+	var shattered_pieces: Array = []
+	pillar.shattered.connect(func(pieces: Array) -> void: shattered_pieces.append_array(pieces))
 	player.remove_meta(&"stone_coat_hands")
 	await _strike(player, site, Player.SLOT_PRIMARY)
-	_check(is_instance_valid(pillar) and pillar.break_stage >= 1, "soco racha o pilar (estágio %d)" % (pillar.break_stage if is_instance_valid(pillar) else -1))
 	_check(punch.is_coated(player), "socar o pilar de pedra reveste a mão")
 	var strikes := 1
 	while is_instance_valid(pillar) and strikes < 8:
@@ -1273,18 +1276,18 @@ func _test_playtest_earth() -> void:
 		await _strike(player, site, Player.SLOT_PRIMARY)
 		strikes += 1
 	await _frames(3)
-	var chunks: Array[PhysicsProp] = []
-	for node in get_tree().get_nodes_in_group(&"physics_props"):
-		if node is PhysicsProp and (node as PhysicsProp).display_name == "Pedaço de pedra":
-			chunks.append(node)
+	_check(stages.size() >= 2 and stages[0] >= 1 and stages[0] < PropMaterial.BREAK_STAGES, "socos racham o pilar em estágios antes de quebrar (%s; %.0f N·s por estágio)" % [stages, construct.stage_impulse(2.0 * construct.density)])
+	var chunks: Array = shattered_pieces.duplicate()
 	_check(not is_instance_valid(pillar), "depois de %d golpes o pilar se desfaz" % strikes)
-	var flying := 0
-	for chunk in chunks:
-		if chunk.linear_velocity.z < -0.5:
-			flying += 1
-	_check(chunks.size() >= stairs.breaking.chunk_count and flying >= 2, "pedaços voam na direção do golpe (%d de %d)" % [flying, chunks.size()])
-	for chunk in chunks:
-		chunk.queue_free()
+	var drift := 0.0
+	for chunk: Variant in shattered_pieces:
+		if is_instance_valid(chunk):
+			drift += (chunk as PhysicsProp).linear_velocity.z
+	_check(stages.has(PropMaterial.BREAK_STAGES) and chunks.size() == construct.break_pieces, "no último estágio vira %d pedaços (estágios %s)" % [chunks.size(), stages])
+	_check(drift < 0.0, "os pedaços saem na direção do golpe (soma vz %.2f m/s)" % drift)
+	for chunk: Variant in chunks:
+		if is_instance_valid(chunk):
+			(chunk as Node).queue_free()
 
 	# Lei da Terra: superfície fixa de madeira não reveste; chão de madeira não aceita a Escada.
 	var wall: StaticBody3D = arena._static_box(site + Vector3(0, 1.0, -1.3), Vector3(2, 2, 0.4), null)
@@ -1297,3 +1300,8 @@ func _test_playtest_earth() -> void:
 	_check(not stairs._is_earth(wall) and floor_material != null and floor_material.earth_workable, "a Escada só nasce sobre terra ou pedra (chão da arena sim, madeira não)")
 	wall.queue_free()
 	await _unload(arena)
+
+
+func earth_quake_material(player: Player) -> PropMaterial:
+	var quake := player.get_ability(Player.SLOT_SPECIAL) as EarthquakeAbility
+	return quake.construct_material if quake else null
