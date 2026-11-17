@@ -21,6 +21,7 @@ func run() -> void:
 	await _test_stair_auto_climb()
 	await _test_earth_strikes()
 	await _test_earthquake()
+	await _test_fire_kit()
 
 
 func _test_attribute_curve() -> void:
@@ -673,3 +674,178 @@ func _all_freed(list: Array) -> bool:
 		if is_instance_valid(item):
 			return false
 	return true
+
+
+# Kit do Mago do Fogo (design/gdd/mage-fire.md, critérios 1 a 7).
+func _test_fire_kit() -> void:
+	print("\n--- Fogo: jatos, fogo-fátuo, lava, almôndega ---")
+	var arena := await _load_arena("fire")
+	var player: Player = arena.player
+	var dummy: TrainingDummy = arena.dummy
+	var fireball := player.get_ability(Player.SLOT_PRIMARY) as FireballAbility
+	var wisp := player.get_ability(Player.SLOT_SECONDARY) as FireWispAbility
+	var lava := player.get_ability(Player.SLOT_MOBILITY) as LavaFloorAbility
+	var shield := player.get_ability(Player.SLOT_SPECIAL) as FireShieldAbility
+	var jets := player.get_ability(Player.SLOT_UTILITY) as JetFlightAbility
+	_check(wisp != null and lava != null and shield != null and jets != null, "Fogo tem Fogo-Fátuo, Chão de Lava, Almôndega e Jatos")
+	if wisp == null or lava == null or shield == null or jets == null:
+		await _unload(arena)
+		return
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	var dummy_home := dummy.global_position
+	var health := player.get_node("Health") as Health
+	var site := Vector3(40, 0, 40)
+
+	# Jatos de Fogo: voo, subida, pairar, impulso e fim no tempo da fórmula.
+	player.set_level(99)
+	_check(is_equal_approx(jets.duration(player), jets.max_duration), "nível 99: voo de %.0f s" % jets.duration(player))
+	player.set_level(20)
+	var flight := jets.duration(player)
+	_place(player, site)
+	player.face_point(site + Vector3(0, 1.6, -10))
+	await _frames(10)
+	player.request_action(Player.SLOT_UTILITY)
+	await _frames(2)
+	var flown := 2
+	_check(player.is_flying(), "Ctrl liga o voo")
+	player.force_jump_held = true
+	await _frames(40)
+	flown += 40
+	_check(player.global_position.y > 2.0, "voando, segurar Espaço sobe (%.1f m)" % player.global_position.y)
+	player.force_jump_held = false
+	await _frames(25)
+	var hover := player.global_position.y
+	await _frames(20)
+	flown += 45
+	_check(absf(player.global_position.y - hover) < 0.3, "parado no ar, paira (variou %.2f m)" % absf(player.global_position.y - hover))
+	player.debug_infinite_resources = false
+	var mana := player.get_pool(Player.Pool.MANA)
+	player.request_action(Player.SLOT_UTILITY)
+	await _frames(2)
+	flown += 2
+	var boost := -player.velocity.z
+	_check(boost > 10.0 and player.get_pool(Player.Pool.MANA) < mana, "Ctrl de novo dá impulso na mira e gasta Mana (%.1f m/s)" % boost)
+	player.debug_infinite_resources = true
+	while player.is_flying() and flown < 900:
+		await _frames(1)
+		flown += 1
+	_check(absf(flown / 60.0 - flight) < 0.15, "voo durou %.2f s (esperado %.2f no nível 20)" % [flown / 60.0, flight])
+	await _frames(20)
+	_check(player.velocity.y < -1.0 or player.is_on_floor(), "depois do voo, cai")
+	player.respawn()
+	await _frames(10)
+
+	# Fogo-Fátuo: não some sozinho.
+	_place(player, site)
+	player.face_point(site + Vector3(0, 40, -10))
+	await _frames(3)
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(620)
+	var lost := _first_of(arena, "FireWispProjectile")
+	_check(lost != null, "Fogo-Fátuo continua no ar depois de 10 s")
+	if lost:
+		lost.queue_free()
+
+	# No boneco: queima por 10 s com dano de fogo.
+	dummy.global_position = site + Vector3(0, 0, -4)
+	dummy.reset()
+	player.face_point(dummy.global_position + Vector3.UP * 1.2)
+	await _frames(3)
+	player.request_action(Player.SLOT_SECONDARY)
+	var waited := 0
+	while BurnEffect.of(dummy) == null and waited < 180:
+		await _frames(1)
+		waited += 1
+	var burn := BurnEffect.of(dummy)
+	_check(burn != null and _first_of(arena, "FireWispProjectile") == null, "Fogo-Fátuo some ao bater e põe o boneco em chamas")
+	await _frames(300)
+	_check(dummy.fire_damage > 0.0 and BurnEffect.of(dummy) != null, "boneco ainda queima depois de 5 s (%.1f de dano de fogo)" % dummy.fire_damage)
+	await _frames(330)
+	_check(BurnEffect.of(dummy) == null, "queimadura acaba depois de %.0f s" % wisp.burn_duration)
+	dummy.global_position = dummy_home
+
+	# Num bloco de pedra: em chamas mesmo sem ser inflamável.
+	var stone: PhysicsProp = arena._prop(arena.STONE, PhysicsProp.Form.BOX, Vector3(0.8, 0.8, 0.8), site + Vector3(0, 0.41, -3))
+	await _frames(30)
+	player.face_point(stone.global_position)
+	await _frames(3)
+	player.request_action(Player.SLOT_SECONDARY)
+	waited = 0
+	while BurnEffect.of(stone) == null and waited < 180:
+		await _frames(1)
+		waited += 1
+	_check(BurnEffect.of(stone) != null and not stone.material_data.flammable, "Fogo-Fátuo deixa em chamas um bloco de pedra")
+	stone.queue_free()
+	await _frames(3)
+
+	# Chão de Lava: tamanho e duração pelo nível, dano e fogo.
+	player.set_level(99)
+	_check(is_equal_approx(lava.side(player), lava.max_side) and is_equal_approx(lava.duration(player), lava.max_duration), "nível 99: lava de %.0f x %.0f m por %.0f s" % [lava.side(player), lava.side(player), lava.duration(player)])
+	player.set_level(30)
+	dummy.global_position = site + Vector3(0, 0, -3)
+	dummy.reset()
+	var crate: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), site + Vector3(1.5, 0.31, -3))
+	_place(player, site + Vector3(0, 0, 4))
+	await _frames(30)
+	var hp := health.current
+	player.face_point(site + Vector3(0, 0, -2))
+	await _frames(3)
+	player.request_action(Player.SLOT_MOBILITY)
+	await _frames(3)
+	var pool := lava.get_active_pool()
+	_check(pool != null and is_equal_approx(pool.side, lava.side(player)), "lava criada no chão mirado com %.1f m de lado (nível 30)" % lava.side(player))
+	await _frames(120)
+	_check(dummy.fire_damage > 5.0, "lava causa dano de fogo no boneco (%.1f em 2 s)" % dummy.fire_damage)
+	_check(crate.burning, "lava acende caixa de madeira")
+	_check(health.current >= hp, "fora da lava, quem lançou não se queima")
+	await _frames(int(lava.duration(player) * 60.0) - 123 + 15)
+	_check(lava.get_active_pool() == null, "lava some depois de %.1f s (nível 30)" % lava.duration(player))
+	crate.queue_free()
+	dummy.global_position = dummy_home
+	await _frames(3)
+
+	# Almôndega de Fogo: consome dardo e bola de fogo que chegam; a do mago sai.
+	_place(player, site)
+	player.face_point(site + Vector3(0, 1.6, -10))
+	await _frames(5)
+	hp = health.current
+	player.request_action(Player.SLOT_SPECIAL)
+	await _frames(2)
+	var ball := shield.get_active_shield()
+	_check(ball != null, "F cria a Almôndega em volta do mago")
+	if ball:
+		var dart := KineticDartProjectile.new()
+		dart.mass = 0.007
+		arena.add_child(dart)
+		dart.global_position = site + Vector3(0.2, 1.2, -8)
+		dart.launch(Vector3(0, 0, 40), Vector3.ZERO)
+		var enemy_ball := FireballProjectile.new()
+		enemy_ball.ability = fireball
+		enemy_ball.mass = 0.01
+		enemy_ball.heat = 60.0
+		arena.add_child(enemy_ball)
+		enemy_ball.global_position = site + Vector3(-0.2, 1.2, -8)
+		enemy_ball.launch(Vector3(0, 0, 25), Vector3.ZERO)
+		await _frames(40)
+		_check(ball.consumed == 2, "Almôndega consome o dardo e a bola de fogo (%d)" % ball.consumed)
+		_check(health.current >= hp, "com a Almôndega, o mago não toma dano")
+		player.request_action(Player.SLOT_PRIMARY)
+		await _frames(2)
+		player.request_action(Player.ACTION_PRIMARY_RELEASE)
+		await _frames(8)
+		# A Bola de Fogo nasce na cena atual, que no teste não é a arena.
+		var own := _first_of(get_tree().current_scene, "FireballProjectile") as Node3D
+		if own == null:
+			own = _first_of(arena, "FireballProjectile") as Node3D
+		_check(ball.consumed == 2 and own != null and own.global_position.distance_to(ball.global_position) > shield.radius, "a Bola de Fogo do próprio mago sai da Almôndega")
+	await _unload(arena)
+
+
+## Primeiro filho de `parent` cujo script tem o `class_name` pedido, ou null.
+func _first_of(parent: Node, type_name: String) -> Node:
+	for node in parent.get_children():
+		var script := node.get_script() as Script
+		if script and script.get_global_name() == type_name and not node.is_queued_for_deletion():
+			return node
+	return null

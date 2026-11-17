@@ -4,7 +4,7 @@
 
 Carrega a arena com os magos do Fogo, da Terra e da Gravidade, usa as habilidades de cada, pega e arremessa
 uma caixa, testa fogo, explosão, Dardo Cinético, Campo Lento, Flutuar, Bola de Fogo carregável,
-Escada de Pedra, Lamaçal, teto de pulo, degraus, Soco e Chute de Pedra, Terremoto, pegar com E, alvos voadores, impacto por massa e
+Escada de Pedra, Lamaçal, teto de pulo, degraus, Soco e Chute de Pedra, Terremoto, Jatos de Fogo, Fogo-Fátuo, Chão de Lava, Almôndega de Fogo, pegar com E, alvos voadores, impacto por massa e
 velocidade e as fórmulas de atributos.
 Leva ~1 minuto e não abre janela. O comando é sempre o mesmo, não importa quantas suítes existam.
 
