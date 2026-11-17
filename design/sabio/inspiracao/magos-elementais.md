@@ -291,7 +291,7 @@ depende do chão e a Gravidade mexe em tudo que tem massa.
 
 1. ~~**Batalha contra quem?**~~ Respondido: jogadores e monstros (ver a seção acima).
 2. ~~**Especializações**~~ Respondido: opção C (uma versão por função, maestria com as 4 da mesma ponta).
-   Ainda abertos: quando e onde o jogador troca as versões, e o que cada maestria faz.
+   Troca de versões: só na escola de magos (game-concept). Efeito das maestrias: proposta em [maestrias.md](maestrias.md).
 3. ~~**O Cavaleiro**~~ Respondido: sai do jogo; toda classe é um mago elemental, escolhida na escola de magos.
 4. ~~**Fatia vertical**~~ Respondido: Fogo, Terra e Gravidade; a Água vem em seguida.
 5. Os eixos dos 7 elementos fazem sentido, ou algum elemento tem outra especialização na sua cabeça?

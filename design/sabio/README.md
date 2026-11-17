@@ -20,6 +20,7 @@
 - [Elementos × materiais](inspiracao/tabela-elementos-materiais.md) (rascunho de GDD; aguarda decisões)
 - [LoL: passivas como cola do kit](inspiracao/lol-passivas.md) (pesquisa; a aplicação foi revista)
 - [Magos de um elemento](inspiracao/magos-elementais.md) (lei, eixo e 4 funções dos 7 elementos; aguarda decisões)
+- [Maestrias](inspiracao/maestrias.md) (critérios e 6 propostas para Fogo, Terra e Gravidade; aguarda decisões)
 
 **Pesquisa científica**
 
