@@ -10,9 +10,9 @@ var _throw_speeds := {}
 
 func run() -> void:
 	_test_attribute_curve()
-	for id in ["fire", "earth", "psionic"]:
+	for id in ["fire", "earth", "gravity", "psionic"]:
 		await _test_class(id)
-	_check(_sprint_speeds.size() == GameState.CLASSES.size() and _sprint_speeds.all(func(s: float) -> bool: return is_equal_approx(s, _sprint_speeds[0])), "velocidade de corrida igual entre classes")
+	_check(_sprint_speeds.size() == GameState.CLASSES.size() + GameState.HIDDEN_CLASSES.size() and _sprint_speeds.all(func(s: float) -> bool: return is_equal_approx(s, _sprint_speeds[0])), "velocidade de corrida igual entre classes")
 	_check(_throw_speeds.get("psionic", 0.0) > _throw_speeds.get("fire", 0.0), "Telecinese Acelerada arremessa mais rápido que as mãos do Mago do Fogo (%.1f x %.1f m/s)" % [_throw_speeds.get("psionic", 0.0), _throw_speeds.get("fire", 0.0)])
 	await _test_psionic()
 	await _test_fire()
@@ -22,6 +22,7 @@ func run() -> void:
 	await _test_earth_strikes()
 	await _test_earthquake()
 	await _test_fire_kit()
+	await _test_gravity_kit()
 
 
 func _test_attribute_curve() -> void:
@@ -849,3 +850,212 @@ func _first_of(parent: Node, type_name: String) -> Node:
 		if script and script.get_global_name() == type_name and not node.is_queued_for_deletion():
 			return node
 	return null
+
+
+# Kit do Mago da Gravidade (design/gdd/mage-gravity.md, critérios 1 a 8).
+func _test_gravity_kit() -> void:
+	print("\n--- Gravidade: push-pull, mibune, sonhos, gravidash, zona nula ---")
+	var ids: Array[String] = []
+	for data in GameState.CLASSES:
+		ids.append(String(data.id))
+	_check(ids == ["fire", "earth", "gravity"], "menu mostra Fogo, Terra e Gravidade (%s)" % [ids])
+	_check(GameState.find_class("psionic") != null, "ficha do Psiônico continua existindo para o bot")
+	var arena := await _load_arena("gravity")
+	var player: Player = arena.player
+	var dummy: TrainingDummy = arena.dummy
+	var push := player.get_ability(Player.SLOT_PRIMARY) as PushPullAbility
+	var mibune := player.get_ability(Player.SLOT_SECONDARY) as MibuneAbility
+	var dream := player.get_ability(Player.SLOT_MOBILITY) as DreamGravityAbility
+	var null_zone := player.get_ability(Player.SLOT_SPECIAL) as NullZoneAbility
+	var dash := player.get_ability(Player.SLOT_UTILITY) as GravidashAbility
+	_check(push != null and mibune != null and dream != null and null_zone != null and dash != null, "Gravidade tem Push-Pull, Mibune, Gravidade dos Sonhos, Zona Nula e Gravidash")
+	if push == null or mibune == null or dream == null or null_zone == null or dash == null:
+		await _unload(arena)
+		return
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	var dummy_home := dummy.global_position
+	var site := Vector3(40, 0, 40)
+	var wood: PropMaterial = arena.WOOD
+	var box := PhysicsProp.Form.BOX
+	var size := Vector3(0.6, 0.6, 0.6)
+
+	# Push-Pull: perto empurra, longe puxa.
+	var near: PhysicsProp = arena._prop(wood, box, size, site + Vector3(0, 0.31, -2))
+	_place(player, site)
+	await _frames(30)
+	player.face_point(near.global_position)
+	await _frames(2)
+	player.request_action(Player.SLOT_PRIMARY)
+	await _frames(2)
+	_check(push.last_action == &"push" and near.linear_velocity.z < -1.0, "Push-Pull empurra a caixa a 2 m (%.1f m/s)" % near.linear_velocity.z)
+	near.queue_free()
+	var far: PhysicsProp = arena._prop(wood, box, size, site + Vector3(0, 0.31, -8))
+	await _frames(30)
+	player.face_point(far.global_position)
+	await _frames(2)
+	player.request_action(Player.SLOT_PRIMARY)
+	await _frames(2)
+	_check(push.last_action == &"pull" and far.linear_velocity.z > 0.5, "Push-Pull puxa a caixa a 8 m (%.1f m/s)" % far.linear_velocity.z)
+	far.queue_free()
+	await _frames(3)
+
+	# Rebate um dardo fraco; um forte demais passa.
+	player.face_point(site + Vector3(0, 1.6, -10))
+	await _frames(2)
+	var weak := KineticDartProjectile.new()
+	weak.mass = 0.004
+	arena.add_child(weak)
+	weak.global_position = site + Vector3(0.9, 1.5, -6)
+	weak.launch(Vector3(0, 0, 20), Vector3.ZERO)
+	await _frames(3)
+	player.request_action(Player.SLOT_PRIMARY)
+	await _frames(2)
+	_check(push.last_deflected == 1 and is_instance_valid(weak) and weak.linear_velocity.z < 0.0, "Push-Pull rebate um dardo fraco")
+	if is_instance_valid(weak):
+		weak.queue_free()
+	var strong := KineticDartProjectile.new()
+	strong.mass = 1.0
+	arena.add_child(strong)
+	strong.global_position = site + Vector3(0.9, 1.5, -6)
+	strong.launch(Vector3(0, 0, 20), Vector3.ZERO)
+	await _frames(3)
+	player.request_action(Player.SLOT_PRIMARY)
+	await _frames(2)
+	_check(push.last_deflected == 0, "Push-Pull não rebate um projétil forte demais")
+	if is_instance_valid(strong):
+		strong.queue_free()
+	await _frames(3)
+
+	# Mibune: puxa a caixa, não puxa quem lançou, é arremessado e some.
+	var pulled: PhysicsProp = arena._prop(wood, box, size, site + Vector3(1.5, 0.31, -6))
+	_place(player, site)
+	await _frames(30)
+	player.face_point(site + Vector3(0, 1.6, -10))
+	await _frames(2)
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(3)
+	var hole := mibune.get_active()
+	_check(hole != null, "Mibune criado à frente")
+	if hole:
+		var before := pulled.global_position.distance_to(hole.global_position)
+		await _frames(30)
+		var after := pulled.global_position.distance_to(hole.global_position)
+		_check(after < before - 0.3, "Mibune puxa a caixa próxima (de %.1f para %.1f m)" % [before, after])
+		_check(player.global_position.distance_to(site) < 0.3, "Mibune não puxa quem lançou")
+		player.request_action(Player.SLOT_SECONDARY)
+		await _frames(2)
+		_check(hole.thrown and hole.velocity.length() > 15.0, "segunda conjuração arremessa o Mibune (%.0f m/s)" % hole.velocity.length())
+		await _frames(int(mibune.lifetime * 60.0))
+		_check(mibune.get_active() == null, "Mibune some depois de %.0f s" % mibune.lifetime)
+	pulled.queue_free()
+	await _frames(3)
+
+	# Gravidade dos Sonhos: o mago pula mais alto; um adversário fica lento e pesado.
+	player.set_level(99)
+	_check(is_equal_approx(dream.side(player), dream.max_side), "nível 99: Gravidade dos Sonhos de 9 x 9 m")
+	_place(player, site)
+	await _frames(20)
+	player.request_action(Player.ACTION_JUMP)
+	await _frames(2)
+	var plain_jump := await _peak_until_landing(player) - site.y
+	player.request_action(Player.SLOT_MOBILITY)
+	await _frames(3)
+	var zone := dream.get_active_zone()
+	_check(zone != null and is_equal_approx(player.get_effect(Player.EFFECT_HASTE), 1.0 + dream.strength), "na zona, o mago recarrega %.0f%% mais rápido" % (dream.strength * 100.0))
+	player.request_action(Player.ACTION_JUMP)
+	await _frames(2)
+	var dream_jump := await _peak_until_landing(player) - site.y
+	_check(dream_jump > plain_jump * 1.2, "na zona, o mago pula mais alto (%.2f x %.2f m)" % [dream_jump, plain_jump])
+	if zone:
+		zone.queue_free()
+	await _frames(3)
+	_check(is_equal_approx(player.get_effect(Player.EFFECT_JUMP), 1.0), "fim da zona devolve o pulo normal")
+	# Zona de outro mago (sem `caster`): o jogador é o adversário.
+	var enemy_zone := DreamGravityZone.new()
+	enemy_zone.side = 6.0
+	enemy_zone.strength = dream.strength
+	arena.add_child(enemy_zone)
+	enemy_zone.global_position = site
+	await _frames(3)
+	_check(is_equal_approx(player.get_speed_factor(), 1.0 - dream.strength) and is_equal_approx(player.get_effect(Player.EFFECT_WEIGHT), 1.0 + dream.strength), "adversário na zona fica mais lento e pesado")
+	enemy_zone.queue_free()
+	await _frames(3)
+
+	# Gravidash: duas vezes, a terceira espera a recarga; leva a caixa junto; com Espaço, sobe.
+	player.debug_no_cooldowns = false
+	var carried: PhysicsProp = arena._prop(wood, box, size, site + Vector3(1.2, 0.31, 0))
+	_place(player, site)
+	await _frames(30)
+	player.face_point(site + Vector3(0, 1.6, -10))
+	await _frames(2)
+	var start := player.global_position
+	player.request_action(Player.SLOT_UTILITY)
+	await _frames(1)
+	_check(carried.linear_velocity.z < -5.0, "Gravidash leva junto a caixa ao lado (%.1f m/s)" % carried.linear_velocity.z)
+	await _frames(15)
+	var first := start.z - player.global_position.z
+	_check(first > 2.5, "Gravidash anda %.1f m para a frente" % first)
+	_check(dash.charges_left(player) == 1, "sobra um segundo Gravidash antes da recarga")
+	start = player.global_position
+	player.request_action(Player.SLOT_UTILITY)
+	await _frames(16)
+	var second := start.z - player.global_position.z
+	_check(second > 2.5, "segundo Gravidash sai em seguida (%.1f m)" % second)
+	start = player.global_position
+	player.request_action(Player.SLOT_UTILITY)
+	await _frames(16)
+	_check(start.z - player.global_position.z < 0.5 and player.get_cooldown(Player.SLOT_UTILITY) > 0.0, "terceiro Gravidash espera a recarga")
+	carried.queue_free()
+	player.debug_no_cooldowns = true
+	_place(player, site)
+	await _frames(int(dash.cooldown * 60.0))
+	player.force_jump_held = true
+	player.request_action(Player.SLOT_UTILITY)
+	await _frames(12)
+	player.force_jump_held = false
+	_check(player.global_position.y > 1.5, "Gravidash com Espaço sobe (%.1f m)" % player.global_position.y)
+	await _frames(90)
+
+	# Zona Nula: gasta a Mana, troca o kit, apaga projéteis, agarrar dá golpe de graça.
+	player.debug_infinite_resources = false
+	player.refund(Player.Pool.MANA, 9999.0)
+	player.refund(Player.Pool.STAMINA, 9999.0)
+	dummy.global_position = site + Vector3(0, 0, -1.2)
+	dummy.reset()
+	_place(player, site)
+	await _frames(10)
+	player.face_point(site + Vector3(0, 1.4, -10))
+	await _frames(2)
+	player.request_action(Player.SLOT_SPECIAL)
+	await _frames(3)
+	var nothing := null_zone.get_active_zone()
+	_check(nothing != null and player.get_pool(Player.Pool.MANA) < 1.0, "Zona Nula criada e a Mana zerou (%.1f)" % player.get_pool(Player.Pool.MANA))
+	var left_punch := player.get_ability(Player.SLOT_PRIMARY)
+	_check(player.is_ability_locked() and left_punch == null_zone.punch_left and player.get_ability(Player.SLOT_SPECIAL) == null and player.get_ability(Player.SLOT_AIR_JUMP) == null, "dentro da zona, o kit vira socos e chutes")
+	if nothing:
+		var dart := KineticDartProjectile.new()
+		dart.mass = 0.005
+		arena.add_child(dart)
+		dart.global_position = site + Vector3(1.5, 1.2, -2)
+		dart.launch(Vector3(0, 0, 2), Vector3.ZERO)
+		await _frames(3)
+		_check(not is_instance_valid(dart) and nothing.erased >= 1, "projétil dentro da Zona Nula some")
+	var stamina := player.get_pool(Player.Pool.STAMINA)
+	player.request_action(Player.SLOT_PRIMARY)
+	await _frames(3)
+	_check(dummy.combo_damage > 0.0 and player.get_pool(Player.Pool.STAMINA) < stamina, "soco na zona acerta o boneco e gasta Vigor (%.1f de dano)" % dummy.combo_damage)
+	var grab := null_zone.grab as BrawlGrabAbility
+	player.request_action(Player.ACTION_GRAB)
+	await _frames(2)
+	_check(grab.last_target == dummy, "E agarra quem está à frente")
+	stamina = player.get_pool(Player.Pool.STAMINA)
+	dummy.reset()
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(2)
+	_check(dummy.combo_damage > 0.0 and absf(player.get_pool(Player.Pool.STAMINA) - stamina) < 0.5, "depois de agarrar, o golpe sai de graça")
+	player.global_position = site + Vector3(20, 0.05, 0)
+	await _frames(3)
+	_check(not player.is_ability_locked() and player.get_ability(Player.SLOT_PRIMARY) == push, "fora da zona, o kit normal volta")
+	dummy.global_position = dummy_home
+	await _unload(arena)

@@ -35,6 +35,10 @@ extends Ability
 @export var pebble_lifetime := 5.0
 
 
+## Marca no jogador: até quando o próximo golpe sai de graça (ver BrawlGrabAbility).
+const FREE_STRIKE_META := &"free_strike_until"
+
+
 func get_block_reason(player: Player) -> String:
 	return "Mãos ocupadas" if is_instance_valid(player.held_body) else ""
 
@@ -65,6 +69,10 @@ func strike_impulse(player: Player, target: Object) -> float:
 
 
 func activate(player: Player) -> void:
+	# Golpe de graça (Agarrar da Zona Nula): devolve o custo que acabou de ser cobrado.
+	if now() < float(player.get_meta(FREE_STRIKE_META, 0.0)):
+		player.remove_meta(FREE_STRIKE_META)
+		player.refund(cost_pool, cost)
 	var coated := is_coated(player)
 	var target := _find_target(player, coated_reach if coated else reach)
 	var direction := _direction(player)
@@ -147,5 +155,10 @@ func _coat_meta() -> StringName:
 	return StringName("stone_coat_%s" % coat_key)
 
 
-func _now() -> float:
+## Relógio do jogo em segundos (quadros de física), o mesmo para todos os golpes.
+static func now() -> float:
 	return float(Engine.get_physics_frames()) / Engine.physics_ticks_per_second
+
+
+func _now() -> float:
+	return now()

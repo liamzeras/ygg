@@ -1,0 +1,212 @@
+[gd_resource type="Resource" script_class="PlayerClassData" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/player/player_class_data.gd" id="1_class"]
+[ext_resource type="Script" path="res://src/gameplay/stats/attributes.gd" id="2_attrs"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/push_pull_ability.gd" id="3_push"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/arcane_leap_ability.gd" id="4_leap"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/mibune_ability.gd" id="5_mibune"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/dream_gravity_ability.gd" id="6_dream"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/gravidash_ability.gd" id="7_dash"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/null_zone_ability.gd" id="8_null"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/stone_strike_ability.gd" id="9_strike"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/brawl_grab_ability.gd" id="10_grab"]
+
+[sub_resource type="Resource" id="attrs"]
+script = ExtResource("2_attrs")
+strength = 16.0
+agility = 15.0
+vitality = 16.0
+dexterity = 12.0
+intelligence = 30.0
+luck = 6.0
+
+[sub_resource type="Resource" id="push"]
+script = ExtResource("3_push")
+reach = 15.0
+push_distance = 4.0
+base_impulse = 120.0
+deflect_width = 2.0
+deflect_depth = 8.0
+display_name = "Push-Pull"
+description = "Empurra o que está perto (até 4 m) e puxa o que está longe. Também rebate projéteis que vêm na sua direção, se forem mais fracos que o seu empurrão."
+cost = 12.0
+cost_pool = 1
+cooldown = 0.5
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="mibune"]
+script = ExtResource("5_mibune")
+spawn_distance = 8.0
+radius = 5.0
+pull_acceleration = 30.0
+throw_speed = 25.0
+lifetime = 5.0
+display_name = "Mibune"
+description = "Mini buraco negro que suga objetos e personagens próximos. Use de novo para arremessá-lo na direção da mira."
+cost = 30.0
+cost_pool = 1
+cooldown = 6.0
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="dream"]
+script = ExtResource("6_dream")
+max_side = 9.0
+duration = 6.0
+strength = 0.4
+display_name = "Gravidade dos Sonhos"
+description = "Zona em volta de você: adversários ficam mais lentos e pesados, e você pula mais alto e recarrega mais rápido. Cresce com o nível, até 9 x 9 m."
+cost = 30.0
+cost_pool = 1
+cooldown = 12.0
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="gravidash"]
+script = ExtResource("7_dash")
+distance = 4.0
+duration = 0.2
+max_charges = 2
+carry_radius = 2.5
+carry_factor = 0.8
+push_impulse = 150.0
+momentum_transfer = 0.1
+display_name = "Gravidash"
+description = "Arrancada na direção do movimento (Espaço = para cima), levando junto o que estiver perto. Dá para usar duas vezes antes da recarga."
+cost = 15.0
+cost_pool = 0
+cooldown = 4.0
+scaling_attribute = 0
+
+[sub_resource type="Resource" id="punch_left"]
+script = ExtResource("9_strike")
+band_bottom = 0.9
+band_top = 1.9
+width = 0.9
+reach = 1.4
+coated_reach = 1.4
+base_impulse = 140.0
+coat_duration = 0.0
+coated_multiplier = 1.0
+coat_key = &"none"
+follow_aim = true
+display_name = "Soco esquerdo"
+description = "Soco sem magia, da cintura para cima."
+cost = 8.0
+cost_pool = 0
+cooldown = 0.45
+scaling_attribute = 0
+
+[sub_resource type="Resource" id="punch_right"]
+script = ExtResource("9_strike")
+band_bottom = 0.9
+band_top = 1.9
+width = 0.9
+reach = 1.4
+coated_reach = 1.4
+base_impulse = 140.0
+coat_duration = 0.0
+coated_multiplier = 1.0
+coat_key = &"none"
+follow_aim = true
+display_name = "Soco direito"
+description = "Soco sem magia, da cintura para cima."
+cost = 8.0
+cost_pool = 0
+cooldown = 0.45
+scaling_attribute = 0
+
+[sub_resource type="Resource" id="kick_left"]
+script = ExtResource("9_strike")
+band_bottom = 0.05
+band_top = 0.9
+width = 0.9
+reach = 1.4
+coated_reach = 1.4
+base_impulse = 170.0
+coat_duration = 0.0
+coated_multiplier = 1.0
+coat_key = &"none"
+follow_aim = false
+display_name = "Chute esquerdo"
+description = "Chute sem magia, da cintura para baixo."
+cost = 10.0
+cost_pool = 0
+cooldown = 0.6
+scaling_attribute = 0
+
+[sub_resource type="Resource" id="kick_right"]
+script = ExtResource("9_strike")
+band_bottom = 0.05
+band_top = 0.9
+width = 0.9
+reach = 1.4
+coated_reach = 1.4
+base_impulse = 170.0
+coat_duration = 0.0
+coated_multiplier = 1.0
+coat_key = &"none"
+follow_aim = false
+display_name = "Chute direito"
+description = "Chute sem magia, da cintura para baixo."
+cost = 10.0
+cost_pool = 0
+cooldown = 0.6
+scaling_attribute = 0
+
+[sub_resource type="Resource" id="grab"]
+script = ExtResource("10_grab")
+reach = 1.6
+width = 0.9
+hold_time = 0.3
+display_name = "Agarrar"
+description = "Segura por 0,3 s quem está à sua frente. O próximo golpe nesse tempo sai de graça."
+cost = 0.0
+cost_pool = 0
+cooldown = 1.5
+scaling_attribute = 0
+
+[sub_resource type="Resource" id="null_zone"]
+script = ExtResource("8_null")
+max_side = 9.0
+duration = 8.0
+punch_left = SubResource("punch_left")
+punch_right = SubResource("punch_right")
+kick_left = SubResource("kick_left")
+kick_right = SubResource("kick_right")
+grab = SubResource("grab")
+display_name = "Zona Nula"
+description = "Gasta toda a sua Mana e cria uma zona onde nenhuma habilidade funciona. Dentro dela você luta na mão: socos nos botões do mouse, chutes no Ctrl e no Q, agarrar no E."
+cost = 20.0
+cost_pool = 1
+cooldown = 20.0
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="leap"]
+script = ExtResource("4_leap")
+display_name = "Pulo Arcano"
+description = "Pulo duplo com impulso mágico: sobe mais alto e empurra o que está aos seus pés. Gasta Vigor."
+cost = 25.0
+cost_pool = 0
+cooldown = 0.0
+scaling_attribute = 4
+
+[resource]
+script = ExtResource("1_class")
+id = &"gravity"
+display_name = "Mago da Gravidade"
+role = "Peso e leveza: mexe em tudo que tem massa"
+description = "Empurra e puxa de longe, cria um mini buraco negro, muda o peso de quem está perto e, quando quer, apaga a magia de todos e resolve na mão."
+color = Color(0.6, 0.45, 1, 1)
+attributes = SubResource("attrs")
+body_mass = 70.0
+regen_delay = 1.0
+sprint_cost = 10.0
+acceleration = 10.0
+air_control = 0.45
+hand_range = 2.2
+hold_distance = 1.4
+primary_ability = SubResource("push")
+secondary_ability = SubResource("mibune")
+mobility_ability = SubResource("dream")
+special_ability = SubResource("null_zone")
+air_jump_ability = SubResource("leap")
+utility_ability = SubResource("gravidash")
