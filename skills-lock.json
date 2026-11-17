@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "game-design-philosophy": {
+      "source": "modbender/skill-library-mcp",
+      "sourceType": "github",
+      "skillPath": "data/game-design-philosophy/SKILL.md",
+      "computedHash": "8c36bd751cbfba1b0d1dbd6d9ed72ea0f45c06d592f828125260932a95846ce6"
+    }
+  }
+}

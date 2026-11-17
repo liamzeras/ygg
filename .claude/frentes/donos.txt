@@ -17,6 +17,7 @@ tests/screenshot.gd               qualidade   trava
 design/gdd/game-concept.md        loop        trava
 project.godot                     fundacao    trava
 export_presets.cfg                fundacao
+skills-lock.json                  fundacao
 CLAUDE.md                         fundacao    trava
 
 # --- Sábio (sessão de pesquisa: material de consulta e laboratório próprio) ---
