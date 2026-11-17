@@ -34,3 +34,8 @@ Godot aberto, separadas por `/`.
 | 2026-11-17 | 3cb0d0b | explosao | 110 / 109 | 55 / 52 | 12,0 / 12,7 | 15,0 / 17,6 | 8 / 32 | 0 / 0 | **Passa a aprovar:** pior quadro 29 / 26 ms (era 137 / 133) |
 | 2026-11-17 | 3cb0d0b | magia | 98 / 95 | 79 / 75 | 12,1 / 12,4 | 12,5 / 13,0 | 0 / 0 | 0 / 0 | Igual |
 | 2026-11-17 | 3cb0d0b | combate | 98 / 99 | 36 / 39 | 11,2 / 10,9 | 15,7 / 15,3 | 15 / 13 | 4 / 2 | **Passa a aprovar:** pior quadro 47 / 63 ms (era 118 / 135); ainda tem trancos |
+| 2026-11-17 | 94fa63b | parado | 116 / 116 | 105 / 105 | 9,3 / 9,2 | 9,4 / 9,4 | 0 / 0 | 0 / 0 | Depois dos itens 4 e 6 (o 5 foi revertido): igual |
+| 2026-11-17 | 94fa63b | criacao | 114 / 114 | 99 / 98 | 9,8 / 9,7 | 10,0 / 10,1 | 0 / 0 | 0 / 0 | Igual |
+| 2026-11-17 | 94fa63b | explosao | 110 / 109 | 57 / 59 | 12,1 / 11,9 | 13,8 / 13,1 | 11 / 10 | 0 / 0 | p99 caiu (15,0 / 17,6 → 13,8 / 13,1); ainda com quadros acima de 16,7 ms |
+| 2026-11-17 | 94fa63b | magia | 98 / 96 | 79 / 79 | 12,2 / 12,3 | 12,6 / 12,6 | 0 / 0 | 0 / 0 | Igual |
+| 2026-11-17 | 94fa63b | combate | 100 / 101 | 66 / 63 | 11,0 / 11,0 | 11,4 / 11,4 | 5 / 5 | 1 / 1 | **1% mais lento passa de 60** (era 36 / 39); trancos 4 / 2 → 1 / 1 |
