@@ -2,7 +2,8 @@
 
 > Rodada 1 (`/teste-profundo diagnosticar`), commit `1c80dcc`. Computador do Liam: GTX 650 Ti Boost e
 > i5-9400F, janela de 1600 x 900, sem vsync. Diagnóstico feito pelo `performance-analyst` e conferido no
-> código pelo Sábio. Aguarda o Liam escolher os itens.
+> código pelo Sábio. **Itens 0, 1, 2, 3 e 7 aprovados pelo Liam e enviados ao orquestrador em 2026-11-17.**
+> Os itens 4, 5 e 6 ficam para a segunda rodada; o 8 espera decisão de UX e o 9 espera a trava do `player.gd`.
 
 ## Medição (3 rodadas)
 
