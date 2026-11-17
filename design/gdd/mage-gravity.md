@@ -39,7 +39,10 @@ troca tudo isso por uma luta "na mão", onde as magias de todo mundo deixam de e
   Ele puxa objetos soltos e personagens próximos para o centro, menos quem lançou.
 - Segunda conjuração, com o Mibune ativo (playtest de 2026-11-17): o Mibune sai da frente do mago
   (`launch_offset` m à frente da mira) e dispara rápido na direção da mira, como um projétil. Ele continua
-  puxando o que encontra pelo caminho e atravessa paredes.
+  puxando o que encontra pelo caminho. Ao bater em parede, chão, pilar ou personagem (Liam, 2026-11-17), para,
+  fere quem está a até `impact_radius` m (2 m; impulso `impact_impulse` = 200 x mult(Inteligência), caindo com
+  a distância até 20%), racha construções da Terra e some depois de `impact_linger` s (0,4 s). Objetos soltos
+  não o param: são puxados.
 - Lei da Gravidade: o Mibune é uma área de gravidade do mundo (gravidade para o centro, somada à do lugar).
   Objetos soltos caem para ele e mudam de peso. Monstros recebem o mesmo puxão direto do Mibune. **Magos não**
   (nem quem lançou, nem outros magos): o corpo de um mago só muda pelas próprias habilidades (Liam, 2026-11-17).
@@ -101,6 +104,8 @@ recarga 6 s. Gravidade dos Sonhos com `strength` 0,4 por 6 s, 30 de Mana, recarg
 - Push-Pull sem nada na mira: só tenta rebater projéteis; gasta a Mana do mesmo jeito.
 - Push-Pull num objeto preso ou no chão: nada acontece.
 - Mibune arremessado para o céu: some no fim do tempo de vida.
+- Mibune disparado contra quem lançou: impossível, ele sai da frente da mira e ignora o próprio mago.
+- Outros magos: são feridos pelo impacto, mas não puxados.
 - Gravidade dos Sonhos e Lamaçal juntos: vale a lentidão mais forte, não somam.
 - Segundo Gravidash sem Vigor: não sai, e a recarga da primeira continua.
 - Zona Nula com menos Mana que o mínimo: bloqueada ("Mana insuficiente").
@@ -127,6 +132,7 @@ Mibune, força e duração das zonas, distância do Gravidash, custos e recargas
 2. Push-Pull rebate um Dardo Cinético fraco que vem na direção do mago e não rebate um forte demais.
 3. Mibune puxa uma caixa próxima; a segunda conjuração o arremessa a mais de 15 m/s; some no tempo de vida.
    A segunda conjuração o faz sair a menos de 2,7 m da frente do mago, na direção da mira atual.
+   Disparado contra uma parede, para nela, fere o boneco ao lado e some em até 0,4 s.
 4. Na Gravidade dos Sonhos, o mago pula mais alto que fora dela, e a zona no nível 99 mede 9 x 9 m.
 5. Gravidash sai duas vezes seguidas e a terceira é bloqueada pela recarga; com Espaço, sobe.
 6. Zona Nula zera a Mana, troca o kit por socos e chutes, e um projétil que entra some.

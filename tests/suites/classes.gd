@@ -1177,7 +1177,30 @@ func _test_playtest_gravity() -> void:
 		hole.queue_free()
 	await _frames(3)
 
-	# Mibune é área de gravidade: um objeto perto dele pesa diferente do peso normal.
+	# Mibune disparado contra uma parede: para, fere quem está perto e some logo (Liam, 2026-11-17).
+	var dummy: TrainingDummy = arena.dummy
+	var dummy_home := dummy.global_position
+	var wall: StaticBody3D = arena._static_box(site + Vector3(0, 1.5, -6), Vector3(4, 3, 0.4), null)
+	dummy.global_position = site + Vector3(1.0, 0, -5.2)
+	dummy.reset()
+	_place(player, site)
+	await _frames(10)
+	player.face_point(site + Vector3(0, 1.6, -6))
+	await _frames(2)
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(3)
+	var shot := mibune.get_active()
+	player.request_action(Player.SLOT_SECONDARY)
+	await _frames(15)
+	_check(shot != null and is_instance_valid(shot) and shot.impacted and shot.global_position.z > site.z - 6.0, "Mibune disparado para na parede")
+	_check(dummy.combo_damage > 0.0, "o impacto do Mibune fere quem está perto (%.1f)" % dummy.combo_damage)
+	await _frames(int(mibune.impact_linger * 60.0) + 5)
+	_check(mibune.get_active() == null, "e some logo depois (%.1f s)" % mibune.impact_linger)
+	wall.queue_free()
+	dummy.global_position = dummy_home
+	await _frames(3)
+
+	# Mibune é área de gravidade): um objeto perto dele pesa diferente do peso normal.
 	var box: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), site + Vector3(3, 0.31, 0))
 	await _frames(20)
 	var normal_weight := box.get_weight()
