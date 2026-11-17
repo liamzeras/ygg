@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="BreakRules" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/world/break_rules.gd" id="1_br"]
+
+[resource]
+script = ExtResource("1_br")
+max_pieces = 40
+piece_lifetime = 8.0
+spread_speed = 1.5
+small_piece_size = 0.25
+piece_layer = 2
+piece_mask = 1

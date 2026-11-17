@@ -21,3 +21,4 @@ explosion_radius = 5.0
 explosion_impulse = 700.0
 explosion_heat = 150.0
 impact_detonation_speed = 9.0
+break_toughness = 4.0

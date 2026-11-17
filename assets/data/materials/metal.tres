@@ -17,3 +17,5 @@ max_heat = 300.0
 radiate_threshold = 80.0
 radiate_radius = 1.0
 radiate_rate = 0.4
+break_toughness = 12.0
+break_impact_speed = 18.0

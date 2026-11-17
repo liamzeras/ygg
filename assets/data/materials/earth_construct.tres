@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PropMaterial" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/world/prop_material.gd" id="1_mat"]
+
+[resource]
+script = ExtResource("1_mat")
+display_name = "Pedra moldada"
+color = Color(0.5, 0.5, 0.48, 1)
+roughness = 0.95
+density = 350.0
+friction = 0.9
+heat_decay = 3.0
+max_heat = 400.0
+radiate_threshold = 50.0
+radiate_radius = 1.5
+radiate_rate = 0.6
+earth_workable = true
+earth_force_factor = 2.0
+break_toughness = 0.35
+break_impact_speed = 8.0
+break_pieces = 6

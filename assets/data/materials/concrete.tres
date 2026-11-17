@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PropMaterial" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/world/prop_material.gd" id="1_mat"]
+
+[resource]
+script = ExtResource("1_mat")
+display_name = "Concreto"
+color = Color(0.62, 0.62, 0.6, 1)
+roughness = 0.95
+density = 320.0
+friction = 0.85
+heat_decay = 4.0
+max_heat = 350.0
+radiate_threshold = 50.0
+radiate_radius = 1.5
+radiate_rate = 0.5
+earth_workable = true
+earth_force_factor = 1.5
+break_toughness = 2.5
+break_impact_speed = 9.0
+break_pieces = 6
