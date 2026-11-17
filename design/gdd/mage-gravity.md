@@ -35,10 +35,11 @@ troca tudo isso por uma luta "na mão", onde as magias de todo mundo deixam de e
 
 ### Mibune (botão dir.)
 
-- Primeira conjuração: cria um mini buraco negro no ponto mirado (ou a `spawn_distance` m, se não houver nada).
-  Ele puxa objetos soltos e personagens próximos para o centro, menos quem lançou.
+- Primeira conjuração: o mini buraco negro **se forma `spawn_offset` m (0,3 m) à frente do corpo do mago**, na
+  altura do peito, e não no ponto mirado (Liam, 2026-11-17). Ali ele puxa objetos soltos e monstros próximos.
+  Como se forma colado no mago, o que ele puxa se junta logo à frente dele e pode encostar nele.
 - Segunda conjuração, com o Mibune ativo (playtest de 2026-11-17): o Mibune sai da frente do mago
-  (`launch_offset` m à frente da mira) e dispara rápido na direção da mira, como um projétil. Ele continua
+  (`spawn_offset` m à frente da mira) e dispara rápido na direção da mira, como um projétil. Ele continua
   puxando o que encontra pelo caminho. Ao bater em parede, chão, pilar ou personagem (Liam, 2026-11-17), para,
   fere quem está a até `impact_radius` m (2 m; impulso `impact_impulse` = 200 x mult(Inteligência), caindo com
   a distância até 20%), racha construções da Terra e some depois de `impact_linger` s (0,4 s). Objetos soltos
@@ -94,7 +95,7 @@ troca tudo isso por uma luta "na mão", onde as magias de todo mundo deixam de e
 | Gravidash | `distance / duration` m/s por `duration` s |
 
 Valores iniciais (a ajustar no playtest): Push-Pull com `base_impulse` 120, alcance 15 m, empurra até 4 m,
-12 de Mana, recarga 0,5 s. Mibune com raio 5 m, puxão 15 m/s², disparo a 35 m/s saindo a 1,2 m da mira, 5 s de vida, 30 de Mana,
+12 de Mana, recarga 0,5 s. Mibune com raio 5 m, puxão 15 m/s², formação e disparo a 0,3 m à frente, disparo a 35 m/s, 5 s de vida, 30 de Mana,
 recarga 6 s. Gravidade dos Sonhos com `strength` 0,4 por 6 s, 30 de Mana, recarga 12 s. Gravidash de 4 m em
 0,2 s, 15 de Vigor, recarga 4 s. Zona Nula por 8 s, mínimo de 20 de Mana, recarga 20 s. Socos 140 e chutes
 170 de impulso, como os da Terra sem pedra.
@@ -131,7 +132,8 @@ Mibune, força e duração das zonas, distância do Gravidash, custos e recargas
 1. Push-Pull empurra uma caixa a 2 m e puxa uma caixa a 8 m.
 2. Push-Pull rebate um Dardo Cinético fraco que vem na direção do mago e não rebate um forte demais.
 3. Mibune puxa uma caixa próxima; a segunda conjuração o arremessa a mais de 15 m/s; some no tempo de vida.
-   A segunda conjuração o faz sair a menos de 2,7 m da frente do mago, na direção da mira atual.
+   O Mibune se forma 0,3 m à frente do corpo do mago, na altura do peito (não na mira). A segunda conjuração o
+   faz sair a menos de 1,3 m da mira do mago, na direção da mira atual.
    Disparado contra uma parede, para nela, fere o boneco ao lado e some em até 0,4 s.
 4. Na Gravidade dos Sonhos, o mago pula mais alto que fora dela, e a zona no nível 99 mede 9 x 9 m.
 5. Gravidash sai duas vezes seguidas e a terceira é bloqueada pela recarga; com Espaço, sobe.

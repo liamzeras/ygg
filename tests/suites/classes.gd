@@ -931,7 +931,7 @@ func _test_gravity_kit() -> void:
 	await _frames(3)
 
 	# Mibune: puxa a caixa, não puxa quem lançou, é arremessado e some.
-	var pulled: PhysicsProp = arena._prop(wood, box, size, site + Vector3(1.5, 0.31, -6))
+	var pulled: PhysicsProp = arena._prop(wood, box, size, site + Vector3(1.5, 0.31, -2.5))
 	_place(player, site)
 	await _frames(30)
 	player.face_point(site + Vector3(0, 1.6, -10))
@@ -942,10 +942,13 @@ func _test_gravity_kit() -> void:
 	_check(hole != null, "Mibune criado à frente")
 	if hole:
 		var before := pulled.global_position.distance_to(hole.global_position)
-		await _frames(30)
+		var start := player.global_position
+		await _frames(10)
+		# Antes de a caixa chegar: o mago, colado no Mibune, não se mexe.
+		_check(player.global_position.distance_to(start) < 0.05, "Mibune não puxa quem lançou (%.2f m)" % player.global_position.distance_to(start))
+		await _frames(20)
 		var after := pulled.global_position.distance_to(hole.global_position)
 		_check(after < before - 0.3, "Mibune puxa a caixa próxima (de %.1f para %.1f m)" % [before, after])
-		_check(player.global_position.distance_to(site) < 0.3, "Mibune não puxa quem lançou")
 		player.request_action(Player.SLOT_SECONDARY)
 		await _frames(2)
 		_check(hole.thrown and hole.velocity.length() > 15.0, "segunda conjuração arremessa o Mibune (%.0f m/s)" % hole.velocity.length())
@@ -1163,7 +1166,9 @@ func _test_playtest_gravity() -> void:
 	player.request_action(Player.SLOT_SECONDARY)
 	await _frames(3)
 	var hole := mibune.get_active()
-	_check(hole != null and hole.global_position.distance_to(player.global_position) > 4.0, "Mibune surge longe, no ponto mirado")
+	var ahead := Vector2(hole.global_position.x - player.global_position.x, hole.global_position.z - player.global_position.z).length() if hole else -1.0
+	_check(hole != null and hole.global_position.distance_to(mibune.spawn_point(player)) < 0.05 and absf(ahead - (Player.BODY_RADIUS + mibune.spawn_offset)) < 0.05, "Mibune se forma %.1f m à frente do corpo do mago (%.2f m do centro), não na mira" % [mibune.spawn_offset, ahead])
+	_check(hole != null and absf(hole.global_position.y - (player.global_position.y + Player.BODY_HEIGHT / 2.0)) < 0.05, "na altura do peito")
 	if hole:
 		# Mira para o lado antes de disparar: ele deve sair da frente do mago, para o novo lado.
 		player.face_point(site + Vector3(10, 1.6, 0))
@@ -1172,7 +1177,7 @@ func _test_playtest_gravity() -> void:
 		await _frames(1)
 		var aim := player.get_aim_direction()
 		var from_face := hole.global_position.distance_to(player.get_aim_origin())
-		_check(hole.thrown and from_face < mibune.launch_offset + 1.5, "segunda conjuração: Mibune sai da frente do mago (%.1f m)" % from_face)
+		_check(hole.thrown and from_face < mibune.spawn_offset + 1.0, "segunda conjuração: Mibune sai da frente do mago (%.1f m)" % from_face)
 		_check(hole.velocity.normalized().dot(aim) > 0.95 and hole.velocity.length() >= mibune.throw_speed - 0.1, "e dispara na direção da mira (%.0f m/s)" % hole.velocity.length())
 		hole.queue_free()
 	await _frames(3)

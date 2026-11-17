@@ -1,18 +1,17 @@
 class_name MibuneAbility
 extends Ability
 ## Gravidade — Mibune, o mini buraco negro (design/gdd/mage-gravity.md).
-## 1ª conjuração: surge no ponto mirado e puxa objetos e personagens próximos (menos quem lançou).
-## 2ª conjuração (sem custo nem recarga): sai da frente de quem lançou e dispara rápido na
-## direção da mira, como um projétil. Ao bater, fere quem está perto e some logo depois.
+## 1ª conjuração: se forma `spawn_offset` m à frente do corpo de quem lançou, na altura do peito, e
+## puxa os objetos e monstros próximos ali (magos não). 2ª conjuração (sem custo nem recarga): sai
+## `spawn_offset` m à frente da mira e dispara rápido na direção da mira, como um projétil. Ao bater, fere quem está perto e some logo depois.
 
-## Distância (m) em que nasce se não houver nada na mira.
-@export var spawn_distance := 8.0
+## Distância (m) à frente do corpo de quem lançou onde o Mibune se forma, e à frente da mira de onde
+## ele sai ao ser disparado (Liam, 2026-11-17: 0,3 m).
+@export var spawn_offset := 0.3
 @export var radius := 5.0
 ## Puxão (m/s²) em direção ao centro. Escala com mult(atributo).
 @export var pull_acceleration := 30.0
 @export var throw_speed := 35.0
-## Distância (m) à frente da mira de onde o Mibune sai ao ser disparado.
-@export var launch_offset := 1.2
 @export var lifetime := 5.0
 ## Disparado, ao bater em parede, chão, pilar ou personagem: raio (m) e impulso de dano (N·s,
 ## x mult(atributo)) do impacto, e por quanto tempo (s) ainda fica antes de sumir.
@@ -36,17 +35,12 @@ func activate(player: Player) -> void:
 	var aim := player.get_aim_direction()
 	var origin := player.get_aim_origin()
 	if is_instance_valid(_active) and not _active.thrown:
-		_active.fire(origin + aim * launch_offset, aim * throw_speed)
+		_active.fire(origin + aim * spawn_offset, aim * throw_speed)
 		player.add_shake(0.2)
 		return
 	if is_instance_valid(_active):
 		_active.queue_free()
-	var query := PhysicsRayQueryParameters3D.create(origin, origin + aim * spawn_distance)
-	query.exclude = [player.get_rid()]
-	var hit := player.get_world_3d().direct_space_state.intersect_ray(query)
-	var point: Vector3 = origin + aim * spawn_distance
-	if not hit.is_empty():
-		point = (hit.position as Vector3) - aim * 0.5
+	var point := spawn_point(player)
 	var hole := Mibune.new()
 	hole.radius = radius
 	hole.pull_acceleration = pull_acceleration * power(player)
@@ -58,3 +52,9 @@ func activate(player: Player) -> void:
 	player.get_parent().add_child(hole)
 	hole.global_position = point
 	_active = hole
+
+
+## Onde o Mibune se forma: `spawn_offset` m à frente do corpo de quem lançou, na altura do peito.
+func spawn_point(player: Player) -> Vector3:
+	var chest := player.global_position + Vector3.UP * Player.BODY_HEIGHT / 2.0
+	return chest + player.get_flat_forward() * (Player.BODY_RADIUS + spawn_offset)
