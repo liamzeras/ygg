@@ -26,6 +26,7 @@ func run() -> void:
 	await _test_playtest_fire()
 	await _test_playtest_gravity()
 	await _test_playtest_earth()
+	await _test_playtest_earth_stairs()
 
 
 func _test_attribute_curve() -> void:
@@ -1310,3 +1311,64 @@ func _test_playtest_earth() -> void:
 func earth_quake_material(player: Player) -> PropMaterial:
 	var quake := player.get_ability(Player.SLOT_SPECIAL) as EarthquakeAbility
 	return quake.construct_material if quake else null
+
+
+# Pedido do Liam (2026-11-17): soco e chute acertam e quebram o que o próprio Q da Terra ergue.
+func _test_playtest_earth_stairs() -> void:
+	print("\n--- Playtest: soco e chute quebram a Escada de Pedra (Q) ---")
+	var arena := await _load_arena("earth")
+	var player: Player = arena.player
+	var punch := player.get_ability(Player.SLOT_PRIMARY) as StoneStrikeAbility
+	var kick := player.get_ability(Player.SLOT_SECONDARY) as StoneStrikeAbility
+	var stairs := player.get_ability(Player.SLOT_MOBILITY) as StonePillarAbility
+	player.debug_infinite_resources = true
+	player.debug_no_cooldowns = true
+	var site := Vector3(40, 0, 40)
+	_place(player, site)
+	await _frames(20)
+	player.face_point(site + Vector3(0, 0, -4))
+	await _frames(3)
+	player.request_action(Player.SLOT_MOBILITY)
+	await _frames(int(stairs.rise_time * 60.0) + 10)
+	var steps := stairs.get_active_pillars()
+	_check(steps.size() == 3, "Q ergue a Escada de 3 pilares (%d)" % steps.size())
+	if steps.size() == 3:
+		# Soco no degrau do meio (1,7 m: o soco pega da cintura para cima).
+		var punched := await _break_step(player, steps[1], Player.SLOT_PRIMARY, punch)
+		_check(punched[0] >= 1 and punched[0] < PropMaterial.BREAK_STAGES, "soco racha o pilar da Escada (1º estágio: %d)" % punched[0])
+		_check(punched[1] > 0, "socos quebram o pilar da Escada em %d pedaços" % punched[1])
+		# Chute no degrau baixo (0,85 m: só o chute alcança).
+		var kicked := await _break_step(player, steps[0], Player.SLOT_SECONDARY, kick)
+		_check(kicked[0] >= 1 and kicked[0] < PropMaterial.BREAK_STAGES, "chute racha o pilar da Escada (1º estágio: %d)" % kicked[0])
+		_check(kicked[1] > 0, "chutes quebram o pilar da Escada em %d pedaços" % kicked[1])
+		for piece: Variant in punched[2] + kicked[2]:
+			if is_instance_valid(piece):
+				(piece as Node).queue_free()
+	# A Escada nasce na cena atual (não na arena): limpa o que sobrou para não pesar nas outras suítes.
+	for pillar in stairs.get_active_pillars():
+		pillar.queue_free()
+	await _unload(arena)
+	# Dá tempo à física de soltar os pedaços antes da próxima suíte (que mede o custo deles).
+	await _frames(30)
+
+
+## Golpeia `pillar` pelo lado até ele quebrar (no máximo 10 golpes).
+## Devolve [primeiro estágio visto, quantos pedaços saíram, os pedaços].
+func _break_step(player: Player, pillar: StonePillar, slot: StringName, strike: StoneStrikeAbility) -> Array:
+	var stages: Array[int] = []
+	var pieces: Array = []
+	pillar.stage_changed.connect(func(stage: int) -> void: stages.append(stage))
+	pillar.shattered.connect(func(list: Array) -> void: pieces.append_array(list))
+	var ground := Vector3(pillar.global_position.x, 0.0, pillar.global_position.z)
+	# De lado: na frente e atrás estão os outros degraus da Escada.
+	var toward := pillar.global_basis.x
+	var stand := ground - toward * (pillar.width / 2.0 + Player.BODY_RADIUS + 0.4)
+	var hits := 0
+	while is_instance_valid(pillar) and not pillar.is_queued_for_deletion() and hits < 10:
+		_place(player, stand)
+		player.face_point(Vector3(ground.x, 1.4, ground.z))
+		await _frames(2)
+		player.request_action(slot)
+		await _frames(int(strike.cooldown * 60.0) + 2)
+		hits += 1
+	return [stages[0] if not stages.is_empty() else 0, pieces.size(), pieces]
