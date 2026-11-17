@@ -13,6 +13,212 @@ func run() -> void:
 	await _test_hot_stone()
 	await _test_earth_law()
 	await _test_gravity_law()
+	await _test_heat_owner()
+	await _test_break_law()
+	await _test_break_inheritance()
+	await _test_break_limits()
+
+
+# Dono do calor: quem conjurou não se queima com o que criou; os outros, sim (decisão do Liam).
+# Um bloco de pedra faz o papel do "mago" (qualquer receptor de calor serve; nenhuma habilidade).
+func _test_heat_owner() -> void:
+	print("\n--- Lei do Fogo: dono do calor ---")
+	var arena := await _load_arena("fire")
+	var box := PhysicsProp.Form.BOX
+	var size := Vector3(0.6, 0.6, 0.6)
+	var caster: PhysicsProp = arena._prop(arena.STONE, box, size, Vector3(31.2, 0.31, 28))
+	var other: PhysicsProp = arena._prop(arena.STONE, box, size, Vector3(32.8, 0.31, 28))
+	var zone := _air_zone(arena, Vector3(32, 1, 28), Vector3(3, 2, 3), 100.0, 1.0)
+	zone.heat_owner = caster
+	await _frames(60)
+	_check(caster.heat == 0.0 and other.heat > 50.0, "zona de calor não queima quem a conjurou (%.0f) e queima o outro (%.0f)" % [caster.heat, other.heat])
+	zone.queue_free()
+
+	var fire_caster: PhysicsProp = arena._prop(arena.STONE, box, size, Vector3(37.3, 0.31, 34))
+	var bystander: PhysicsProp = arena._prop(arena.STONE, box, size, Vector3(38.7, 0.31, 34))
+	var lit: PhysicsProp = arena._prop(arena.WOOD, box, size, Vector3(38, 0.31, 34))
+	var next: PhysicsProp = arena._prop(arena.WOOD, box, size, Vector3(38, 0.31, 34.7))
+	for prop in [fire_caster, bystander, lit, next]:
+		prop.freeze = true
+	await _frames(5)
+	lit.ignite(fire_caster)
+	await _frames(60)
+	_check(fire_caster.heat == 0.0 and bystander.heat > 0.0, "fogo conjurado não aquece o conjurador (%.0f) e aquece quem está ao lado (%.1f)" % [fire_caster.heat, bystander.heat])
+	_check(next.heat_owner == fire_caster, "o calor passado adiante continua sendo do conjurador (o fogo que ele criou se espalha sem queimá-lo)")
+	await _unload(arena)
+
+
+# Lei do Quebrável: golpe vira dano, dano vira estágio, o 4º estágio vira pedaços.
+func _test_break_law() -> void:
+	print("\n--- Lei do Quebrável: estágios e pedaços ---")
+	var arena := await _load_arena("fire")
+	var wood: PropMaterial = arena.WOOD
+	var box := PhysicsProp.Form.BOX
+	var size := Vector3(0.6, 0.6, 0.6)
+	var crate: PhysicsProp = arena._prop(wood, box, size, Vector3(32, 0.31, 28))
+	await _frames(5)
+	var per_stage := crate.stage_impulse()
+	_check(absf(per_stage - wood.break_toughness * crate.mass) < 0.01, "impulso por estágio = resistência x massa (%.0f N·s)" % per_stage)
+	var stages: Array[int] = []
+	crate.stage_changed.connect(func(stage: int) -> void: stages.append(stage))
+	crate.take_hit(Vector3.RIGHT * per_stage * (wood.break_min_fraction - 0.05))
+	await _frames(2)
+	_check(crate.get_break_stage() == 0 and crate.get_break_damage() == 0.0, "golpe fraco (abaixo de %.0f%% de um estágio) não deixa marca" % (wood.break_min_fraction * 100.0))
+	for hit in 3:
+		crate.take_hit(Vector3.RIGHT * per_stage * 1.01)
+		await _frames(2)
+	_check(crate.get_break_stage() == 3 and stages == [1, 2, 3], "três golpes de um estágio passam por 1, 2 e 3 (%s)" % [stages])
+	var whole_mass := crate.mass
+	var result := {"pieces": []}
+	crate.shattered.connect(func(pieces: Array) -> void: result["pieces"] = pieces)
+	crate.linear_velocity = Vector3.ZERO
+	var push := Vector3.RIGHT * per_stage * 1.01
+	crate.take_hit(push)
+	await _frames(1)
+	var pieces: Array = result["pieces"]
+	_check(pieces.size() == wood.break_pieces and not is_instance_valid(crate), "o 4º estágio vira %d pedaços e o objeto inteiro some" % pieces.size())
+	var mass_sum := 0.0
+	var momentum := Vector3.ZERO
+	for piece in pieces:
+		mass_sum += piece.mass
+		momentum += piece.mass * piece.linear_velocity
+	_check(absf(mass_sum - whole_mass) < 0.05, "a massa dos pedaços soma a do objeto (%.2f de %.2f kg)" % [mass_sum, whole_mass])
+	var mean_velocity := momentum / mass_sum
+	var expected := push.length() / whole_mass
+	_check(mean_velocity.x > expected * 0.6, "os pedaços saem na direção do golpe (%.1f m/s em x; golpe / massa = %.1f)" % [mean_velocity.x, expected])
+
+	# Materiais diferentes: o mesmo golpe que racha madeira mal marca a pedra e não marca o metal.
+	var stone: PhysicsProp = arena._prop(arena.STONE, box, size, Vector3(36, 0.31, 28))
+	var metal: PhysicsProp = arena._prop(arena.METAL, box, size, Vector3(40, 0.31, 28))
+	await _frames(3)
+	var same_hit := per_stage * 1.01
+	stone.take_hit(Vector3.RIGHT * same_hit)
+	metal.take_hit(Vector3.RIGHT * same_hit)
+	await _frames(2)
+	_check(stone.get_break_stage() == 0 and stone.get_break_damage() > 0.0, "o mesmo golpe só arranha a pedra (%.0f de %.0f N·s por estágio)" % [stone.get_break_damage(), stone.stage_impulse()])
+	_check(metal.get_break_damage() == 0.0, "e não marca o metal (abaixo do mínimo de %.0f N·s)" % (metal.stage_impulse() * arena.METAL.break_min_fraction))
+
+	# Queda: de 20 m a madeira racha ao bater no chão; de 1 m não.
+	var high: PhysicsProp = arena._prop(wood, box, size, Vector3(32, 20, 33))
+	var low: PhysicsProp = arena._prop(wood, box, size, Vector3(36, 1.3, 33))
+	await _frames(150)
+	_check(not is_instance_valid(high) or high.get_break_stage() >= 1, "queda de 20 m racha a caixa (bate a ~%.0f m/s; racha acima de %.0f)" % [sqrt(2.0 * 9.8 * 19.7), wood.break_impact_speed])
+	_check(is_instance_valid(low) and low.get_break_stage() == 0, "queda de 1 m não racha")
+
+	# Explosão também é golpe: a caixa ao lado do barril vira pedaços.
+	var near: PhysicsProp = arena._prop(wood, box, size, Vector3(40, 0.31, 38))
+	var barrel: PhysicsProp = arena._prop(arena.EXPLOSIVE, PhysicsProp.Form.CYLINDER, Vector3(0.6, 0.9, 0.6), Vector3(41.2, 0.46, 38))
+	await _frames(5)
+	var near_result := {"broke": false}
+	near.shattered.connect(func(_p: Array) -> void: near_result["broke"] = true)
+	barrel.explode()
+	await _frames(2)
+	_check(near_result["broke"], "explosão a 1,2 m parte a caixa de madeira")
+	await _unload(arena)
+
+
+# Pedaços herdam calor, fogo e combustível; barril quebrado explode; construções usam a mesma lei.
+func _test_break_inheritance() -> void:
+	print("\n--- Lei do Quebrável: o que os pedaços herdam ---")
+	var arena := await _load_arena("fire")
+	var box := PhysicsProp.Form.BOX
+	var size := Vector3(0.6, 0.6, 0.6)
+	var hot: PhysicsProp = arena._prop(arena.STONE, box, size, Vector3(32, 0.31, 40))
+	var lit: PhysicsProp = arena._prop(arena.WOOD, box, size, Vector3(36, 0.31, 40))
+	await _frames(5)
+	hot.add_heat(300.0)
+	lit.ignite()
+	await _frames(60)
+	var stone_heat := hot.heat
+	var fuel := lit.fuel_left()
+	var hot_pieces := hot.shatter()
+	var lit_pieces := lit.shatter()
+	var all_hot: bool = hot_pieces.size() == arena.STONE.break_pieces
+	for piece in hot_pieces:
+		all_hot = all_hot and absf(piece.heat - stone_heat) < 1.0
+	_check(all_hot, "pedra quente vira %d pedaços com o mesmo calor (%.0f)" % [hot_pieces.size(), stone_heat])
+	var all_lit: bool = not lit_pieces.is_empty()
+	for piece in lit_pieces:
+		all_lit = all_lit and piece.burning and absf(piece.fuel_left() - fuel) < 0.05
+	_check(all_lit, "caixa queimando vira pedaços queimando com o combustível que sobrou (%.1f s)" % fuel)
+
+	var barrel: PhysicsProp = arena._prop(arena.EXPLOSIVE, PhysicsProp.Form.CYLINDER, Vector3(0.6, 0.9, 0.6), Vector3(42, 0.46, 44))
+	await _frames(3)
+	var blew := {"yes": false}
+	barrel.exploded.connect(func() -> void: blew["yes"] = true)
+	var barrel_pieces := barrel.shatter()
+	await _frames(2)
+	_check(blew["yes"] and barrel_pieces.is_empty(), "barril de pólvora quebrado explode em vez de virar pedaços")
+
+	# Interface para construções que não são PhysicsProp (pilar de pedra): mesma lei, mesmos pedaços.
+	# Pilar de 1 x 3 x 1 m em pedra moldada (1050 kg); soco de pedra = 140 x 2 (Terra) = 280 N·s.
+	var molded: PropMaterial = load("res://assets/data/materials/earth_construct.tres")
+	var pillar_mass := 3.0 * molded.density
+	var punch := 280.0
+	var pillar_damage := 0.0
+	var punches := 0
+	while molded.stage_for(pillar_damage, pillar_mass) < PropMaterial.BREAK_STAGES and punches < 50:
+		pillar_damage += molded.hit_damage(punch, pillar_mass)
+		punches += 1
+	_check(punches == 6, "pilar de pedra moldada (%.0f kg) vira pedaços no 6º soco de %.0f N·s (foram %d)" % [pillar_mass, punch, punches])
+	_check(arena.STONE.hit_damage(punch, pillar_mass) == 0.0, "o mesmo pilar em pedra bruta nem marcaria (por isso a pedra moldada)")
+	var pillar_pieces := PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(32, 1.6, 45)), Vector3(1, 3, 1), molded, pillar_mass, Vector3.FORWARD * 3.0)
+	var pillar_sum := 0.0
+	for piece in pillar_pieces:
+		pillar_sum += piece.mass
+	_check(pillar_pieces.size() == molded.break_pieces and absf(pillar_sum - pillar_mass) < 0.5, "spawn_pieces parte o pilar em %d pedaços (%.0f kg no total)" % [pillar_pieces.size(), pillar_sum])
+	await _unload(arena)
+
+
+# Desempenho: limite de pedaços vivos, vida curta, pedaços não colidem entre si; custo medido.
+func _test_break_limits() -> void:
+	print("\n--- Lei do Quebrável: limites e custo ---")
+	var arena := await _load_arena("fire")
+	var rules := BreakRules.current()
+	var stone: PropMaterial = arena.STONE
+	await _frames(5)
+	var first := PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(34, 1, 30)), Vector3(0.6, 0.6, 0.6), stone, 75.0)
+	_check(first[0].collision_layer & first[0].collision_mask == 0, "pedaços não colidem entre si (camada %d, máscara %d)" % [first[0].collision_layer, first[0].collision_mask])
+	for batch in 12:
+		PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(30 + batch, 1, 34)), Vector3(0.6, 0.6, 0.6), stone, 75.0)
+	await _frames(1)
+	_check(PhysicsProp.alive_piece_count() <= rules.max_pieces, "nunca passa de %d pedaços vivos (%d depois de 72 criados)" % [rules.max_pieces, PhysicsProp.alive_piece_count()])
+	_check(not is_instance_valid(first[0]), "os pedaços mais antigos somem primeiro")
+	var tiny := PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(42, 1, 30)), Vector3(0.3, 0.3, 0.3), stone, 10.0)
+	_check(not tiny[0].is_in_group(&"heat_receivers") and not tiny[0].contact_monitor, "pedaços pequenos usam física simplificada (sem calor, sem contato)")
+
+	# Vida curta: com 0,5 s de vida, somem em 40 quadros.
+	var saved_life := rules.piece_lifetime
+	rules.piece_lifetime = 0.5
+	var short := PhysicsProp.spawn_pieces(arena, Transform3D(Basis.IDENTITY, Vector3(44, 1, 30)), Vector3(0.6, 0.6, 0.6), stone, 75.0)
+	rules.piece_lifetime = saved_life
+	await _frames(40)
+	_check(not is_instance_valid(short[0]), "pedaços somem sozinhos ao fim do tempo de vida")
+
+	# Custo: quanto leva partir uma caixa e quanto pesa a física com o máximo de pedaços.
+	var crates: Array[PhysicsProp] = []
+	for i in 10:
+		crates.append(arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), Vector3(30 + i * 1.5, 0.31, 42)))
+	await _frames(30)
+	var before := await _physics_ms(60)
+	var started := Time.get_ticks_usec()
+	for crate in crates:
+		crate.take_hit(Vector3.UP * crate.stage_impulse() * 4.1)
+	var shatter_ms := float(Time.get_ticks_usec() - started) / 1000.0
+	var after := await _physics_ms(60)
+	print("  custo: partir 10 caixas (%d pedaços) levou %.2f ms; física %.2f ms/quadro antes, %.2f ms com os pedaços" % [PhysicsProp.alive_piece_count(), shatter_ms, before, after])
+	_check(shatter_ms < 16.0, "partir 10 caixas de uma vez cabe em um quadro (%.2f ms < 16 ms)" % shatter_ms)
+	_check(after - before < 2.0, "pedaços vivos somam menos de 2 ms por quadro na física (+%.2f ms)" % (after - before))
+	await _unload(arena)
+
+
+## Tempo médio (ms) do passo de física nos próximos `frames` quadros.
+func _physics_ms(frames: int) -> float:
+	var total := 0.0
+	for frame in frames:
+		await _frames(1)
+		total += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	return total / frames
 
 
 # --- Leis do mundo (physics-magic-system.md, "As leis da fatia") ---------------------------
@@ -150,7 +356,7 @@ func _test_earth_law() -> void:
 	var block: PhysicsProp = arena._prop(arena.STONE, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), Vector3(40, 0.31, 36))
 	await _frames(20)
 	var floor_material := PropMaterial.ground_under(arena, Vector3(36, 0.5, 36))
-	_check(floor_material != null and floor_material.earth_workable, "chão da arena conta como solo e a Terra trabalha nele (%s)" % (floor_material.display_name if floor_material else "nada"))
+	_check(floor_material != null and floor_material.resource_path.ends_with("concrete.tres") and floor_material.earth_workable, "chão da arena é concreto e a Terra trabalha nele (%s)" % (floor_material.display_name if floor_material else "nada"))
 	var on_crate := PropMaterial.ground_under(arena, Vector3(38, 1.0, 36))
 	_check(on_crate == arena.WOOD and not on_crate.earth_workable, "em cima de uma caixa de madeira a Terra não tem com o que trabalhar")
 	var on_stone := PropMaterial.ground_under(arena, Vector3(40, 1.0, 36))
@@ -160,7 +366,7 @@ func _test_earth_law() -> void:
 	await _unload(arena)
 
 
-# Lei da Gravidade: muda peso e direção da queda de tudo que tem massa (objetos; o mago é pergunta aberta).
+# Lei da Gravidade: muda peso e direção da queda de tudo que tem massa (objetos e monstros; o mago não, decisão do Liam).
 func _test_gravity_law() -> void:
 	print("\n--- Lei da Gravidade: peso e direção ---")
 	var arena := await _load_arena("fire")
@@ -183,8 +389,7 @@ func _test_gravity_law() -> void:
 	_check(sideways.global_position.x > 40.3 and sideways.global_position.y > 4.8, "gravidade de lado faz o objeto 'cair' para o lado (x %.2f, y %.2f)" % [sideways.global_position.x, sideways.global_position.y])
 	_check(heavy.mass == normal.mass, "a gravidade muda o peso, não a massa (nada é criado)")
 
-	# O mago ainda não obedece às áreas de gravidade: pergunta ao Liam (o Campo Lento passaria a
-	# deixar o próprio Psiônico leve). Ver "Perguntas abertas" em physics-magic-system.md.
+	# O mago não obedece às áreas de gravidade (decisão do Liam, opção c): só às próprias habilidades.
 
 	# Gravidade x Fogo: o mesmo barril de 2,5 m só detona (impacto >= 9 m/s) onde pesa 3x.
 	var barrel_size := Vector3(0.6, 0.9, 0.6)

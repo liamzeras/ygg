@@ -10,3 +10,4 @@ roughness = 1.0
 density = 160.0
 friction = 0.9
 earth_workable = true
+break_toughness = 3.0

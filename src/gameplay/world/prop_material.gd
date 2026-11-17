@@ -3,8 +3,11 @@ extends Resource
 ## Propriedades físicas e elementais de um material.
 ## Ver design/gdd/physics-magic-system.md (seções Materiais e As leis da fatia).
 
-## Material do chão que não declara o próprio (chão da arena, paredes): conta como solo.
-const DEFAULT_GROUND_PATH := "res://assets/data/materials/soil.tres"
+## Material do chão que não declara o próprio (chão da arena, paredes): é concreto (decisão do
+## Liam, 2026-11-17), e a Terra pode manipulá-lo.
+const DEFAULT_GROUND_PATH := "res://assets/data/materials/concrete.tres"
+## Estágios do Quebrável: 0 inteiro, 1-3 rachado, 4 = vira pedaços (pedido do Liam).
+const BREAK_STAGES := 4
 
 @export var display_name := ""
 @export var color := Color.WHITE
@@ -49,6 +52,19 @@ const DEFAULT_GROUND_PATH := "res://assets/data/materials/soil.tres"
 ## Multiplicador da força da Terra sobre este material (pedra responde mais forte).
 @export var earth_force_factor := 1.0
 
+@export_group("Quebrável")
+## O objeto racha e vira pedaços quando apanha o bastante (lei do Quebrável).
+@export var breakable := true
+## Variação de velocidade (m/s) que um golpe teria de dar no objeto inteiro para avançar
+## um estágio. Impulso por estágio = break_toughness x massa (madeira 6, pedra 2,8, metal 12).
+@export var break_toughness := 6.0
+## Golpes menores que esta fração do impulso por estágio não deixam marca (empurrões, apoio).
+@export_range(0.0, 1.0) var break_min_fraction := 0.25
+## Velocidade de batida (m/s) acima da qual uma queda ou colisão começa a rachar o objeto.
+@export var break_impact_speed := 10.0
+## Em quantos pedaços o objeto se parte no último estágio.
+@export_range(2, 8) var break_pieces := 4
+
 @export_group("Explosão")
 @export var explosive := false
 ## Segundos queimando antes de explodir.
@@ -62,6 +78,25 @@ const DEFAULT_GROUND_PATH := "res://assets/data/materials/soil.tres"
 @export_group("Futuro")
 ## Reservado para eletricidade (ainda sem efeito).
 @export var conductive := false
+
+
+## Lei do Quebrável: impulso (N·s) que avança um estágio num objeto com esta massa.
+func stage_impulse(body_mass: float) -> float:
+	return break_toughness * maxf(body_mass, 0.01)
+
+
+## Dano (N·s) que um golpe deixa num objeto desta massa: o impulso inteiro, ou 0 se for
+## fraco demais para marcar (abaixo de break_min_fraction de um estágio) ou se não quebra.
+func hit_damage(impulse: float, body_mass: float) -> float:
+	if not breakable or impulse < stage_impulse(body_mass) * break_min_fraction:
+		return 0.0
+	return impulse
+
+
+## Estágio (0 = inteiro, 1 a 3 = rachado, BREAK_STAGES = pedaços) para um dano acumulado.
+## Construções que não são PhysicsProp (pilar de pedra) podem guardar o próprio dano e usar isto.
+func stage_for(damage: float, body_mass: float) -> int:
+	return mini(int(damage / stage_impulse(body_mass)), BREAK_STAGES)
 
 
 ## true se o material só esquenta (não queima) e guarda o calor.
