@@ -21,6 +21,10 @@
 - [LoL: passivas como cola do kit](inspiracao/lol-passivas.md) (pesquisa; a aplicação foi revista)
 - [Magos de um elemento](inspiracao/magos-elementais.md) (lei, eixo e 4 funções dos 7 elementos; aguarda decisões)
 - [Maestrias](inspiracao/maestrias.md) (critérios e 6 propostas para Fogo, Terra e Gravidade; aguarda decisões)
+- [Próximos elementos](inspiracao/proximos-elementos.md) (Água, Ar, Natureza e Eletricidade no formato da fatia)
+- [Combos da fatia](inspiracao/combos-da-fatia.md) (combos acidentais, quase prontos e rastros entre Fogo, Terra e Gravidade)
+- [Avaliação pela filosofia da Riot](inspiracao/avaliacao-riot.md) (nota por mago e por habilidade)
+- [Propostas de 2026-11-17](inspiracao/propostas-2026-11-17.md) (16 itens de sim ou não para o Liam)
 
 **Pesquisa científica**
 
