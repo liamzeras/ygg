@@ -1,223 +1,246 @@
 # Ygg — Conceito do Jogo
 
 > Status: rascunho v0.2 · 2026-11-16 · dono: Liam
-> v0.2: visão nova de **magos de um elemento**, decidida pelo Liam em 2026-11-16. Pesquisa e
-> justificativas em `design/sabio/inspiracao/magos-elementais.md`. As partes marcadas
-> **[em transição]** descrevem o que o código ainda usa (Cavaleiro, Elementalista, Psiônico) e
-> continuam valendo até as frentes trocarem o código.
+> Mudança da v0.2: visão dos magos de um elemento, decidida pelo Liam em 2026-11-16. As 3 classes antigas
+> (Cavaleiro, Elementalista, Psiônico) saem. Pesquisa e proposta completas do Sábio em
+> [`design/sabio/inspiracao/magos-elementais.md`](../sabio/inspiracao/magos-elementais.md) (referência; este
+> documento leva só as decisões).
 
 ## Overview (Visão geral)
 
-RPG em primeira pessoa onde o mundo é físico e **sistêmico**: todo objeto é feito de um
-material com propriedades (massa, inflamável, explosivo, condutor…) e a magia é força e estado
-aplicados a essa física. **Todo personagem selecionável é um mago de um elemento só**: água,
-fogo, terra, ar, natureza, eletricidade ou gravidade. O jogador luta contra outros jogadores e
-contra monstros, e os monstros obedecem às mesmas leis. O jogo não é sobre feitos grandiosos, e
-sim sobre **pequenos feitos sobre-humanos amplificados pela criatividade do jogador**.
+RPG de mundo aberto em primeira pessoa onde **todo personagem é um mago de um só elemento**: água, fogo,
+terra, ar, natureza, eletricidade ou gravidade. O mundo é físico e **sistêmico**: todo objeto é feito de um
+material com propriedades (massa, inflamável, explosivo, condutor…) e cada magia é uma força ou um estado
+aplicado a essa física. Cada elemento obedece a uma **lei física** própria, e o que um mago deixa no mundo (poça,
+fogo, pedra, vento) vira ferramenta para outro mago, aliado ou inimigo. A batalha é contra **jogadores e
+monstros**, e os monstros seguem as mesmas leis. O jogo não é sobre feitos grandiosos, e sim sobre **pequenos
+feitos sobre-humanos amplificados pela criatividade do jogador**.
 
 ## Player Fantasy (Fantasia do jogador)
 
-"Eu domino um elemento e entendo como ele funciona de verdade. Num mundo que parece real, eu
-venço porque pensei num jeito esperto de usar a lei do meu elemento e o que o outro mago deixou
-para trás: a poça dele conduz o meu raio, o vento dele espalha o meu fogo."
+"Eu domino um elemento e entendo como ele funciona de verdade. Num mundo que parece real, resolvo problemas e
+venço lutas porque pensei num jeito esperto de usar o meu elemento e o que estava à mão: secar a lama com fogo,
+erguer pedra onde havia chão, deixar o inimigo leve e jogá-lo longe. Quando outro mago passa por mim, o rastro
+dele vira a minha chance."
 
 ## Pilares
 
-1. **Crível antes de espetacular.** O mundo é semi-realista. O especial/mágico se destaca
-   porque o fundo é normal. Mesmo sem magia, o personagem é notavelmente capaz, mas nunca
-   absurdo: no máximo **5 a 10 vezes** um humano comum em qualquer atributo.
-2. **Quanto mais surreal, mais limitado.** Efeitos que dobram a realidade (telecinese,
-   fogo do nada) custam mais, alcançam menos e têm restrições claras. Força bruta é barata;
-   mágica é cara. Gravidade e eletricidade, os elementos mais surreais, têm os limites mais
-   claros (eletricidade só com condutor; gravidade drena Mana rápido e alcança pouco).
-3. **Criatividade > números.** Uma ideia esperta deve valer mais que um atributo alto.
-   As interações entre sistemas (fogo + madeira + pólvora + empurrão) são o conteúdo. Entre
-   magos, **o rastro de um é o gancho do outro**.
-4. **Legibilidade.** O jogador precisa entender por que algo aconteceu. Objetos mostram
-   nome e peso, o boneco de testes mostra números, e materiais têm aparência consistente.
+1. **Crível antes de espetacular.** O mundo é semi-realista. O mágico se destaca porque o fundo é normal. Mesmo
+   sem magia, o personagem é notavelmente capaz, mas nunca absurdo: no máximo **5 a 10 vezes** um humano comum
+   em qualquer atributo.
+2. **Quanto mais surreal, mais limitado.** Efeitos que dobram a realidade custam mais, alcançam menos e têm
+   restrições claras. Gravidade e eletricidade são os elementos mais surreais e têm os limites mais claros
+   (eletricidade só onde há condutor; gravidade drena Mana rápido e tem alcance curto).
+3. **Criatividade > números.** Uma ideia esperta vale mais que um atributo alto. As interações entre elementos e
+   materiais (fogo + madeira + vento, água + raio) são o conteúdo. **O rastro de um mago é o gancho do outro.**
+4. **Legibilidade.** O jogador precisa entender por que algo aconteceu. Objetos mostram nome e peso, o boneco de
+   testes mostra números, materiais têm aparência consistente, e cada elemento se explica pela sua lei, não por
+   uma tabela escondida.
+5. **Toda interação tem dois lados.** Nenhum elemento ganha sempre de outro. A água apaga o fogo, mas o fogo a
+   transforma em vapor que tira a visão. Isso evita a "tabela de tipos" e o combo fixo que todo mundo copia.
+
+## Loop principal
+
+- **Momento a momento (segundos):** ler o terreno e os materiais em volta → escolher entre movimento, ataque,
+  defesa e terreno do meu elemento → ver a física responder → aproveitar o rastro que ficou (meu ou de outro
+  mago).
+- **Encontro (minutos):** enfrentar um monstro, um grupo de monstros ou um jogador. Cada um pede uma solução
+  diferente: monstros de material (madeira queima, metal conduz) e monstros de elemento (obedecem à mesma lei de
+  um mago).
+- **Progressão (horas):** voltar à escola de magos para ajustar a escolha das versões das 4 funções, buscar a maestria de uma especialização
+  ou ficar no estilo misto, e aprender como o meu elemento conversa com os outros.
 
 ## Detailed Rules (Regras)
 
-### Visão do jogo (decidida em 2026-11-16)
+### Começo do jogo: a escola de magos
 
-- **Começo:** o jogador começa **sem classe**. Depois de uma intro curta e de uma
-  demonstração, escolhe o elemento na **escola de magos**. *Pendente: intro, demonstração e
-  escola ainda não têm desenho.* Rumo sugerido pela pesquisa: a demonstração mostra a lei de
-  cada elemento e os rastros entre elementos, e a escola deixa experimentar antes de escolher,
-  se a escolha for permanente.
-- **Um elemento por mago:** água, fogo, terra, ar, natureza, eletricidade ou gravidade. O mago
-  só trabalha com as propriedades e transformações do seu elemento. Combinar elementos pode
-  vir no futuro, mas o jogo não é feito pensando nisso.
-- **O Cavaleiro sai do jogo.** Toda classe selecionável é um mago elemental.
-- **Para todos os magos:** Vigor e Mana, dash (Ctrl), pulo duplo (Espaço 2x), a mesma
-  velocidade de movimento, pegar e arremessar objetos (limite de carga pela Força). Andar
-  empurra objetos.
-- **Atributos:** Força, Agilidade, Vitalidade, Destreza, Inteligência, Sorte. Regras em
-  `attributes.md`.
-- **Mundo:** materiais madeira, metal, pedra e pólvora; braseiro como fonte de fogo do
-  ambiente. Regras em `physics-magic-system.md`.
+- O jogador começa **sem classe**.
+- Depois de uma **intro curta** e de uma **demonstração**, escolhe o elemento na **escola de magos**.
+- A intro e a demonstração serão desenhadas depois e **não entram na implementação por enquanto** (ver Perguntas
+  para o Liam). O Sábio sugere que a demonstração
+  mostre a lei de cada elemento e os rastros entre elementos, e que a escola deixe experimentar antes de decidir.
 
-### Estrutura de cada elemento
+### O mago de um elemento
 
-1. **Lei do elemento:** uma regra física sempre ligada que todas as habilidades do elemento
-   obedecem. A lei mora no mundo (calor, água, massa, carga), não no mago, para que os
-   elementos conversem sem código especial entre eles.
-2. **Eixo com 2 especializações:** as duas pontas de um eixo físico. Elas se combinam, mas
-   ninguém fica nas duas pontas ao mesmo tempo.
-3. **4 funções:** movimento, ataque, defesa e terreno. Todo elemento tem as 4; nenhum elemento
-   vira um papel só ("água é o curandeiro" está proibido). Os verbos de movimento não se
-   repetem entre elementos.
-4. **Especializações pela opção C:** cada função tem uma versão de cada especialização
-   (8 habilidades por elemento). O mago escolhe uma versão por função.
-   - As 4 escolhas da mesma ponta dão a **maestria** daquela especialização, um efeito extra
-     forte.
-   - Escolhas misturadas são mais flexíveis, mas sem maestria.
-   - **Nunca as duas maestrias.**
-   - *Pendente: quando e onde o jogador troca as versões, e o que cada maestria faz.*
+- Cada mago domina **um só elemento** e só trabalha com as propriedades e transformações dele.
+- Cada elemento tem:
+  - uma **lei**: a regra física sempre ligada, que todas as habilidades dele obedecem e que mora no mundo, não no
+    mago;
+  - um **eixo físico** com **2 especializações**, uma em cada ponta (exemplo: Fogo vai de Chama, lenta e em área,
+    a Explosão, rápida e concentrada).
+- Todo mago tem **4 funções**: **movimento, ataque, defesa e terreno**, com a cara do elemento.
+- **Cada função tem 2 versões**, uma de cada especialização. O mago escolhe **uma versão por função**.
+- **Trocar versões só na escola de magos**, por enquanto (decidido em 2026-11-16).
+- **Maestria (opção C, escolhida em 2026-11-16):**
+  - as 4 escolhas da mesma ponta → ganha a **maestria** dessa especialização, um efeito extra forte;
+  - escolhas misturadas → mais flexível, sem maestria;
+  - **nunca as duas maestrias ao mesmo tempo.**
+- O verbo de movimento de cada elemento é diferente dos outros (nenhum se repete).
+- **Nenhum elemento vira um papel só** ("água é o curandeiro" está proibido): todo elemento tem as 4 funções.
+- A lei mora no mundo (calor, água, massa, carga), não no mago, para que os elementos conversem sem código especial
+  entre eles.
+- **Todos os magos** têm Vigor e Mana, dash (Ctrl), pulo duplo (Espaço 2x) e a mesma velocidade de movimento.
+- Combinar elementos pode vir no futuro, mas o jogo não é desenhado pensando nisso.
 
-| Elemento | Lei (resumo) | Eixo: especialização ↔ especialização |
-|---|---|---|
-| Fogo | Calor acumula, espalha e consome combustível; precisa de ar | Chama ↔ Explosão |
-| Água | Muda de estado com a temperatura, escorre, molha | Gelo ↔ Maré |
-| Terra | Massa e permanência; só trabalha o solo e a pedra que existem ali | Rocha ↔ Areia |
-| Ar | Pressão; só move o que já existe; alimenta o fogo | Vento ↔ Vácuo |
-| Natureza | Crescer leva tempo e precisa de solo; tudo que cresce queima | Crescimento ↔ Podridão |
-| Eletricidade | A corrente segue o condutor até o chão | Descarga ↔ Magnetismo |
-| Gravidade | Muda peso e direção da queda, não cria matéria | Peso ↔ Leveza |
+### Os 7 elementos
 
-As habilidades de cada elemento estão em rascunho em
-`design/sabio/inspiracao/magos-elementais.md`. Cada elemento ganha o próprio documento de
-design quando entrar em produção.
+Lei e eixo de cada um estão no material do Sábio em
+[`magos-elementais.md`](../sabio/inspiracao/magos-elementais.md#os-7-elementos). **Os 7 eixos foram aprovados pelo
+Liam em 2026-11-16.** As habilidades de cada elemento ficam nos GDDs de elemento da frente `classes`.
 
-### Rastros entre magos
+| Elemento | Situação | Eixo (especializações) | Ideia da lei (resumo) |
+|---|---|---|---|
+| Fogo | fatia vertical | Chama ↔ Explosão | Calor acumula, espalha e consome combustível; precisa de ar |
+| Terra | fatia vertical | Rocha ↔ Areia | Massa e permanência; só trabalha o solo e a pedra que existem ali |
+| Gravidade | fatia vertical | Peso ↔ Leveza | Muda peso e direção da queda de tudo que tem massa; não cria matéria |
+| Água | logo depois da fatia | Gelo ↔ Maré | Muda de estado com a temperatura, escorre, molha |
+| Ar | depois | Vento ↔ Vácuo | Pressão; empurra sem tocar e carrega o que é leve |
+| Natureza | depois | Crescimento ↔ Podridão | Crescimento leva tempo e precisa de solo |
+| Eletricidade | depois | Descarga ↔ Magnetismo | A corrente segue o condutor até o chão |
 
-Cada interação entre elementos tem dois lados, e nenhum elemento ganha sempre (nada de tabela
-de tipos fixa). Exemplos: a poça d'água conduz o raio, mas o mago de água também se molha; o
-vento espalha o fogo, que pode voltar contra o aliado. A tabela de elementos e materiais
-(`design/sabio/inspiracao/tabela-elementos-materiais.md`) é a fonte dessas regras e vai crescer
-para 7 x 7.
+### Rastro de um, gancho do outro
+
+- O que um mago deixa no mundo (calor, água, massa, carga, vento) é estado do mundo, e qualquer outro mago ou
+  monstro pode usar. Vale para aliados e inimigos.
+- **Regra de ouro:** cada interação tem dois lados (pilar 5).
+- Exemplos e a tabela proposta: seção "Rastro de um, gancho do outro" do material do Sábio. A fonte das regras
+  passa a ser a [tabela de elementos e materiais](../sabio/inspiracao/tabela-elementos-materiais.md), que precisa
+  crescer para 7 x 7.
 
 ### Jogadores e monstros
 
-- A batalha é **contra jogadores e contra monstros**.
-- **Monstros seguem as mesmas leis:** um monstro de fogo acende madeira e é apagado pela lama.
-  Monstros podem ser só material (um de madeira queima, um de metal conduz).
-- Cada elemento tem pelo menos uma versão de defesa que funciona contra vários alvos.
-- Controle (prender, atordoar) dura menos contra jogadores do que contra monstros, e o efeito
-  aparece na tela para os dois lados.
+- A batalha é **contra jogadores e contra monstros** (monstros com IA liberados em 2026-11-13; ver
+  `combat-bot.md`).
+- **Monstros obedecem às mesmas leis** do jogador: um monstro de fogo acende madeira e é apagado pela lama. Quem
+  aprende a lutar contra monstros aprende a lutar contra jogadores.
+- **Monstros podem ser só material**, sem elemento (madeira queima, metal conduz).
+- **Defesas servem aos dois casos:** cada elemento precisa de pelo menos uma versão de defesa que funcione contra
+  vários alvos.
+- **Controle com dois limites:** a mesma habilidade de prender ou atordoar dura menos contra jogadores, e o efeito
+  aparece na tela para os dois lados. (Proposta do Sábio; os números ficam para os GDDs de elemento.)
+- **Equilíbrio olha para dois lugares:** um elemento pode ser fraco no duelo e forte contra grupos, desde que
+  ninguém seja fraco nos dois.
 
-### Fatia vertical: Fogo, Terra e Gravidade; Água em seguida
+### Base que continua
 
-3 elementos x 8 habilidades = 24 (6 já existem). Entram na fatia a lei de cada elemento, as
-2 maestrias de cada um e as interações entre eles. Por que estes três: já têm código e cobrem os
-três tipos de lei (Fogo muda o estado do material, Terra depende do chão, Gravidade mexe em tudo
-que tem massa).
+- **Atributos**: Força, Agilidade, Vitalidade, Destreza, Inteligência, Sorte. Regras em `attributes.md`.
+- **Interação básica**: qualquer mago pega objetos com as mãos (limite de carga pela Força) e arremessa. Andar
+  empurra objetos.
+- **Mundo**: materiais madeira, metal, pedra e pólvora; braseiro como fonte de fogo do ambiente. Regras em
+  `physics-magic-system.md`.
+- **O Cavaleiro sai do jogo** (decidido em 2026-11-16): toda classe selecionável é um mago elemental. As
+  habilidades dele não são aproveitadas.
 
-| Hoje no código | Vira |
+### O que o código já tem (2026-11-16)
+
+A frente `classes` já trocou as classes (commits 5b85a6d e 4ee9bab): **o Cavaleiro saiu do código, e o menu
+oferece Fogo, Terra e Gravidade** no lugar do Elementalista e do Psiônico. Por enquanto, cada classe tem só as
+habilidades que já existiam; as outras teclas ficam vazias até as habilidades novas chegarem (decisão do Liam).
+
+| Classe no código | Habilidades hoje |
 |---|---|
-| Bola de Fogo | Fogo · ataque (Explosão) |
-| Escada de Pedra | Terra · movimento (Rocha) |
-| Lamaçal | Terra · terreno (Areia) |
-| Flutuar, Telecinese, Campo Lento | Gravidade · movimento, ataque e defesa (Leveza) |
-| Dardo Cinético | Ar · ataque (Vácuo), ou sai |
-| Habilidades do Cavaleiro | Saem do jogo |
+| Fogo (`fire.tres`) | Bola de Fogo |
+| Terra (`earth.tres`) | Escada de Pedra e Lamaçal (sem ataque no botão esquerdo) |
+| Gravidade (`psionic.tres`, id `psionic` mantido para o bot do F6 e a arena) | Telecinese, Campo Lento, Flutuar e, por ora, o Dardo Cinético (decisão do Liam) |
 
-### [em transição] Classes que o código ainda usa
+Ainda não existem no código: a escolha na escola de magos (hoje é o menu Novo Jogo → classe), a troca de versões,
+as maestrias e a lei de cada elemento como regra. O Dardo Cinético é de Ar (Vácuo) no modelo do Sábio ou sai; por
+ora fica na Gravidade. Os GDDs `mage-elementalist.md` e `mage-psionic.md` descrevem as classes antigas e serão
+substituídos pelos GDDs de elemento.
 
-Até a frente `classes` trocar menu e código, o jogo ainda tem as 3 classes antigas. Valem como
-estão para testes e para o teste de fumaça.
+### Fatia vertical: Fogo, Terra e Gravidade
 
-- **Classes iniciais:** Cavaleiro, Mago Elementalista e Mago Psiônico. *(Elementalista e
-  Psiônico se dissolvem nos elementos Fogo, Terra e Gravidade; o Cavaleiro sai.)*
-- **Mago:** se divide em **Elementalista** (elementos + manipulação de terreno) e **Psiônico**
-  (sem elementos: acelerar, desacelerar, flutuar). Detalhes em `mage-elementalist.md` e
-  `mage-psionic.md`.
+São 3 elementos x 8 habilidades = **24 habilidades**. **6 já existem** no código e mudam de lugar:
 
-#### [em transição] Cavaleiro (habilidades gastam Vigor) · sai do jogo
+| Elemento | Já existe (vira) | Faltam |
+|---|---|---|
+| Fogo | Bola de Fogo (ataque, Explosão) | 7 |
+| Terra | Escada de Pedra (movimento, Rocha); Lamaçal (terreno, Areia) | 6 |
+| Gravidade | Flutuar (movimento), Telecinese (ataque), Campo Lento (defesa), todos da Leveza | 5 |
 
-| Tecla | Habilidade | Escala com | Ideia |
-|---|---|---|---|
-| Botão esq. | Golpe de Escudo | Força | Cone de empurrão. Leves voam, pesados mal se mexem. |
-| Q | Investida | Força | Arrancada no chão; o impacto é a quantidade de movimento (massa x velocidade). |
-| F | Postura de Muralha | Vitalidade | Por alguns segundos ignora 85% dos empurrões e explosões, mas fica lento. |
+Também entram na fatia: a **lei** de cada um dos 3 elementos, as **2 maestrias** de cada um e as **interações
+entre eles** (Gravidade e Terra; Fogo e Terra). **Água vem em seguida** (já tem módulos no laboratório).
 
-#### [em transição] Mago Elementalista (magias gastam Mana) · vira Fogo e Terra
-
-| Tecla | Habilidade | Escala com | Ideia |
-|---|---|---|---|
-| Botão esq. | Bola de Fogo (carregável) | Inteligência | Projétil em arco: explode, empurra e incendeia. |
-| Q | Escada de Pedra | fixa | 3 pilares de 0,85, 1,70 e 2,55 m; o do meio na mira. Sobe com W. |
-| F | Lamaçal | Inteligência | Lama: objetos param, fogo apaga, quem pisa fica lento. |
-
-#### [em transição] Mago Psiônico · vira Gravidade (Leveza)
-
-Dardo Cinético (carregável), Campo Lento (Q), Telecinese Acelerada (F) e Flutuar (segurar
-Espaço caindo).
+**Por que estes três:** já têm código e cobrem os três tipos de lei: o Fogo muda o estado do material, a Terra
+depende do chão e a Gravidade mexe em tudo que tem massa.
 
 ## Formulas (Fórmulas)
 
-Ver `attributes.md` (atributo → valor físico) e `physics-magic-system.md` (calor,
-explosões, impactos).
-
-- **Habilidades por elemento:** `H = funções x especializações = 4 x 2 = 8`.
-- **Escopo total:** `7 elementos x 8 = 56 habilidades`; fatia vertical `3 x 8 = 24`.
-- **Maestria:** `maestria(ponta) = (as 4 versões escolhidas são da mesma ponta)`. Como o mago
-  escolhe exatamente 1 versão por função, no máximo 1 maestria fica ativa.
-- **Controle contra jogador:** `duração_jogador = duração_base x fator_jogador`, com
-  `fator_jogador < 1`. *Pendente: valor do fator.*
+- **Maestria:** `maestria_ativa(e) = (versões escolhidas da ponta e) == 4`, onde `e` é uma das 2 especializações
+  e há 4 funções. Como cada função tem uma só versão escolhida, no máximo uma ponta chega a 4. Exemplo: Fogo com
+  Explosão em movimento, ataque, defesa e terreno → maestria da Explosão; com 3 de Explosão e 1 de Chama → sem
+  maestria.
+- **Tamanho do kit:** `habilidades = elementos x 4 funções x 2 versões`. Jogo completo: 7 x 8 = 56. Fatia
+  vertical: 3 x 8 = 24.
+- **Controle contra jogador:** `duração_jogador = duração_base x fator_jogador`, com `fator_jogador < 1`.
+  Valor a definir nos GDDs de elemento.
+- Atributo → valor físico: `attributes.md`. Calor, explosões e impactos: `physics-magic-system.md`.
 
 ## Edge Cases (Casos-limite)
 
-- Objeto segurado preso atrás de parede: solta sozinho se se afastar mais que
-  distância de segurar + 2,5 m.
-- Mana zera durante a telecinese: o objeto cai e aparece o aviso "Mana esgotada".
+- Objeto segurado preso atrás de parede: solta sozinho se se afastar mais que distância de segurar + 2,5 m.
+- Mana zera durante uma magia contínua (exemplo: telecinese): o efeito para, o objeto cai e aparece o aviso
+  "Mana esgotada".
 - Cair do mapa: o jogador volta ao ponto inicial e os objetos abaixo de -50 m somem.
-- **Terreno pobre:** Terra e Natureza dependem do chão; numa arena só de metal ficam sem
-  material. Cada arena precisa de variedade de materiais.
-- **Escolhas misturadas:** um mago com 2 versões de cada ponta não tem maestria nenhuma, mas
-  todas as habilidades funcionam normalmente.
-- **Interação que só ajuda um lado:** proibida; se surgir no playtest, ganha um custo para quem
-  se beneficia.
+- Escolhas misturadas: nenhuma maestria fica ativa; o mago usa as 4 versões normalmente.
+- Terreno sem o material que o elemento pede (exemplo: Terra numa arena toda de metal): o elemento fica com pouco
+  ou nada para trabalhar. Por isso as arenas precisam de variedade de materiais. O que a habilidade faz nesse caso
+  (falha com aviso, efeito menor) fica para os GDDs de elemento.
+- Monstro e jogador atingidos pelo mesmo controle: cada um recebe a duração do seu caso (menor para jogador).
+- Interação que só ajuda um lado: proibida pelo pilar 5; se surgir no playtest, ganha um custo para quem se
+  beneficia.
 
 ## Dependencies (Dependências)
 
-Atributos → Jogador → Habilidades (lei do elemento) → Física/Materiais → HUD (somente por
-sinais). Monstros usam as mesmas Habilidades e a mesma Física. A escolha de elemento depende da
-escola de magos (ainda sem desenho).
+Atributos → Jogador (mago) → Habilidades do elemento → Física/Materiais → HUD (somente por sinais).
+
+- **GDDs de elemento** (frente `classes`, a criar): detalham lei, eixo, as 8 habilidades e as 2 maestrias de cada
+  elemento.
+- **Monstros** (frente `monstros`, `combat-bot.md`): usam as mesmas leis e habilidades.
+- **Tabela de elementos e materiais** (Sábio): fonte das interações entre elementos.
+- **Escola de magos** (a desenhar): menu de escolha de classe e começo do jogo.
 
 ## Tuning Knobs (Ajustes)
 
-Tudo em `assets/data/`: `attribute_rules.tres`, `classes/*.tres` (atributos e habilidades)
-e `materials/*.tres`. Dá para editar no Inspetor do Godot sem tocar em código. Ajustes novos
-previstos: efeito de cada maestria, `fator_jogador` do controle, custo e janela de
-vulnerabilidade dos verbos de movimento.
+Tudo em `assets/data/`: `attribute_rules.tres`, `classes/*.tres` (atributos e habilidades) e `materials/*.tres`.
+Dá para editar no Inspetor do Godot sem tocar em código. Os ajustes de cada elemento (custo, alcance, força da
+maestria, duração de controle contra jogador e contra monstro, `fator_jogador`, custo e janela de vulnerabilidade
+dos verbos de movimento) serão definidos nos GDDs de elemento.
 
-## Acceptance Criteria (Critérios de aceite)
+## Acceptance Criteria (Critérios de aceite da fatia vertical)
 
-### Fatia vertical nova (Fogo, Terra e Gravidade)
-
-- [ ] O jogador começa sem classe e escolhe o elemento na escola de magos.
-- [ ] Cada um dos 3 elementos tem as 8 habilidades (4 funções x 2 especializações).
-- [ ] Escolher as 4 versões da mesma ponta ativa a maestria; nunca ficam 2 maestrias ativas.
-- [ ] A lei de cada elemento vale para jogador e monstro (teste automatizado).
-- [ ] Playtest: Fogo, Terra e Gravidade resolvem o mesmo obstáculo de formas diferentes.
+- [x] O Cavaleiro não aparece em nenhum menu nem no jogo; só magos elementais são selecionáveis (frente
+      `classes`, 2026-11-16).
+- [ ] O jogador começa sem classe e escolhe Fogo, Terra ou Gravidade.
+- [ ] Cada um dos 3 elementos tem as 8 habilidades (4 funções x 2 versões) e funciona sem erro no teste de
+      fumaça automatizado.
+- [ ] Escolher as 4 versões da mesma ponta ativa a maestria dela; trocar uma só versão desativa. Nunca as duas
+      ficam ativas.
+- [ ] As versões só podem ser trocadas na escola de magos; fora dela, a troca não está disponível.
+- [ ] Os verbos de movimento de Fogo, Terra e Gravidade são diferentes entre si.
+- [ ] Pelo menos uma interação entre elementos da fatia funciona nos dois sentidos (exemplo: lama apaga fogo;
+      fogo seca lama).
+- [ ] Um monstro de material e um monstro de elemento reagem às mesmas leis que o jogador (teste automatizado).
 - [ ] Playtest: um jogador novo usa o rastro de outro mago a seu favor sem explicação.
-
-### Continuam valendo
-
 - [ ] Um jogador novo entende, sem explicação, que madeira queima e pólvora explode.
 - [ ] O boneco de testes mostra o impulso de cada habilidade e a comparação com um humano.
 - [ ] Nenhuma habilidade passa de ~10x o equivalente humano com atributos no teto.
-
-### [em transição] Fatia antiga (até o código trocar de classes)
-
-- [ ] Do menu principal ao jogo em até 3 cliques (Novo Jogo → classe → jogar).
-- [ ] As classes usam as 3 habilidades sem erro (teste de fumaça automatizado).
+- [ ] Playtest: magos de Fogo, Terra e Gravidade resolvem o mesmo obstáculo de formas diferentes.
 
 ## Fora do escopo agora
 
-Inventário, missões, mundo aberto real, arte final, áudio. Inimigos de verdade estão começando
-(o bot de teste do F6, ver `combat-bot.md`, liberou a frente `monstros`). Elementos fora da
-fatia vertical (Água, Ar, Natureza, Eletricidade) ficam só em design até a fatia fechar; a Água
-é a próxima. O campo `conductive` já existe nos materiais. Combinar elementos num mesmo mago
-também fica de fora.
+Água, Ar, Natureza e Eletricidade como elementos jogáveis (Água é a próxima); combinar elementos num mesmo mago;
+intro e demonstração da escola de magos (a desenhar); inventário; missões; mundo aberto real; arte final; áudio.
+Monstros com IA **saíram desta lista** em 2026-11-13.
+
+## Perguntas para o Liam
+
+1. ~~**Eixos dos 7 elementos**~~ Respondido em 2026-11-16: os eixos propostos pelo Sábio ficam. Fogo: Chama ↔
+   Explosão; Água: Gelo ↔ Maré; Terra: Rocha ↔ Areia; Ar: Vento ↔ Vácuo; Natureza: Crescimento ↔ Podridão;
+   Eletricidade: Descarga ↔ Magnetismo; Gravidade: Peso ↔ Leveza.
+2. **Efeito de cada maestria:** a decidir. O que a maestria de cada especialização faz? (O Sábio sugere, por
+   exemplo, que a da Leveza seja o "campo guarda o momento".)
+3. ~~**Quando e onde trocar versões**~~ Respondido em 2026-11-16: **só na escola de magos, por enquanto.**
+4. **Intro e demonstração da escola:** ainda não pensado e **fora da implementação por enquanto**. Ficam em aberto:
+   como são a intro e a demonstração, se o elemento escolhido é permanente e se dá para experimentar antes de
+   decidir.
