@@ -136,9 +136,12 @@ Paredes, torres, degraus, escadas, rampas, plataformas e o chão da arena são `
 (`src/gameplay/world/breakable_structure.gd`), de concreto. Seguem a lei do Quebrável com estas diferenças:
 
 1. **Mesma interface dos objetos:** `take_hit(impulso, ponto)`. Soco, chute, Mibune e explosões já chamam isso.
-2. **Resistência igual para qualquer tamanho:** cada estágio custa `structure_stage_impulse` (420 N·s), seja
-   um degrau ou uma torre de 6 m. São 6 socos de pedra (280 no concreto) ou 4 revestidos (420). Golpes abaixo de
-   25% de um estágio (105 N·s) não marcam.
+2. **Resistência pela dureza, não pelo tamanho** (decisão do Liam): cada estágio custa `structure_stage_impulse`
+   (420 N·s) x `hardness` do material. Concreto 1 (420), madeira e pólvora 0,5, solo 0,7, pedra moldada 1,
+   pedra 1,5 (630: 9 socos de pedra), metal 4 (1680: o soco, de 140 no metal, fica abaixo do mínimo e não
+   marca; só explosões). O tamanho não conta: no concreto, degrau e torre de 6 m caem igual,
+   com 6 socos de pedra (280 no concreto) ou 4 revestidos (420). Golpes abaixo de
+   25% de um estágio (105 N·s no concreto) não marcam.
 3. **Estrutura comum, no 4º estágio:** some (sem colisão e invisível) e solta os pedaços do concreto (6), que
    saem na direção do golpe. A massa somada dos pedaços é no máximo `structure_piece_mass` (200 kg): uma torre
    de verdade pesaria toneladas e esmagaria tudo.
@@ -323,6 +326,7 @@ em `test_arena.gd`). `blocked_explosion_factor` em `assets/data/damage_rules.tre
 | `max_bursts_per_frame` | 3 | 1–8 | Nuvens de poeira por quadro em quebras grandes |
 | `fuse_jitter` (pólvora) | 0,1 | 0–0,3 | Variação do pavio; 0 = barris acesos juntos explodem juntos |
 | `structure_stage_impulse` | 420 N·s | 200–1000 | Socos para derrubar parede/torre (420 = 6 socos; 280 = 4) |
+| `hardness` (por material) | concreto 1 | 0,3–5 | Quanto a estrutura daquele material aguenta (pedra 1,5, metal 4) |
 | `rebuild_time` | 30 s | 5–120 | Quanto tempo o cenário fica quebrado |
 | `rebuild_retry` | 0,5 s | 0,2–2 | Espera extra quando há alguém no lugar |
 | `structure_piece_mass` | 200 kg | 50–500 | Peso dos destroços de uma estrutura grande |
@@ -392,6 +396,11 @@ Testes automáticos em `tests/suites/gameplay.gd` (nenhum usa habilidade):
 3. **Chão sem material declarado é concreto** (`concrete.tres`), e o Mago da Terra pode manipulá-lo. Ele é
    menos denso que a pedra, guarda calor como ela e responde 1,5x à Terra. `soil.tres` (solo) continua existindo
    para fases que declararem terra de verdade.
+4. **Buraco só em plataformas, nunca no chão da arena** (resposta "c"). Plataformas, degraus, torres e rampas
+   somem inteiros ao quebrar e voltam em 30 s. O chão e os muros da borda só racham e soltam entulho: nunca
+   abrem buraco, para ninguém cair para fora do mundo.
+5. **Estruturas aguentam pela dureza do material**, não pelo tamanho: `hardness` em cada `.tres` (concreto 1,
+   pedra 1,5, metal 4, madeira 0,5). Impulso por estágio = 420 N·s x dureza.
 
 ## Perguntas abertas (para o Liam)
 
@@ -405,9 +414,4 @@ Testes automáticos em `tests/suites/gameplay.gd` (nenhum usa habilidade):
    pedaços ainda batem no mago e nos monstros. Quer que bloqueiem a passagem?
 4. **Pedaços machucam?** Pedaços grandes que batem rápido num monstro ou no boneco dão dano de impacto (massa x
    velocidade), como qualquer objeto. Os pequenos não dão. Confirma?
-5. **Buraco no chão?** Hoje o chão e os muros da borda racham e soltam entulho, mas não abrem buraco (para ninguém
-   cair para fora do mundo). Opções: (a) manter assim; (b) abrir cratera rasa no chão (o chão vira placas com
-   uma base indestrutível embaixo; custa mais desempenho); (c) buraco de verdade só em pisos elevados
-   (plataformas), nunca no chão da arena.
-6. **Força igual para toda estrutura?** Hoje degrau e torre de 6 m caem com os mesmos 6 socos. Quer que as
-   grandes aguentem mais (por exemplo, proporcional ao tamanho)?
+

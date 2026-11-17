@@ -5,7 +5,7 @@ extends StaticBody3D
 ##
 ## Recebe golpes por `take_hit(impulso, ponto)`, a mesma interface dos objetos soltos: soco,
 ## chute, Mibune e explosões já chamam isso. Cada estágio custa `BreakRules.structure_stage_impulse`
-## (igual para toda estrutura, de qualquer tamanho). No último estágio:
+## x a dureza do material (`hardness`; concreto = 1). O tamanho não conta. No último estágio:
 ## - estrutura comum: some (sem colisão), solta pedaços e volta em `BreakRules.rebuild_time`;
 ## - estrutura de contenção (`bedrock`: chão e muros da borda): nunca perde a colisão, para
 ##   ninguém cair para fora do mundo; solta entulho no ponto do golpe, fica rachada e volta a
@@ -85,9 +85,9 @@ func is_broken() -> bool:
 	return _broken
 
 
-## Impulso (N·s) que avança um estágio. Igual para toda estrutura (BreakRules).
+## Impulso (N·s) que avança um estágio: BreakRules.structure_stage_impulse x dureza do material.
 func stage_impulse() -> float:
-	return BreakRules.current().structure_stage_impulse
+	return BreakRules.current().structure_stage_impulse * material_data.hardness
 
 
 ## Golpe do mundo (soco, chute, Mibune, explosão). `impulse` já vem na direção do golpe;
@@ -96,11 +96,10 @@ func take_hit(impulse: Vector3, point := Vector3.INF) -> void:
 	if _broken:
 		return
 	var amount := impulse.length()
-	var rules := BreakRules.current()
-	if amount < rules.structure_stage_impulse * material_data.break_min_fraction or not material_data.breakable:
+	if amount < stage_impulse() * material_data.break_min_fraction or not material_data.breakable:
 		return
 	_damage += amount
-	var stage := mini(int(_damage / rules.structure_stage_impulse), PropMaterial.BREAK_STAGES)
+	var stage := mini(int(_damage / stage_impulse()), PropMaterial.BREAK_STAGES)
 	if stage == _stage:
 		return
 	_stage = stage

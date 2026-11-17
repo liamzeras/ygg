@@ -57,6 +57,18 @@ func _test_breakable_scenery() -> void:
 	_check(pieces.size() == tower.material_data.break_pieces, "a torre vira %d pedaços (concreto: %d)" % [pieces.size(), tower.material_data.break_pieces])
 	_check(forward, "os pedaços da torre saem na direção do soco")
 
+	# Dureza (decisão do Liam): a mesma parede em pedra aguenta mais socos que em concreto.
+	var stone_wall := BreakableStructure.create(Vector3(2, 2, 0.4), null, arena.STONE)
+	stone_wall.position = Vector3(40, 1, 44)
+	arena.add_child(stone_wall)
+	var stone_punches := 0
+	while not stone_wall.is_broken() and stone_punches < 20:
+		stone_wall.take_hit(Vector3.FORWARD * 280.0)
+		stone_punches += 1
+	var expected := ceili(PropMaterial.BREAK_STAGES * stone_wall.stage_impulse() / 280.0)
+	_check(stone_punches == expected and stone_punches > punches,
+			"parede de pedra (dureza %.1f) cai com %d socos; concreto com %d" % [arena.STONE.hardness, stone_punches, punches])
+
 	# Volta sozinha, mas não em cima de quem está no lugar.
 	var crate: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), tower.global_position + Vector3(0, -1.19, 0))
 	await _wait_seconds(1.2)

@@ -15,3 +15,4 @@ heat_decay = 15.0
 burn_time = 10.0
 fire_spread_radius = 1.4
 fire_spread_heat = 45.0
+hardness = 0.5
