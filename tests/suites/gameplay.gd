@@ -9,6 +9,203 @@ func run() -> void:
 	await _test_explosion_occlusion()
 	await _test_fire_spread()
 	await _test_grab_and_throw()
+	await _test_fire_law()
+	await _test_hot_stone()
+	await _test_earth_law()
+	await _test_gravity_law()
+
+
+# --- Leis do mundo (physics-magic-system.md, "As leis da fatia") ---------------------------
+# Nenhum teste abaixo usa habilidade: só objetos, zonas e consultas do mundo.
+
+## Zona de ambiente em caixa (calor e ar), já dentro da arena.
+func _air_zone(arena: Node3D, pos: Vector3, size: Vector3, heat: float, air: float) -> HeatZone:
+	var zone := HeatZone.new()
+	zone.heat_per_second = heat
+	zone.air_factor = air
+	zone.position = pos
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	shape.shape = box
+	zone.add_child(shape)
+	arena.add_child(zone)
+	return zone
+
+
+## Área de gravidade em caixa, que substitui a gravidade do lugar.
+func _gravity_area(arena: Node3D, pos: Vector3, size: Vector3, gravity: float, direction: Vector3) -> Area3D:
+	var area := Area3D.new()
+	area.gravity_space_override = Area3D.SPACE_OVERRIDE_REPLACE
+	area.gravity = gravity
+	area.gravity_direction = direction
+	area.collision_mask = 0xFFFFFFFF
+	area.position = pos
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	shape.shape = box
+	area.add_child(shape)
+	arena.add_child(area)
+	return area
+
+
+# Lei do Fogo: consome combustível e precisa de ar.
+func _test_fire_law() -> void:
+	print("\n--- Lei do Fogo: combustível e ar ---")
+	var arena := await _load_arena("fire")
+	var wood: PropMaterial = arena.WOOD
+	var box := PhysicsProp.Form.BOX
+	var size := Vector3(0.6, 0.6, 0.6)
+	# Combustível: o que queimou não volta ao reacender, e o objeto fica mais leve.
+	var fuel_crate: PhysicsProp = arena._prop(wood, box, size, Vector3(30, 0.31, 26))
+	fuel_crate.freeze = true
+	await _frames(5)
+	var full_mass := fuel_crate.mass
+	fuel_crate.ignite()
+	await _frames(180)
+	fuel_crate.extinguish()
+	var fuel_after_burn := fuel_crate.fuel_left()
+	_check(absf(fuel_after_burn - (wood.burn_time - 3.0)) < 0.2, "fogo consome combustível: 3 s queimando deixam %.1f s de %.0f" % [fuel_after_burn, wood.burn_time])
+	_check(fuel_crate.mass < full_mass * 0.95, "queimar deixa o objeto mais leve (%.1f kg -> %.1f kg)" % [full_mass, fuel_crate.mass])
+	fuel_crate.ignite()
+	await _frames(2)
+	_check(fuel_crate.burning and fuel_crate.fuel_left() <= fuel_after_burn, "reacender continua do combustível que sobrou (%.1f s)" % fuel_crate.fuel_left())
+	fuel_crate.extinguish()
+
+	# Sem ar: apaga o que queima, o calor não entra e não dá para acender.
+	var smothered: PhysicsProp = arena._prop(wood, box, size, Vector3(30, 0.31, 30))
+	smothered.freeze = true
+	await _frames(5)
+	smothered.ignite()
+	_air_zone(arena, Vector3(30, 0.5, 30), Vector3(1.4, 1.2, 1.4), 0.0, 0.0)
+	await _frames(5)
+	_check(not smothered.burning, "zona sem ar apaga o fogo de quem está dentro")
+	smothered.add_heat(500.0)
+	smothered.ignite()
+	await _frames(2)
+	_check(not smothered.burning and smothered.heat == 0.0, "sem ar o calor não entra e o objeto não acende (calor %.0f)" % smothered.heat)
+
+	# Braseiro abafado: uma ponta do braseiro dentro da zona sem ar apaga o braseiro inteiro.
+	var near_choked: PhysicsProp = arena._prop(wood, box, size, Vector3(34.6, 0.31, 30))
+	var near_free: PhysicsProp = arena._prop(wood, box, size, Vector3(34.6, 0.31, 34))
+	near_choked.freeze = true
+	near_free.freeze = true
+	_air_zone(arena, Vector3(34, 0.5, 30), Vector3(2, 1, 2), 100.0, 1.0)
+	_air_zone(arena, Vector3(34, 0.5, 34), Vector3(2, 1, 2), 100.0, 1.0)
+	var choke := _air_zone(arena, Vector3(33.1, 0.5, 30), Vector3(0.4, 1, 0.4), 0.0, 0.0)
+	await _frames(150)
+	_check(near_free.burning, "braseiro com ar acende a madeira em 2,5 s")
+	_check(not near_choked.burning and near_choked.heat == 0.0, "braseiro tocado por zona sem ar não aquece (calor %.0f)" % near_choked.heat)
+	choke.queue_free()
+	await _frames(150)
+	_check(near_choked.burning, "sem a zona sem ar, o braseiro volta a aquecer e acende")
+	await _unload(arena)
+
+
+# Lei do Fogo, lado da pedra: pedra aquecida guarda calor e aquece quem está perto.
+func _test_hot_stone() -> void:
+	print("\n--- Lei do Fogo: pedra guarda calor ---")
+	var arena := await _load_arena("fire")
+	var stone_data: PropMaterial = arena.STONE
+	var box := PhysicsProp.Form.BOX
+	var size := Vector3(0.6, 0.6, 0.6)
+	var lone_stone: PhysicsProp = arena._prop(stone_data, box, size, Vector3(44, 0.31, 26))
+	var lone_wood: PhysicsProp = arena._prop(arena.WOOD, box, size, Vector3(44, 0.31, 30))
+	lone_stone.freeze = true
+	lone_wood.freeze = true
+	await _frames(5)
+	lone_stone.add_heat(1000.0)
+	_check(lone_stone.heat == stone_data.max_heat and not lone_stone.burning, "pedra esquenta até o máximo (%.0f) e não pega fogo" % lone_stone.heat)
+	lone_stone.heat = 200.0
+	lone_wood.add_heat(60.0)
+	await _frames(300)
+	_check(lone_stone.heat > 150.0, "pedra sozinha guarda o calor: 200 -> %.0f em 5 s" % lone_stone.heat)
+	_check(lone_wood.heat == 0.0, "madeira perde o calor no mesmo tempo (%.0f)" % lone_wood.heat)
+
+	# Pedra em brasa acende a madeira encostada, e perde o calor que entrega.
+	var hot: PhysicsProp = arena._prop(stone_data, box, size, Vector3(40, 0.31, 26))
+	var crate: PhysicsProp = arena._prop(arena.WOOD, box, size, Vector3(40.8, 0.31, 26))
+	hot.freeze = true
+	crate.freeze = true
+	await _frames(5)
+	hot.add_heat(1000.0)
+	var lit_at := -1.0
+	for frame in 300:
+		await _frames(1)
+		if crate.burning:
+			lit_at = frame / 60.0
+			break
+	print("  madeira a 0,8 m da pedra em brasa acendeu em %.1f s; pedra ficou com %.0f de calor" % [lit_at, hot.heat])
+	_check(lit_at > 0.0, "pedra em brasa acende madeira a 0,8 m sem chama nenhuma")
+	_check(hot.heat < stone_data.max_heat * 0.8, "a pedra esfria ao entregar calor (%.0f)" % hot.heat)
+	await _unload(arena)
+
+
+# Lei da Terra: o mundo diz qual material há sob um ponto; só solo e pedra são da Terra.
+func _test_earth_law() -> void:
+	print("\n--- Lei da Terra: o chão que existe ali ---")
+	var arena := await _load_arena("fire")
+	var crate: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), Vector3(38, 0.31, 36))
+	var block: PhysicsProp = arena._prop(arena.STONE, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), Vector3(40, 0.31, 36))
+	await _frames(20)
+	var floor_material := PropMaterial.ground_under(arena, Vector3(36, 0.5, 36))
+	_check(floor_material != null and floor_material.earth_workable, "chão da arena conta como solo e a Terra trabalha nele (%s)" % (floor_material.display_name if floor_material else "nada"))
+	var on_crate := PropMaterial.ground_under(arena, Vector3(38, 1.0, 36))
+	_check(on_crate == arena.WOOD and not on_crate.earth_workable, "em cima de uma caixa de madeira a Terra não tem com o que trabalhar")
+	var on_stone := PropMaterial.ground_under(arena, Vector3(40, 1.0, 36))
+	_check(on_stone == arena.STONE and on_stone.earth_workable, "em cima de um bloco de pedra a Terra trabalha")
+	_check(PropMaterial.ground_under(arena, Vector3(36, 10, 36)) == null, "no ar, sem chão a 2 m, não há material para a Terra")
+	_check(PropMaterial.of(block).earth_force_factor > PropMaterial.of(crate).earth_force_factor, "pedra responde mais forte à Terra que madeira (%.1fx contra %.1fx)" % [PropMaterial.of(block).earth_force_factor, PropMaterial.of(crate).earth_force_factor])
+	await _unload(arena)
+
+
+# Lei da Gravidade: muda peso e direção da queda de tudo que tem massa (objetos; o mago é pergunta aberta).
+func _test_gravity_law() -> void:
+	print("\n--- Lei da Gravidade: peso e direção ---")
+	var arena := await _load_arena("fire")
+	var player: Player = arena.player
+	var g := float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+	var wood: PropMaterial = arena.WOOD
+	var box := PhysicsProp.Form.BOX
+	var size := Vector3(0.6, 0.6, 0.6)
+	_gravity_area(arena, Vector3(30, 4, 42), Vector3(6, 8, 4), g * 3.0, Vector3.DOWN)
+	_gravity_area(arena, Vector3(42, 4, 42), Vector3(6, 8, 4), g, Vector3.RIGHT)
+	await _frames(5)
+	var heavy: PhysicsProp = arena._prop(wood, box, size, Vector3(30, 5, 42))
+	var normal: PhysicsProp = arena._prop(wood, box, size, Vector3(36, 5, 42))
+	var sideways: PhysicsProp = arena._prop(wood, box, size, Vector3(40, 5, 42))
+	await _frames(3)
+	var ratio := heavy.get_weight() / normal.get_weight()
+	_check(absf(ratio - 3.0) < 0.15, "gravidade 3x triplica o peso do mesmo objeto (%.2fx)" % ratio)
+	await _frames(20)
+	_check(heavy.global_position.y < normal.global_position.y - 0.5, "o objeto mais pesado cai mais rápido (y %.2f contra %.2f)" % [heavy.global_position.y, normal.global_position.y])
+	_check(sideways.global_position.x > 40.3 and sideways.global_position.y > 4.8, "gravidade de lado faz o objeto 'cair' para o lado (x %.2f, y %.2f)" % [sideways.global_position.x, sideways.global_position.y])
+	_check(heavy.mass == normal.mass, "a gravidade muda o peso, não a massa (nada é criado)")
+
+	# O mago ainda não obedece às áreas de gravidade: pergunta ao Liam (o Campo Lento passaria a
+	# deixar o próprio Psiônico leve). Ver "Perguntas abertas" em physics-magic-system.md.
+
+	# Gravidade x Fogo: o mesmo barril de 2,5 m só detona (impacto >= 9 m/s) onde pesa 3x.
+	var barrel_size := Vector3(0.6, 0.9, 0.6)
+	_gravity_area(arena, Vector3(30, 4, 47), Vector3(4, 8, 4), g * 3.0, Vector3.DOWN)
+	await _frames(5)
+	var heavy_barrel: PhysicsProp = arena._prop(arena.EXPLOSIVE, PhysicsProp.Form.CYLINDER, barrel_size, Vector3(30, 2.95, 47))
+	var normal_barrel: PhysicsProp = arena._prop(arena.EXPLOSIVE, PhysicsProp.Form.CYLINDER, barrel_size, Vector3(42, 2.95, 47))
+	var blew := {"heavy": false, "normal": false}
+	heavy_barrel.exploded.connect(func() -> void: blew["heavy"] = true)
+	normal_barrel.exploded.connect(func() -> void: blew["normal"] = true)
+	var top_speed := {"heavy": 0.0, "normal": 0.0}
+	for frame in 90:
+		await _frames(1)
+		if is_instance_valid(heavy_barrel):
+			top_speed["heavy"] = maxf(top_speed["heavy"], heavy_barrel.last_speed)
+		if is_instance_valid(normal_barrel):
+			top_speed["normal"] = maxf(top_speed["normal"], normal_barrel.last_speed)
+	print("  velocidade de queda do barril: 3x %.1f m/s, normal %.1f m/s (detona a %.0f)" % [top_speed["heavy"], top_speed["normal"], arena.EXPLOSIVE.impact_detonation_speed])
+	_check(blew["heavy"], "barril solto a 2,5 m na gravidade 3x explode ao bater no chão")
+	_check(not blew["normal"] and is_instance_valid(normal_barrel), "o mesmo barril na gravidade normal não explode")
+	await _unload(arena)
 
 
 # Degraus: até 0,4 m sobe só andando; 0,5 m exige pulo; a escada de 0,2 m chega a 2 m.

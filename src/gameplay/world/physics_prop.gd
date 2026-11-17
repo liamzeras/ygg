@@ -3,16 +3,20 @@ extends RigidBody3D
 ## Objeto físico genérico feito de um material (madeira, metal, pedra...).
 ## Gera a própria malha e colisão a partir de `shape_kind` + `size`, calcula a massa
 ## pelo volume x densidade e implementa o sistema de calor/fogo/explosão.
-## Regras em design/gdd/physics-magic-system.md.
+## Regras em design/gdd/physics-magic-system.md, incluindo as leis do Fogo (ar e combustível,
+## calor guardado) e da Gravidade (peso = massa x gravidade local).
 
 signal ignited
 signal burned_out
 signal exploded
+signal extinguished
 
 enum Form { BOX, CYLINDER, SPHERE, CAPSULE }
 
 ## Cor final de um objeto quase totalmente queimado.
 const CHARRED := Color(0.08, 0.06, 0.05)
+## Cor de uma pedra ou metal no calor máximo (apresentação, não regra).
+const RED_HOT := Color(0.95, 0.35, 0.1)
 const KILL_HEIGHT := -50.0
 
 @export var material_data: PropMaterial
@@ -32,6 +36,10 @@ var _fuse_left := -1.0
 var _exploded := false
 var _visual_material: StandardMaterial3D
 var _fire: Node3D
+var _base_mass := 1.0
+## Ar disponível (1 = normal, 0 = abafado). Zonas renovam a cada tick; ver apply_air().
+var _air := 1.0
+var _air_frame := -10
 
 
 func _ready() -> void:
@@ -41,6 +49,8 @@ func _ready() -> void:
 	add_to_group(&"physics_props")
 	add_to_group(&"heat_receivers")
 	_build()
+	_base_mass = mass
+	_burn_left = material_data.burn_time
 	contact_monitor = true
 	max_contacts_reported = 4
 	body_entered.connect(_on_body_entered)
@@ -61,31 +71,69 @@ func _physics_process(delta: float) -> void:
 		if _fuse_left <= 0.0:
 			explode()
 			return
+	var air := get_air()
 	if burning:
-		_burn_left -= delta
-		_spread_heat(delta)
+		# Lei do Fogo: sem ar apaga; com ar, consome combustível e aquece na proporção do ar.
+		if air <= 0.0:
+			extinguish()
+			return
+		_burn_left -= delta * air
+		_spread_heat(material_data.fire_spread_radius, material_data.fire_spread_heat * air, delta)
 		var burnt := 1.0 - clampf(_burn_left / material_data.burn_time, 0.0, 1.0)
 		_visual_material.albedo_color = material_data.color.lerp(CHARRED, burnt)
+		mass = _base_mass * lerpf(1.0, material_data.burnt_mass_fraction, burnt)
 		if _burn_left <= 0.0:
 			_burn_out()
 	elif heat > 0.0:
+		if material_data.stores_heat() and heat > material_data.radiate_threshold:
+			_radiate(delta)
 		heat = maxf(heat - material_data.heat_decay * delta, 0.0)
+		if material_data.stores_heat():
+			_visual_material.albedo_color = material_data.color.lerp(RED_HOT, heat / material_data.max_heat)
 
 
-## Aquece o objeto. Materiais inflamáveis pegam fogo ao passar de `ignition_heat`.
+## Aquece o objeto. Inflamáveis pegam fogo ao passar de `ignition_heat`; pedra e metal guardam
+## o calor até `max_heat`. Sem ar (dentro da lama, por exemplo), o calor não entra.
 func add_heat(amount: float) -> void:
-	if not material_data.flammable or burning or _exploded:
+	if burning or _exploded or amount <= 0.0 or get_air() <= 0.0:
 		return
-	heat += amount
-	if heat >= material_data.ignition_heat:
-		ignite()
+	if material_data.flammable:
+		heat += amount
+		if heat >= material_data.ignition_heat:
+			ignite()
+	elif material_data.stores_heat():
+		heat = minf(heat + amount, material_data.max_heat)
+
+
+## Zonas do mundo informam o ar no ponto onde o objeto está (0 = abafado, 1 = normal).
+## Chamar a cada tick de física; no mesmo tick, vale o menor valor (sem ar vence).
+func apply_air(factor: float) -> void:
+	var frame := Engine.get_physics_frames()
+	_air = minf(_air, factor) if frame == _air_frame else factor
+	_air_frame = frame
+
+
+## Ar atual. Sem zona renovando há mais de um tick, o ar volta a ser normal (1).
+func get_air() -> float:
+	return _air if Engine.get_physics_frames() - _air_frame <= 1 else 1.0
+
+
+## Segundos de queima que ainda restam com ar normal (combustível).
+func fuel_left() -> float:
+	return _burn_left
+
+
+## Lei da Gravidade: peso (N) = massa x gravidade local x escala de gravidade do corpo.
+func get_weight() -> float:
+	var state := PhysicsServer3D.body_get_direct_state(get_rid())
+	var gravity := state.total_gravity if state else Vector3.DOWN * float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+	return mass * gravity.length() * gravity_scale
 
 
 func ignite() -> void:
-	if burning or not material_data.flammable:
+	if burning or not material_data.flammable or _burn_left <= 0.0 or get_air() <= 0.0:
 		return
 	burning = true
-	_burn_left = material_data.burn_time
 	_fire = Fx.make_fire(maxf(size.x, size.z) * 0.4)
 	add_child(_fire)
 	if material_data.explosive:
@@ -103,6 +151,7 @@ func extinguish() -> void:
 	if is_instance_valid(_fire):
 		_fire.queue_free()
 	_fire = null
+	extinguished.emit()
 
 
 ## Retira calor (ex.: lama molhada).
@@ -120,15 +169,25 @@ func explode() -> void:
 	queue_free()
 
 
-func _spread_heat(delta: float) -> void:
-	var radius := material_data.fire_spread_radius
-	# Aquece tudo que recebe calor: outros objetos, o boneco de testes e (no futuro) personagens.
+## Aquece quem recebe calor no raio (objetos, boneco e, no futuro, personagens) e devolve o total.
+func _spread_heat(radius: float, heat_per_second: float, delta: float) -> float:
+	var given := 0.0
 	for node in get_tree().get_nodes_in_group(&"heat_receivers"):
 		if node == self:
 			continue
 		var distance := DamageRules.distance_to(node as Node3D, global_position)
 		if distance < radius:
-			node.add_heat(material_data.fire_spread_heat * (1.0 - distance / radius) * delta)
+			var amount := heat_per_second * (1.0 - distance / radius) * delta
+			node.add_heat(amount)
+			given += amount
+	return given
+
+
+## Pedra ou metal quente aquece os vizinhos e perde o que entrega (o calor não se multiplica).
+func _radiate(delta: float) -> void:
+	var excess := heat - material_data.radiate_threshold
+	var given := _spread_heat(material_data.radiate_radius, excess * material_data.radiate_rate, delta)
+	heat = maxf(heat - given, 0.0)
 
 
 func _burn_out() -> void:
