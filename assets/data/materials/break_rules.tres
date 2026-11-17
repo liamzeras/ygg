@@ -17,3 +17,5 @@ rebuild_time = 30.0
 rebuild_retry = 0.5
 structure_piece_mass = 200.0
 bedrock_chunk_size = 0.8
+heat_sensor_margin = 0.25
+heat_loose_refresh = 0.5

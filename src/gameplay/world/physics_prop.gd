@@ -44,6 +44,9 @@ var _fuse_left := -1.0
 var _exploded := false
 var _visual_material: StandardMaterial3D
 var _fire: Node3D
+## Sensor invisível que acha quem está no alcance do calor (criado no primeiro uso).
+var _heat_sensor: HeatSensor
+var _heat_spread_frame := -1
 var _base_mass := 1.0
 ## Ar disponível (1 = normal, 0 = abafado). Zonas renovam a cada tick; ver apply_air().
 var _air := 1.0
@@ -137,6 +140,8 @@ func _physics_process(delta: float) -> void:
 		if _fuse_left <= 0.0:
 			explode()
 			return
+	if _heat_sensor != null and _heat_spread_frame + 1 < Engine.get_physics_frames():
+		_heat_sensor.sleep()
 	var air := get_air()
 	if burning:
 		# Lei do Fogo: sem ar apaga; com ar, consome combustível e aquece na proporção do ar.
@@ -252,7 +257,11 @@ func explode() -> void:
 func _spread_heat(radius: float, heat_per_second: float, delta: float) -> float:
 	var given := 0.0
 	var owner_node := heat_owner if is_instance_valid(heat_owner) else null
-	for node in get_tree().get_nodes_in_group(&"heat_receivers"):
+	if _heat_sensor == null:
+		_heat_sensor = HeatSensor.of(self)
+	# Só quem o sensor invisível acha no raio (antes: todos os que recebem calor no mundo).
+	_heat_spread_frame = Engine.get_physics_frames()
+	for node in _heat_sensor.nearby(radius):
 		if node == self or is_heat_owner(node, owner_node):
 			continue
 		var distance := DamageRules.distance_to(node as Node3D, global_position)
@@ -271,10 +280,13 @@ static func is_heat_owner(receiver: Node, owner_node: Node) -> bool:
 	return receiver == owner_node or owner_node.is_ancestor_of(receiver)
 
 
+## Quantos argumentos o add_heat de cada script aceita (perguntado uma vez por script, não a cada entrega).
+static var _heat_arity: Dictionary = {}
+
 ## Entrega calor passando o dono adiante para quem aceita (objetos), sem quebrar quem só
 ## recebe a quantidade (boneco, alvos, vida dos monstros).
 static func give_heat(receiver: Node, amount: float, owner_node: Node = null) -> void:
-	if owner_node != null and receiver.get_method_argument_count(&"add_heat") >= 2:
+	if owner_node != null and _takes_heat_owner(receiver):
 		receiver.add_heat(amount, owner_node)
 	else:
 		receiver.add_heat(amount)
@@ -475,6 +487,8 @@ func _retire() -> void:
 		queue_free()
 		return
 	_retired = true
+	if _heat_sensor != null:
+		_heat_sensor.sleep()
 	if is_instance_valid(_fire):
 		_fire.queue_free()
 	_fire = null
@@ -705,3 +719,13 @@ static func _pool_size() -> int:
 			kept.append(entry as PhysicsProp)
 	_piece_pool = kept
 	return _piece_pool.size()
+
+
+## true se o add_heat de `receiver` aceita o dono do calor como segundo argumento.
+static func _takes_heat_owner(receiver: Node) -> bool:
+	var script: Variant = receiver.get_script()
+	if script == null:
+		return receiver.get_method_argument_count(&"add_heat") >= 2
+	if not _heat_arity.has(script):
+		_heat_arity[script] = receiver.get_method_argument_count(&"add_heat")
+	return int(_heat_arity[script]) >= 2

@@ -60,6 +60,11 @@ linha, o lado que ajuda e o lado que pune.
 7. **Pedra e metal guardam calor:** não queimam, mas acumulam calor até `max_heat` e perdem devagar
    (`heat_decay`). Acima de `radiate_threshold`, aquecem os vizinhos no raio `radiate_radius` e **perdem o calor
    que entregam** (o calor não se multiplica entre duas pedras). A cor vai para o vermelho conforme o calor.
+8. **Quem espalha calor só confere quem está perto** (item 4 do diagnóstico de desempenho, pedido do Liam):
+   cada objeto em chamas ou em brasa leva um sensor invisível (`HeatSensor`, uma esfera do tamanho do raio mais
+   `heat_sensor_margin`) e a física do Godot entrega quem está dentro. Antes, cada um varria todos os que recebem
+   calor no mundo. O alcance, a conta e o dono do calor não mudam; só o número de conferências: com 60 caixas
+   acesas, de 6.300 para ~1.000 por tick (~17 por caixa). O sensor dorme quando o objeto para de espalhar calor.
 
 ### Lei da Terra: massa e permanência; só trabalha o solo, o concreto e a pedra que existem ali
 
@@ -330,6 +335,8 @@ em `test_arena.gd`). `blocked_explosion_factor` em `assets/data/damage_rules.tre
 | `rebuild_time` | 30 s | 5–120 | Quanto tempo o cenário fica quebrado |
 | `rebuild_retry` | 0,5 s | 0,2–2 | Espera extra quando há alguém no lugar |
 | `structure_piece_mass` | 200 kg | 50–500 | Peso dos destroços de uma estrutura grande |
+| `heat_sensor_margin` | 0,25 m | 0,1–0,5 | Folga do sensor de calor além do raio; não muda o alcance, só garante achar quem está na borda |
+| `heat_loose_refresh` | 0,5 s | 0,1–2 | De quanto em quanto tempo o sensor refaz a lista de quem recebe calor sem colisão (superfícies do laboratório) |
 | `bedrock_chunk_size` | 0,8 m | 0,4–1,5 | Tamanho do entulho que o chão e a borda soltam |
 | `spread_speed` | 1,5 m/s | 0,5–4 | O quanto os pedaços se abrem em leque |
 
@@ -374,6 +381,8 @@ Testes automáticos em `tests/suites/gameplay.gd` (nenhum usa habilidade):
 - [ ] Playtest: lama sobre o braseiro é entendida como "abafou", não como bug.
 - [x] **Fogo · dono do calor:** zona de calor e fogo conjurados não aquecem quem os conjurou e aquecem os outros;
   o calor espalhado continua sendo do conjurador.
+- [x] **Fogo · sensor de calor:** o sensor acha exatamente quem a varredura antiga achava (103 pontos da arena, ao ligar
+  e ligado); a vida do jogador entra no alcance; 60 caixas acesas conferem até 20 vizinhos cada por tick (medido: 16,6).
 - [x] **Terra · concreto:** o chão sem material declarado é concreto, e a Terra trabalha nele.
 - [ ] Monstros obedecem às áreas de gravidade (pedido à frente monstros: usar `get_gravity()`).
 

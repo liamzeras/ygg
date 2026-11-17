@@ -7,6 +7,7 @@ func run() -> void:
 	await _test_stair_rhythm()
 	await _test_stair_no_jolt()
 	await _test_explosion_occlusion()
+	await _test_heat_sensor()
 	await _test_fire_spread()
 	await _test_grab_and_throw()
 	await _test_fire_law()
@@ -835,6 +836,54 @@ func _test_explosion_occlusion() -> void:
 
 
 # Mede a distância real em que o fogo pula entre caixas de madeira, e a pirâmide inteira.
+# Item 4 do diagnóstico de desempenho: o calor acha os vizinhos por um sensor invisível no raio, não
+# varrendo todos os que recebem calor. Mesmo resultado, muito menos conferências.
+func _test_heat_sensor() -> void:
+	print("\n--- Calor: sensor de alcance ---")
+	var arena := await _load_arena("fire")
+	var wood: PropMaterial = arena.WOOD
+	var size := Vector3(0.6, 0.6, 0.6)
+	var crates: Array[PhysicsProp] = []
+	for i in 60:
+		var crate: PhysicsProp = arena._prop(wood, PhysicsProp.Form.BOX, size,
+				Vector3(30 + (i % 10) * 0.7, 0.31, 40 + int(i / 10.0) * 0.7))
+		crate.freeze = true
+		crates.append(crate)
+	await _frames(5)
+	# Mesmo conjunto que a varredura antiga achava, em toda a arena: objetos, boneco, vida do jogador.
+	var points: Array[Node3D] = []
+	for node in get_tree().get_nodes_in_group(&"physics_props"):
+		points.append(node as Node3D)
+	var radius := wood.fire_spread_radius
+	# Logo ao ligar (pergunta direta ao espaço) e depois de alguns passos (lista do próprio sensor).
+	_check(_heat_sensor_mismatches(points, radius) == 0, "ao ligar, o sensor acha exatamente quem a varredura antiga achava (%d pontos)" % points.size())
+	for step in 3:
+		_heat_sensor_mismatches(points, radius)
+		await _frames(1)
+	var later := _heat_sensor_mismatches(points, radius)
+	_check(later == 0, "ligado, o sensor continua achando exatamente os mesmos (%d diferentes)" % later)
+	var near_player: Vector3 = arena.player.global_position + Vector3(radius * 0.9, 0.0, 0.0)
+	var probe: PhysicsProp = arena._prop(wood, PhysicsProp.Form.BOX, size, near_player)
+	probe.freeze = true
+	await _frames(2)
+	var player_health: Node = arena.player.get_node(^"Health")
+	_check(HeatSensor.of(probe).nearby(radius).has(player_health), "a vida do jogador, nos pés da cápsula, está no alcance do sensor")
+	probe.queue_free()
+
+	for crate in crates:
+		crate.ignite()
+	await _frames(5)
+	var receivers := get_tree().get_node_count_in_group(&"heat_receivers")
+	var burning := crates.filter(func(c: PhysicsProp) -> bool: return is_instance_valid(c) and c.burning).size()
+	HeatSensor.checks = 0
+	await _frames(30)
+	var per_tick := HeatSensor.checks / 30.0
+	print("  %d caixas em chamas, %d recebem calor na arena" % [burning, receivers])
+	print("  antes: %d conferências por tick; agora: %.0f (%.1f por caixa)" % [burning * receivers, per_tick, per_tick / maxf(burning, 1)])
+	_check(per_tick / maxf(burning, 1) <= 20.0, "cada caixa em chamas confere até 20 vizinhos por tick (%.1f)" % (per_tick / maxf(burning, 1)))
+	await _unload(arena)
+
+
 func _test_fire_spread() -> void:
 	print("\n--- Contágio de fogo: medição ---")
 	var arena := await _load_arena("fire")
@@ -894,3 +943,20 @@ func _test_fire_spread() -> void:
 	_check(not ignition_time.has(neighbors[5]), "caixa a 1,1 m não acende a vizinha")
 	_check(ignition_time.has(surrounded), "três caixas a 0,9 m somam calor e acendem")
 	await _unload(arena)
+
+
+## Quantos pontos têm conjuntos diferentes entre a varredura antiga e o sensor de calor.
+func _heat_sensor_mismatches(points: Array[Node3D], radius: float) -> int:
+	var mismatches := 0
+	for source in points:
+		var old := {}
+		for node in get_tree().get_nodes_in_group(&"heat_receivers"):
+			if node != source and DamageRules.distance_to(node as Node3D, source.global_position) < radius:
+				old[node] = true
+		var new := {}
+		for node in HeatSensor.of(source).nearby(radius):
+			if node != source and DamageRules.distance_to(node as Node3D, source.global_position) < radius:
+				new[node] = true
+		if old.size() != new.size() or not old.keys().all(func(n: Node) -> bool: return new.has(n)):
+			mismatches += 1
+	return mismatches
