@@ -17,6 +17,7 @@ tests/screenshot.gd               qualidade   trava
 design/gdd/game-concept.md        loop        trava
 project.godot                     fundacao    trava
 export_presets.cfg                fundacao
+skills-lock.json                  fundacao
 CLAUDE.md                         fundacao    trava
 
 # --- Sábio (sessão de pesquisa: material de consulta e laboratório próprio) ---
@@ -48,6 +49,7 @@ src/gameplay/world/explosion.gd   gameplay
 src/gameplay/world/heat_zone.gd   gameplay
 src/gameplay/world/break_rules.gd  gameplay
 src/gameplay/world/breakable_structure.gd  gameplay
+src/gameplay/world/heat_sensor.gd  gameplay
 assets/data/materials/*           gameplay
 design/gdd/physics-magic-system.md  gameplay
 

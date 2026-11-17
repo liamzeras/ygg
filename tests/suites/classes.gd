@@ -27,6 +27,7 @@ func run() -> void:
 	await _test_playtest_gravity()
 	await _test_playtest_earth()
 	await _test_playtest_earth_stairs()
+	await _test_bot_slow_field()
 
 
 func _test_attribute_curve() -> void:
@@ -1372,3 +1373,38 @@ func _break_step(player: Player, pillar: StonePillar, slot: StringName, strike: 
 		await _frames(int(strike.cooldown * 60.0) + 2)
 		hits += 1
 	return [stages[0] if not stages.is_empty() else 0, pieces.size(), pieces]
+
+
+# Teste profundo, item 6 (production/perf/diagnostico-2026-11-17.md): o bot procura projéteis no
+# grupo deles a cada 0,1 s, e ainda ergue o Campo Lento contra um dardo que vem nele.
+func _test_bot_slow_field() -> void:
+	print("\n--- Bot ergue o Campo Lento contra projétil (grupo de projéteis) ---")
+	var arena := await _load_arena("psionic")
+	arena.toggle_combat_bot()
+	var bot: PsionicBot = arena.combat_bot
+	await _frames(10)
+	var dart := KineticDartProjectile.new()
+	dart.mass = 0.5
+	dart.lifetime = 3.0
+	dart.gravity_scale = 0.0
+	# O bot olha os projéteis que estão direto na cena principal (como os do jogador).
+	var scene := get_tree().current_scene
+	scene.add_child(dart)
+	_check(dart.is_in_group(MaterializedProjectile.GROUP), "projétil entra no grupo ao nascer")
+	var center := bot.get_center()
+	dart.global_position = center + Vector3(6, 0, 0)
+	dart.launch(Vector3(-25, 0, 0), Vector3.ZERO)
+	var fields := 0
+	for frame in 15:
+		await _frames(1)
+		fields = 0
+		for node in scene.get_children():
+			if node is SlowField:
+				fields += 1
+		if fields > 0:
+			break
+	_check(fields == 1, "bot ergue o Campo Lento contra o dardo que vem nele (%d)" % fields)
+	for node in scene.get_children():
+		if node is SlowField or node == dart:
+			node.queue_free()
+	await _unload(arena)

@@ -36,3 +36,5 @@ extends Resource
 @export_group("Defesa")
 ## Projétil vindo na direção do bot, mais perto que isto (m), dispara o Campo Lento.
 @export var threat_range := 7.0
+## A cada quantos segundos o bot procura projéteis vindo nele (desempenho: não a cada tick).
+@export var threat_check_interval := 0.1
