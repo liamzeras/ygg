@@ -20,14 +20,8 @@ func _ready() -> void:
 
 	_visual = Node3D.new()
 	add_child(_visual)
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(0.04, 0.04, 0.4)
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = COLOR
-	mesh.material = mat
 	var mesh_instance := MeshInstance3D.new()
-	mesh_instance.mesh = mesh
+	mesh_instance.mesh = _shared_mesh()
 	_visual.add_child(mesh_instance)
 	var light := OmniLight3D.new()
 	light.light_color = COLOR
@@ -84,3 +78,20 @@ func _hit(body: Node, strength: float, direction: Vector3) -> void:
 			receiver.register_hit(source_name, strength)
 	Fx.burst(get_tree().current_scene, global_position, COLOR, 0.3)
 	queue_free()
+
+
+## Malha e material criados uma vez e reaproveitados por todos os dardos
+## (production/perf/diagnostico-2026-11-17.md, item 2).
+static var _mesh: Mesh
+
+
+static func _shared_mesh() -> Mesh:
+	if _mesh == null:
+		var box := BoxMesh.new()
+		box.size = Vector3(0.04, 0.04, 0.4)
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.albedo_color = COLOR
+		box.material = mat
+		_mesh = box
+	return _mesh

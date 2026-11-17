@@ -1,6 +1,14 @@
 class_name Fx
 extends RefCounted
 ## Efeitos visuais genéricos gerados por código (placeholder até termos arte).
+## Desempenho (production/perf/diagnostico-2026-11-17.md, item 2): malhas, materiais e
+## degradês são criados uma vez e reaproveitados entre todos os efeitos. O visual é o mesmo.
+
+## Malhas das partículas por raio (o material é um só, compartilhado).
+static var _meshes := {}
+static var _particle_material: StandardMaterial3D
+## Degradês por par de cores.
+static var _gradients := {}
 
 
 ## Fogo contínuo para anexar a um objeto em chamas.
@@ -91,22 +99,33 @@ static func burst(parent: Node, at: Vector3, color: Color, radius: float) -> voi
 	root.get_tree().create_timer(1.2).timeout.connect(root.queue_free)
 
 
+## Esfera de partícula do raio pedido, criada uma vez por raio (arredondado a 1 mm).
 static func _particle_mesh(radius: float) -> Mesh:
+	var key := snappedf(radius, 0.001)
+	if _meshes.has(key):
+		return _meshes[key]
+	if _particle_material == null:
+		_particle_material = StandardMaterial3D.new()
+		_particle_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_particle_material.vertex_color_use_as_albedo = true
+		_particle_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	var mesh := SphereMesh.new()
-	mesh.radius = radius
-	mesh.height = radius * 2.0
+	mesh.radius = key
+	mesh.height = key * 2.0
 	mesh.radial_segments = 6
 	mesh.rings = 3
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.vertex_color_use_as_albedo = true
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mesh.material = mat
+	mesh.material = _particle_material
+	_meshes[key] = mesh
 	return mesh
 
 
+## Degradê entre duas cores, criado uma vez por par.
 static func _gradient(from: Color, to: Color) -> Gradient:
+	var key := "%s|%s" % [from.to_html(), to.to_html()]
+	if _gradients.has(key):
+		return _gradients[key]
 	var gradient := Gradient.new()
 	gradient.set_color(0, from)
 	gradient.set_color(1, to)
+	_gradients[key] = gradient
 	return gradient
