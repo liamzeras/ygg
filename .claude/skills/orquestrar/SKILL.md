@@ -1,7 +1,7 @@
 ---
 name: orquestrar
 description: "Delega uma mudança do Ygg para a frente certa (arte, gameplay, classes, monstros, equipamentos, loop, quests, história...) numa sessão paralela isolada, enquanto a conversa principal segue trabalhando. Também mostra o quadro de frentes e junta o trabalho pronto na main. Use quando o Liam pedir para delegar, paralelizar ou mandar algo para um time, ou perguntar o que está rodando."
-argument-hint: "[pedido] | status | integrar [frente]"
+argument-hint: "[pedido] | status | integrar [frente] | profundo [medir|auditar|diagnosticar|otimizar|historico]"
 user-invocable: true
 ---
 Você é o orquestrador das frentes do Ygg. Responda em português do Brasil, em linguagem simples.
@@ -13,6 +13,8 @@ e, se não existir, crie com o modelo abaixo.
 Conforme o argumento:
 - `status`: vá para **Status**.
 - `integrar [frente]`: vá para **Integrar**.
+- `profundo [...]`: rode o teste profundo, só porque o Liam pediu. Siga `.claude/skills/teste-profundo/SKILL.md`
+  com o resto do argumento. Os itens que ele aprovar voltam para cá como pedidos, um por frente dona.
 - Qualquer outro texto é um pedido: vá para **Delegar**.
 
 ## Delegar

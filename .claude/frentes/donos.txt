@@ -16,6 +16,7 @@ src/core/input_bindings.gd        fundacao    trava
 tests/screenshot.gd               qualidade   trava
 design/gdd/game-concept.md        loop        trava
 project.godot                     fundacao    trava
+export_presets.cfg                fundacao
 CLAUDE.md                         fundacao    trava
 
 # --- Sábio (sessão de pesquisa: material de consulta e laboratório próprio) ---
@@ -123,3 +124,4 @@ design/ux/*                       interface
 tests/*                           qualidade
 production/playtests/*            qualidade
 production/qa/*                   qualidade
+production/perf/*                 qualidade
