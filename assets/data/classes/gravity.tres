@@ -36,13 +36,16 @@ scaling_attribute = 4
 
 [sub_resource type="Resource" id="mibune"]
 script = ExtResource("5_mibune")
-spawn_distance = 8.0
 radius = 5.0
-pull_acceleration = 30.0
-throw_speed = 25.0
+pull_acceleration = 15.0
+throw_speed = 35.0
+spawn_offset = 0.3
 lifetime = 5.0
+impact_radius = 2.0
+impact_impulse = 200.0
+impact_linger = 0.4
 display_name = "Mibune"
-description = "Mini buraco negro que suga objetos e personagens próximos. Use de novo para arremessá-lo na direção da mira."
+description = "Mini buraco negro que se forma logo à sua frente e suga objetos e monstros próximos (magos não). Use de novo para dispará-lo, rápido, na direção da mira: ao bater, fere quem está perto e some."
 cost = 30.0
 cost_pool = 1
 cooldown = 6.0

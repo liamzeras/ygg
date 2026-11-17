@@ -6,6 +6,8 @@ extends MaterializedProjectile
 const RADIUS := 0.15
 
 var ability: FireballAbility
+## Quem lançou: a explosão não o atinge (o mago nunca se machuca com o próprio fogo).
+var caster: CollisionObject3D
 var heat := 0.0
 var blast_radius := 1.6
 
@@ -27,7 +29,7 @@ func _ready() -> void:
 	mesh.height = RADIUS * 2.0
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(1, 0.6, 0.15)
+	mat.albedo_color = CasterLook.tint(Color(1, 0.6, 0.15), caster)
 	mesh.material = mat
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.mesh = mesh
@@ -63,5 +65,8 @@ func _detonate() -> void:
 	# Sem alvo (tempo acabou), explode com a velocidade que tinha.
 	var impulse := _impulse if _impulse >= 0.0 else impact_impulse()
 	var direct := _direct_hit as Node3D if is_instance_valid(_direct_hit) else null
-	Explosion.detonate(self, global_position, blast_radius, impulse, heat, [get_rid()], Color(1, 0.6, 0.2), direct, ability.display_name)
+	var exclude: Array[RID] = [get_rid()]
+	if is_instance_valid(caster):
+		exclude.append(caster.get_rid())
+	Explosion.detonate(self, global_position, blast_radius, impulse, heat, exclude, Color(1, 0.6, 0.2), direct, ability.display_name)
 	queue_free()

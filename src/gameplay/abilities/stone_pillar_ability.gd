@@ -15,7 +15,10 @@ extends TerrainAbility
 @export var rise_time := 0.35
 @export var lifetime := 8.0
 @export var sink_time := 0.6
-## Densidade da pedra (kg/m³, igual ao material Pedra): dá a massa de cada pilar.
+## Material dos pilares (pedra moldada, earth_construct.tres): dá a massa (volume x densidade) e a
+## regra do Quebrável (soco, chute e Mibune racham e quebram).
+@export var construct_material: PropMaterial
+## Só sem `construct_material`: densidade (kg/m³) para a massa de cada pilar.
 @export var stone_density := 350.0
 ## Fração da quantidade de movimento do pilar passada a quem ele acerta ao subir.
 @export_range(0.0, 1.0) var impact_transfer := 0.05
@@ -63,7 +66,10 @@ func _spawn(player: Player, point: Vector3, direction: Vector3, height: float) -
 	pillar.rise_time = rise_time
 	pillar.lifetime = lifetime
 	pillar.sink_time = sink_time
-	pillar.pillar_mass = width * width * height * stone_density
+	var density := construct_material.density if construct_material else stone_density
+	pillar.pillar_mass = width * width * height * density
+	pillar.material = construct_material
+	pillar.caster = player
 	pillar.impact_transfer = impact_transfer
 	player.get_tree().current_scene.add_child(pillar)
 	pillar.start(point, direction)

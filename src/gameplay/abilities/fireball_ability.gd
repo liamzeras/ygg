@@ -39,6 +39,7 @@ func activate_charged(player: Player, charge: float) -> void:
 	var direction := player.get_aim_direction()
 	var projectile := FireballProjectile.new()
 	projectile.ability = self
+	projectile.caster = player
 	projectile.mass = lerpf(min_mass, max_mass, charge)
 	projectile.power = power(player)
 	projectile.heat = lerpf(min_heat, base_heat, charge) * power(player)

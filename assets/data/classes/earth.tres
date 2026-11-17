@@ -9,6 +9,8 @@
 [ext_resource type="Script" path="res://src/gameplay/abilities/earthquake_ability.gd" id="8_quake"]
 [ext_resource type="Resource" path="res://assets/data/materials/stone.tres" id="10_stone"]
 [ext_resource type="Resource" path="res://assets/data/materials/metal.tres" id="11_metal"]
+[ext_resource type="Resource" path="res://assets/data/materials/earth_construct.tres" id="12_construct"]
+[ext_resource type="Resource" path="res://assets/data/materials/concrete.tres" id="13_concrete"]
 
 [sub_resource type="Resource" id="attrs"]
 script = ExtResource("2_attrs")
@@ -27,7 +29,7 @@ width = 0.9
 reach = 1.4
 coated_reach = 2.4
 base_impulse = 140.0
-earth_materials = Array[Resource]([ExtResource("10_stone"), ExtResource("11_metal")])
+earth_materials = Array[Resource]([ExtResource("10_stone"), ExtResource("11_metal"), ExtResource("13_concrete"), ExtResource("12_construct")])
 earth_multiplier = 2.0
 coat_duration = 6.0
 coated_multiplier = 1.5
@@ -53,7 +55,7 @@ width = 0.9
 reach = 1.4
 coated_reach = 2.4
 base_impulse = 170.0
-earth_materials = Array[Resource]([ExtResource("10_stone"), ExtResource("11_metal")])
+earth_materials = Array[Resource]([ExtResource("10_stone"), ExtResource("11_metal"), ExtResource("13_concrete"), ExtResource("12_construct")])
 earth_multiplier = 2.0
 coat_duration = 6.0
 coated_multiplier = 1.5
@@ -80,10 +82,12 @@ aimed_step = 1
 rise_time = 0.35
 lifetime = 8.0
 sink_time = 0.6
+construct_material = ExtResource("12_construct")
 stone_density = 350.0
 impact_transfer = 0.05
 reach = 12.0
 max_slope = 45.0
+needs_earth = true
 display_name = "Escada de Pedra"
 description = "Ergue uma escada de 3 pilares; o do meio nasce no chão mirado. Segure W para subir os degraus. Objetos em cima são arremessados."
 cost = 30.0
@@ -108,8 +112,10 @@ sink_time = 0.6
 base_damage_impulse = 250.0
 launch_impulse = 420.0
 launch_speed = 6.0
+construct_material = ExtResource("12_construct")
 reach = 12.0
 max_slope = 45.0
+needs_earth = true
 display_name = "Terremoto"
 description = "Ergue um pedaço de chão em relevo, com estalagmites e pedras soltas, e joga para cima quem está ali. Cresce com o nível, até 9 x 9 m. Some em 5 s."
 cost = 40.0
@@ -126,6 +132,7 @@ cooling = 50.0
 character_speed = 0.5
 reach = 12.0
 max_slope = 45.0
+needs_earth = true
 display_name = "Lamaçal"
 description = "Amolece o chão mirado: objetos param, fogo apaga e quem pisa (você também) fica lento."
 cost = 25.0
