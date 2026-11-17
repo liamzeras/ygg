@@ -6,15 +6,15 @@
 
 ## Como abrir
 
-Na pasta `Ygg`, escolhendo a classe no final (`mage`, `knight` ou `psionic`):
+Na pasta `Ygg`, escolhendo a classe no final (`fire`, `earth` ou `psionic`, que é o Mago da Gravidade):
 
 ```bash
-"./Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64.exe" --path . res://src/levels/sabio_lab.tscn -- --class=mage
+"./Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64.exe" --path . res://src/levels/sabio_lab.tscn -- --class=fire
 ```
 
 | Tecla | O que faz |
 |---|---|
-| **1 a 7** | Usa o módulo, no ponto da mira |
+| **1 a 9** | Usa o módulo, no ponto da mira |
 | **Alt + número** | Liga ou desliga o módulo na hora; desligar remove o que ele criou |
 | **F5** | Recarrega o laboratório e repõe as Teias |
 
@@ -34,11 +34,13 @@ Os números de ajuste ficam no `.tres` de cada módulo, em `assets/data/lab/`. T
 | 5 | **Terra Morta** | Terra Magnética | Lance Lamaçal ou Bola de Fogo na área | "Magia some, objeto continua" se entende sem explicação? |
 | 6 | **Incendiário** | Divinity 2 | Crie um perto dos barris e observe | Você aprende algo só de assistir? |
 | 7 | **Lama e fogo** (passivo) | Lacunas 1 e 2 da tabela | Lance Lamaçal no braseiro; coloque uma caixa na lama e perto do fogo | O braseiro apagar faz sentido? |
+| 8 | **Reação em cadeia** (passivo, classe `fire`) | [Maestrias](inspiracao/maestrias.md): Explosão | Lance 3 Bolas de Fogo seguidas, mirando perto umas das outras: quando a primeira estourar, as próximas no raio estouram junto. Depois, uma perto de um barril de pólvora | Dá para ver cada elo? A cadeia parece sua ou fora de controle? O risco de ser atingido é justo? |
+| 9 | **Inércia guardada** (passivo, classe `psionic`) | [Maestrias](inspiracao/maestrias.md): Leveza | Lance o Campo Lento, dispare dardos e arremesse caixas para dentro dele e espere o Campo acabar | O brilho e a piscada avisam a tempo? Montar a "armadilha" é divertido? O gasto de Mana pesa? |
 
 ## Limites conhecidos
 
 - **Só existem no laboratório.** O jogo normal não muda.
-- **Sem custo:** nenhuma ação gasta Mana ou tem recarga, para facilitar o teste. Só a Teia tem limite,
+- **Sem custo:** nenhuma ação gasta Mana ou tem recarga, para facilitar o teste. A Inércia guardada é a exceção: drena Mana enquanto guarda algo. Só a Teia tem limite,
   8 por partida.
 - **Sem espaço no HUD:** as teclas aparecem só no painel à esquerda.
 - **Objetos, não personagens:** jogador e boneco não ficam Molhados, e o jogador não escorrega no gelo
@@ -47,6 +49,7 @@ Os números de ajuste ficam no `.tres` de cada módulo, em `assets/data/lab/`. T
   dentro dela. A Telecinese não é afetada.
 - **Gelo:** ao derreter, some em vez de virar poça, para o módulo não depender do módulo de Água.
 - **Pólvora Molhada:** não recebe calor nenhum, valor mais forte que o fator comum de Molhado.
+- **Maestrias só pela metade:** a Reação em cadeia liga Bolas de Fogo e pólvora, mas ainda não a propulsão, a detonação no ar e a cratera, que não existem. A Inércia guardada vale só para o Campo Lento; Telecinese, Flutuar e pedras flutuantes ficam de fora. Os dois valem para qualquer jogador da classe, sem exigir as 4 versões, porque a escolha de versões ainda não existe.
 
 ## Como remover
 
@@ -65,6 +68,8 @@ Os números de ajuste ficam no `.tres` de cada módulo, em `assets/data/lab/`. T
 | Terra Morta | `5_terra_morta.tres` | `dead_ground_module`, `lab_dead_ground` |
 | Incendiário | `6_incendiario.tres` | `arsonist_module`, `lab_arsonist` |
 | Lama e fogo | `7_lama_e_fogo.tres` | `mud_fire_module` |
+| Reação em cadeia | `8_reacao_em_cadeia.tres` | `chain_reaction_module` |
+| Inércia guardada | `9_inercia_guardada.tres` | `stored_inertia_module` |
 
 O módulo aprovado **não deve ficar aqui para sempre**: ele vira GDD e é refeito no sistema definitivo
 pela frente dona.

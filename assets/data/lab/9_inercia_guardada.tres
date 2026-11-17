@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="LabStoredInertiaModule" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/lab/modules/stored_inertia_module.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Inércia guardada"
+mana_per_second = 4.0
+blink_time = 1.0
+blink_rate = 10.0

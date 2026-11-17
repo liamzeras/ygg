@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="LabChainReactionModule" format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/lab/modules/chain_reaction_module.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Reação em cadeia"
+link_delay = 0.1
+reach_factor = 1.0

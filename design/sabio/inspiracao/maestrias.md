@@ -124,6 +124,6 @@ versões.
 ## Perguntas para o Liam
 
 1. Os 7 critérios valem como regra para todas as maestrias, inclusive as dos outros 4 elementos?
-2. Das 6 propostas, quais vão primeiro para o laboratório? Minha sugestão: **Reação em cadeia** e **Inércia
-   guardada**, porque reaproveitam código que já existe (Bola de Fogo, pólvora, Campo Lento).
+2. ~~Das 6 propostas, quais vão primeiro para o laboratório?~~ Respondido: **Reação em cadeia** e **Inércia
+   guardada**, já no laboratório como módulos 8 e 9 ([laboratorio.md](../laboratorio.md)).
 3. A medida de equilíbrio (vitórias parecidas entre build pura e misturada) serve como critério de aceite?

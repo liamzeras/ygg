@@ -33,6 +33,8 @@ func _ready() -> void:
 	await _test_dead_ground()
 	await _test_mud_fire()
 	await _test_arsonist()
+	await _test_chain_reaction()
+	await _test_stored_inertia()
 	await _test_toggle()
 
 	print("\n=== LAB TEST: %d verificações, %d falhas ===" % [_checks, _failures.size()])
@@ -242,6 +244,91 @@ func _test_arsonist() -> void:
 	_check(is_instance_valid(arsonist) and arsonist.state == LabArsonist.State.FLEE, "Incendiário foge depois de acender")
 	await _seconds(1.0)
 	await _clear_bench(module)
+
+
+func _test_chain_reaction() -> void:
+	var module := _lab.find_module("Reação em cadeia") as LabChainReactionModule
+	if module == null:
+		return
+	var sky := BENCH + Vector3(0, 8, 0)
+	var balls := _fireballs([sky, sky + Vector3(1.0, 0, 0), sky + Vector3(2.0, 0, 0)])
+	await _frames(3)
+	balls[0].call("_detonate")
+	await _seconds(0.5)
+	_check(balls.all(func(b: Variant) -> bool: return not is_instance_valid(b)), "cadeia: as 3 Bolas de Fogo no ar estouram em sequência")
+
+	var barrel := _prop(EXPLOSIVE, BENCH + Vector3(0, 0.46, 0))
+	var exploded := [false]
+	barrel.exploded.connect(func() -> void: exploded[0] = true)
+	var low := _fireballs([BENCH + Vector3(0.9, 1.0, 0)])
+	await _frames(3)
+	low[0].call("_detonate")
+	await _seconds(0.4)
+	_check(exploded[0], "cadeia: a pólvora no raio estoura na hora, sem esperar o pavio de 1,5 s")
+
+	_lab.set_module_enabled(module, false)
+	var off := _fireballs([sky, sky + Vector3(1.0, 0, 0)])
+	await _frames(3)
+	off[0].call("_detonate")
+	await _seconds(0.3)
+	_check(is_instance_valid(off[1]), "cadeia desligada: a outra Bola de Fogo não estoura junto")
+	_lab.set_module_enabled(module, true)
+	for ball in off:
+		if is_instance_valid(ball):
+			ball.queue_free()
+	await _clear_bench(module)
+
+
+func _test_stored_inertia() -> void:
+	var module := _lab.find_module("Inércia guardada") as LabStoredInertiaModule
+	if module == null:
+		return
+	var player: Player = _arena.get("player")
+	var results := []
+	for on: bool in [true, false]:
+		_lab.set_module_enabled(module, on)
+		var field := SlowField.new()
+		field.radius = 3.0
+		field.duration = 1.5
+		field.max_speed = 1.5
+		_arena.add_child(field)
+		field.global_position = BENCH + Vector3(0, 5, 0)
+		await _frames(3)
+		var mana_before := player.get_pool(Player.Pool.MANA)
+		var box := _prop(WOOD, BENCH + Vector3(-5, 5, 0))
+		await _frames(1)
+		box.linear_velocity = Vector3(8, 0, 0)
+		await _seconds(0.6)
+		var inside := box.linear_velocity.length()
+		await _seconds(1.2)
+		var after := Vector2(box.linear_velocity.x, box.linear_velocity.z).length()
+		results.append([inside, after, player.get_pool(Player.Pool.MANA) < mana_before])
+		box.queue_free()
+		await _frames(3)
+	_lab.set_module_enabled(module, true)
+	_check(results[0][0] <= 1.6, "inércia: o Campo continua freando (%.1f m/s dentro)" % results[0][0])
+	_check(results[0][1] >= 7.0, "inércia: ao acabar o Campo, devolve a velocidade de entrada (%.1f de 8 m/s)" % results[0][1])
+	_check(results[0][2], "inércia: guardar gasta Mana")
+	_check(results[1][1] < 3.0, "inércia desligada: sai do Campo devagar (%.1f m/s)" % results[1][1])
+
+
+## Bolas de Fogo paradas no ar, com os valores de carga cheia da classe Fogo.
+func _fireballs(points: Array) -> Array[FireballProjectile]:
+	var player: Player = _arena.get("player")
+	var ability := player.get_ability(Player.SLOT_PRIMARY) as FireballAbility
+	var balls: Array[FireballProjectile] = []
+	for point: Vector3 in points:
+		var ball := FireballProjectile.new()
+		ball.ability = ability
+		ball.mass = ability.max_mass
+		ball.heat = ability.base_heat
+		ball.blast_radius = ability.blast_radius
+		_arena.add_child(ball)
+		ball.global_position = point
+		ball.launch(Vector3.ZERO, Vector3.ZERO)
+		ball.gravity_scale = 0.0
+		balls.append(ball)
+	return balls
 
 
 func _test_toggle() -> void:
