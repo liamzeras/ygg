@@ -1,7 +1,7 @@
 #!/bin/bash
 # Teste profundo do Ygg (.claude/skills/teste-profundo/SKILL.md). Só roda quando o Liam pede.
 #
-#   bash tools/teste-profundo.sh medir     abre o jogo com janela e mede os quadros (~30 s)
+#   bash tools/teste-profundo.sh medir     abre o jogo com janela e mede os quadros (~2,5 min)
 #   bash tools/teste-profundo.sh auditar   revisa código e estrutura de arquivos, sem abrir o jogo
 #   bash tools/teste-profundo.sh tudo      os dois
 #
@@ -24,16 +24,35 @@ acha_godot() {
 	echo "$exe"
 }
 
+# Quantos processos do Godot estão abertos (jogo, editor ou teste de outra sessão).
+godots_abertos() {
+	if command -v tasklist > /dev/null 2>&1; then
+		tasklist 2>/dev/null | grep -ci '^godot'
+	else
+		pgrep -ci godot
+	fi
+}
+
 cmd_medir() {
-	local godot
+	local godot abertos codigo
 	godot="$(acha_godot)"
 	if [ -z "$godot" ]; then
 		echo "Godot não encontrado." >&2
 		return 1
 	fi
-	echo "Abrindo o jogo com janela para medir os quadros. Não mexa no mouse até fechar (~30 s)."
+	# Medir junto com outro Godot dá número errado e já travou o computador do Liam.
+	abertos="$(godots_abertos)"
+	if [ "${abertos:-0}" -gt 0 ]; then
+		echo "Há $abertos processo(s) do Godot abertos (jogo, editor ou outra sessão). Feche-os e meça de novo." >&2
+		return 1
+	fi
+	echo "Abrindo o jogo com janela para medir os quadros. Não mexa no mouse até fechar (~2,5 min)."
 	# Sem --headless: o tempo de quadro só vale com renderização de verdade.
-	timeout 300 "$godot" --path . res://tests/perf_test.tscn 2>&1 | grep -E "===|fase|^[a-z]+ +[0-9]|gravado|SCRIPT ERROR|Parse Error"
+	timeout 300 "$godot" --path . res://tests/perf_test.tscn "$@" 2>&1 | grep -E "===|fase|^[a-z]+ +[0-9]|gravado|SCRIPT ERROR|Parse Error"
+	# Código do Godot, não do grep: 1 = medição reprovada; 124 = passou do tempo.
+	codigo=${PIPESTATUS[0]}
+	[ "$codigo" -eq 124 ] && echo "A medição passou de 5 min e foi interrompida." >&2
+	return "$codigo"
 }
 
 # Lista arquivos .gd do jogo (sem testes nem ferramentas).
@@ -143,7 +162,7 @@ cmd_auditar() {
 }
 
 case "${1:-}" in
-	medir) cmd_medir ;;
+	medir) shift; cmd_medir "$@" ;;
 	auditar) cmd_auditar ;;
 	tudo) cmd_auditar; cmd_medir ;;
 	*) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//' ; exit 2 ;;

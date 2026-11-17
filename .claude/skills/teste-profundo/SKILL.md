@@ -17,6 +17,8 @@ módulo é o exame completo: é mais lento, abre o jogo com janela e gera trabal
    - 1% mais lento ≥ 60 fps;
    - 0 quadros acima de 16,7 ms;
    - 0 trancos (quadros acima de 33 ms).
+
+   Limite que reprova a medição: p99 acima de 33 ms em alguma fase (mais de 1% dos quadros com tranco).
 2. **Economia de recursos:** menos CPU, GPU e memória para a mesma cena. Gastar menos também deixa
    folga para o jogo não cair de quadros quando a cena pesa.
 3. **Código organizado e refinado:** arquivos e funções de tamanho razoável, tipagem completa,
@@ -27,13 +29,18 @@ módulo é o exame completo: é mais lento, abre o jogo com janela e gera trabal
 ## Ferramentas
 
 ```bash
-bash tools/teste-profundo.sh medir     # abre o jogo com janela e mede (~30 s; não mexa no mouse)
+bash tools/teste-profundo.sh medir     # abre o jogo com janela e mede (~2,5 min; não mexa no mouse)
 bash tools/teste-profundo.sh auditar   # revisa código e arquivos sem abrir o jogo
 ```
 
-- **Medir** (`tests/perf_test.gd`): arena com o Mago do Fogo, sem vsync e sem limite de FPS, em 4 fases
-  de 6 s: `parado`, `fisica` (60 caixas e 4 barris acesos), `magia` (12 Bolas de Fogo) e `combate`
-  (bot). Grava `production/perf/quadros-<data>.json`.
+- **Medir** (`tests/perf_test.gd`): a arena com o Mago do Fogo entra como cena principal, como no jogo,
+  sem vsync e sem limite de FPS. Primeiro uma fase de `aquecimento` (explosão, fogo e Bola de Fogo) paga a
+  compilação dos efeitos e não é julgada. Depois, cada fase roda 3 vezes, cada vez numa arena nova, por 7 s:
+  `parado`; `criacao` (surgem 60 caixas e 4 barris); `explosao` (a mesma pilha, já assentada, e os 4 barris
+  acesos); `magia` (12 Bolas de Fogo); e `combate` (bot, com uma Bola de Fogo nele a cada segundo). Mostra
+  média, 1% mais lento, p95, p99, pior quadro e trancos, e reprova se o p99 de alguma fase passar de 33 ms.
+  Grava `production/perf/quadros-<data>.json`. Para provar que o limite reprova, há a opção
+  `-- --injetar-tranco=50:20` (atraso de mentira; ver o topo de `tests/perf_test.gd`).
 - **Auditar**: arquivos e funções grandes, tipagem, buscas caras em código que roda todo quadro,
   `print` esquecido, scripts sem documentação, pastas, arquivos sem dono e o que entraria no
   instalador. Grava `production/perf/auditoria-<data>.md`.
@@ -107,8 +114,8 @@ Depois que o orquestrador juntar os ramos com a ordem do Liam, meça de novo e a
 por fase em `production/perf/historico.md`:
 
 ```markdown
-| Data | Commit | Fase | FPS médio | 1% mais lento | >16,7 ms | Trancos | Observação |
-|---|---|---|---|---|---|---|---|
+| Data | Commit | Fase | FPS médio | 1% mais lento | ms p95 | ms p99 | >16,7 ms | Trancos | Observação |
+|---|---|---|---|---|---|---|---|---|---|
 ```
 
 Mostre ao Liam o antes e depois, o que ficou longe da meta e o que você recomenda para a próxima
@@ -119,6 +126,9 @@ rodada.
 - **Compare só o que é comparável:** o mesmo computador, sem outros programas pesados abertos. Se a placa
   de vídeo ou o processador no JSON mudarem, avise que a comparação não vale.
 - **A medição abre uma janela no computador do Liam.** Avise antes de rodar.
+- **Uma medição por vez, nunca em fila, e com nenhum outro Godot aberto.** Várias medições seguidas com
+  jogos de outras sessões abertos já travaram o computador do Liam (GTX 650 Ti). O script recusa medir se
+  achar outro Godot rodando.
 - **Não altere `project.godot`, `player.gd` ou outro arquivo com trava** nesta conversa. Isso só
   acontece por uma frente com a trava reservada no quadro.
 - **Economia de tokens:** leia os resumos e não o JSON inteiro quando não precisar, e use subagentes
