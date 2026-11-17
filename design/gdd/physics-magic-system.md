@@ -392,6 +392,9 @@ Testes automáticos em `tests/suites/gameplay.gd` (nenhum usa habilidade):
 3. **Chão sem material declarado é concreto** (`concrete.tres`), e o Mago da Terra pode manipulá-lo. Ele é
    menos denso que a pedra, guarda calor como ela e responde 1,5x à Terra. `soil.tres` (solo) continua existindo
    para fases que declararem terra de verdade.
+4. **Buraco só em plataformas, nunca no chão da arena** (resposta "c"). Plataformas, degraus, torres e rampas
+   somem inteiros ao quebrar e voltam em 30 s. O chão e os muros da borda só racham e soltam entulho: nunca
+   abrem buraco, para ninguém cair para fora do mundo.
 
 ## Perguntas abertas (para o Liam)
 
@@ -405,9 +408,5 @@ Testes automáticos em `tests/suites/gameplay.gd` (nenhum usa habilidade):
    pedaços ainda batem no mago e nos monstros. Quer que bloqueiem a passagem?
 4. **Pedaços machucam?** Pedaços grandes que batem rápido num monstro ou no boneco dão dano de impacto (massa x
    velocidade), como qualquer objeto. Os pequenos não dão. Confirma?
-5. **Buraco no chão?** Hoje o chão e os muros da borda racham e soltam entulho, mas não abrem buraco (para ninguém
-   cair para fora do mundo). Opções: (a) manter assim; (b) abrir cratera rasa no chão (o chão vira placas com
-   uma base indestrutível embaixo; custa mais desempenho); (c) buraco de verdade só em pisos elevados
-   (plataformas), nunca no chão da arena.
-6. **Força igual para toda estrutura?** Hoje degrau e torre de 6 m caem com os mesmos 6 socos. Quer que as
+5. **Força igual para toda estrutura?** Hoje degrau e torre de 6 m caem com os mesmos 6 socos. Quer que as
    grandes aguentem mais (por exemplo, proporcional ao tamanho)?
