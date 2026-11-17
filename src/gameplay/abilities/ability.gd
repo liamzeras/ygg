@@ -60,3 +60,9 @@ func activate(_player: Player) -> void:
 ## Disparo de uma habilidade carregável. Padrão: ignora a carga.
 func activate_charged(player: Player, _charge: float) -> void:
 	activate(player)
+
+
+## Parte do nível máximo que o jogador já tem (0 a 1). Habilidades que crescem "em partes
+## iguais por nível" multiplicam o valor máximo por isto.
+func level_share(player: Player) -> float:
+	return clampf(float(player.level) / player.rules.max_level, 0.0, 1.0)

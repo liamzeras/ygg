@@ -4,6 +4,10 @@
 [ext_resource type="Script" path="res://src/gameplay/stats/attributes.gd" id="2_attrs"]
 [ext_resource type="Script" path="res://src/gameplay/abilities/fireball_ability.gd" id="3_fire"]
 [ext_resource type="Script" path="res://src/gameplay/abilities/arcane_leap_ability.gd" id="4_leap"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/fire_wisp_ability.gd" id="5_wisp"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/lava_floor_ability.gd" id="6_lava"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/fire_shield_ability.gd" id="7_shield"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/jet_flight_ability.gd" id="8_jets"]
 
 
 [sub_resource type="Resource" id="attrs"]
@@ -45,12 +49,66 @@ cost_pool = 0
 cooldown = 0.0
 scaling_attribute = 4
 
+[sub_resource type="Resource" id="wisp"]
+script = ExtResource("5_wisp")
+speed = 6.0
+mass = 0.01
+burn_duration = 10.0
+burn_heat_per_second = 20.0
+max_distance = 300.0
+display_name = "Fogo-Fátuo"
+description = "Bola de fogo lenta que só some ao bater em algo. O que ela toca queima por 10 s, seja qual for o material."
+cost = 20.0
+cost_pool = 1
+cooldown = 2.0
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="lava"]
+script = ExtResource("6_lava")
+max_side = 9.0
+max_duration = 10.0
+heat_per_second = 60.0
+reach = 12.0
+max_slope = 45.0
+display_name = "Chão de Lava"
+description = "Cobre o chão mirado de lava fervendo, que queima tudo em cima (você também). Área e duração crescem com o nível, até 9 x 9 m e 10 s."
+cost = 35.0
+cost_pool = 1
+cooldown = 10.0
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="shield"]
+script = ExtResource("7_shield")
+radius = 1.8
+duration = 3.0
+min_prop_speed = 4.0
+prop_heat = 60.0
+display_name = "Almôndega de Fogo"
+description = "Uma bola de fogo envolve você por 3 s: consome projéteis que vêm na sua direção e para objetos arremessados."
+cost = 30.0
+cost_pool = 1
+cooldown = 8.0
+scaling_attribute = 4
+
+[sub_resource type="Resource" id="jets"]
+script = ExtResource("8_jets")
+max_duration = 15.0
+fly_speed = 9.0
+boost_speed = 20.0
+boost_cost = 10.0
+display_name = "Jatos de Fogo"
+description = "Jatos nos pés para voar: ande para onde olha e segure Espaço para subir. Ctrl de novo dá um impulso na mira. Dura até 15 s, conforme o nível."
+cost = 30.0
+cost_pool = 1
+cooldown = 20.0
+scaling_attribute = 4
+
 [resource]
 script = ExtResource("1_class")
 id = &"fire"
 display_name = "Mago do Fogo"
-role = "Explosão: calor que empurra e incendeia"
-description = "O calor acumula, espalha e consome o que queima. Por enquanto só a Bola de Fogo: as outras habilidades do Fogo ainda não existem."
+role = "Fogo do alto: voa, queima e fecha o chão"
+description = "Luta de longe e pelo ar. Voa com jatos nos pés, lança a Bola de Fogo e o Fogo-Fátuo, cobre o chão de lava e consome os projéteis do inimigo com a Almôndega de Fogo."
 color = Color(1, 0.5, 0.25, 1)
 attributes = SubResource("attrs")
 body_mass = 70.0
@@ -61,4 +119,8 @@ air_control = 0.45
 hand_range = 2.2
 hold_distance = 1.4
 primary_ability = SubResource("fireball")
+secondary_ability = SubResource("wisp")
+mobility_ability = SubResource("lava")
+special_ability = SubResource("shield")
 air_jump_ability = SubResource("leap")
+utility_ability = SubResource("jets")

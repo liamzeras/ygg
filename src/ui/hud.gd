@@ -134,7 +134,7 @@ func _process(delta: float) -> void:
 			status.text = "Pronto" if ok else "%.1fs" % remaining
 			# Estado extra da habilidade (ex.: "Pedra 5s" no Soco de Pedra revestido).
 			var ability := _player.get_ability(slot)
-			if ok and ability and ability.has_method("get_status_text"):
+			if ability and ability.has_method("get_status_text"):
 				var extra: String = ability.get_status_text(_player)
 				if extra != "":
 					status.text = extra

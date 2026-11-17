@@ -93,6 +93,8 @@ var _charging := false
 var _charge := 0.0
 var _charge_hold := 0.0
 var _tremor_phase := 0.0
+var _flight_time := 0.0
+var _flight_speed := 0.0
 var _floating := false
 var _float_blocked := false
 var _float_fx: CPUParticles3D
@@ -308,6 +310,27 @@ func is_floating() -> bool:
 	return _floating
 
 
+## Voo temporário (Jatos de Fogo, design/gdd/mage-fire.md): por `duration` s não há
+## gravidade, o corpo anda para onde a câmera aponta a `speed` m/s e Espaço sobe.
+func start_flight(duration: float, speed: float) -> void:
+	_flight_time = duration
+	_flight_speed = speed
+	velocity.y = maxf(velocity.y, 0.0)
+
+
+func stop_flight() -> void:
+	_flight_time = 0.0
+
+
+func is_flying() -> bool:
+	return _flight_time > 0.0
+
+
+## Segundos de voo restantes.
+func get_flight_time() -> float:
+	return _flight_time
+
+
 ## Efeito de terreno na velocidade de movimento (ex.: lama x0,5). Vale o mais forte.
 func set_speed_effect(source: Object, factor: float) -> void:
 	_speed_effects[source] = factor
@@ -477,6 +500,7 @@ func face_point(point: Vector3) -> void:
 
 func respawn() -> void:
 	release_held()
+	stop_flight()
 	global_position = _spawn_point
 	_takeoff_y = _spawn_point.y
 	velocity = Vector3.ZERO
@@ -604,7 +628,8 @@ func _set_floating(active: bool) -> void:
 
 
 func _jump() -> void:
-	if _dash_time > 0.0:
+	# Voando, Espaço é "subir" (ver _move_flying), não pulo.
+	if _dash_time > 0.0 or is_flying():
 		return
 	if is_on_floor() or _step_hang_time > 0.0:
 		_step_hang_time = 0.0
@@ -618,7 +643,25 @@ func _update_timers(delta: float) -> void:
 		_cooldowns[slot] = maxf(_cooldowns[slot] - delta, 0.0)
 
 
+## Movimento durante o voo: sem gravidade, na direção da câmera (com inclinação); Espaço sobe.
+func _move_flying(delta: float) -> void:
+	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back") if input_enabled else Vector2.ZERO
+	var wish := camera.global_basis * Vector3(input.x, 0.0, input.y)
+	if force_jump_held or (input_enabled and Input.is_action_pressed("jump")):
+		wish += Vector3.UP
+	wish = wish.limit_length(1.0)
+	_wish = Vector3(wish.x, 0.0, wish.z)
+	_sprinting = false
+	velocity = velocity.lerp(wish * _flight_speed * get_speed_factor(), clampf(class_data.acceleration * delta, 0.0, 1.0))
+	move_and_slide()
+	_push_bodies(delta)
+	_flight_time = maxf(_flight_time - delta, 0.0)
+
+
 func _move(delta: float) -> void:
+	if is_flying():
+		_move_flying(delta)
+		return
 	if not is_on_floor() and _step_hang_time <= 0.0:
 		velocity.y -= _gravity * delta
 	if _floating:
