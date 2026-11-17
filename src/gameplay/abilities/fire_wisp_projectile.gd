@@ -20,15 +20,8 @@ func _ready() -> void:
 	max_contacts_reported = 1
 	_origin = global_position
 
-	var mesh := SphereMesh.new()
-	mesh.radius = RADIUS
-	mesh.height = RADIUS * 2.0
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = CasterLook.tint(COLOR, caster)
-	mesh.material = mat
 	var mesh_instance := MeshInstance3D.new()
-	mesh_instance.mesh = mesh
+	mesh_instance.mesh = _shared_mesh(CasterLook.is_rival_same_class(caster))
 	add_child(mesh_instance)
 
 	var shape := SphereShape3D.new()
@@ -70,3 +63,21 @@ func _burn(body: Node) -> void:
 				target.ignite()
 	Fx.burst(get_parent(), global_position, COLOR, 0.5)
 	queue_free()
+
+
+## Malha e material criados uma vez (normal e do rival) e reaproveitados por todos os fátuos.
+static var _meshes := {}
+
+
+static func _shared_mesh(rival: bool) -> Mesh:
+	if _meshes.has(rival):
+		return _meshes[rival]
+	var mesh := SphereMesh.new()
+	mesh.radius = RADIUS
+	mesh.height = RADIUS * 2.0
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = COLOR.darkened(CasterLook.RIVAL_DARKEN) if rival else COLOR
+	mesh.material = mat
+	_meshes[rival] = mesh
+	return mesh
