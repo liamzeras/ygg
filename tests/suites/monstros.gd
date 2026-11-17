@@ -222,7 +222,13 @@ func _test_flying_targets() -> void:
 	_check(alive <= arena.MAX_TARGETS, "nunca mais que %d alvos (%d)" % [arena.MAX_TARGETS, alive])
 
 	# Dardo cheio acerta um alvo parado de propósito; o dano entra no combo do boneco.
+	# Os outros alvos saem: nascem em ângulo aleatório e os da mesma órbita passavam na
+	# frente do dardo (falha intermitente, ~1 em 10 rodadas). Assim o acerto é sempre do alvo certo.
 	var shot: FlyingTarget = arena.flying_targets.back()
+	for other in arena.flying_targets:
+		if other != shot and is_instance_valid(other):
+			other.queue_free()
+	arena.flying_targets.assign([shot])
 	shot.orbit_speed = 0.0
 	await _frames(5)
 	player.global_position = Vector3(shot.global_position.x, 0.05, shot.global_position.z) + Vector3(0, 0, 6)
@@ -235,5 +241,5 @@ func _test_flying_targets() -> void:
 	await _frames(1)
 	player.request_action(Player.ACTION_PRIMARY_RELEASE)
 	await _frames(25)
-	_check(shot.hit_count > 0 and dummy.combo_damage > 10.0, "dardo acerta o alvo voador (%.1f de dano no combo)" % dummy.combo_damage)
+	_check(shot.hit_count > 0 and dummy.combo_damage > 10.0, "dardo acerta o alvo voador (%d acerto(s), %.1f de dano no combo)" % [shot.hit_count, dummy.combo_damage])
 	await _unload(arena)
