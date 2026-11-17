@@ -11,6 +11,8 @@ signal hint_changed(text: String, can_interact: bool)
 signal action_failed(reason: String)
 signal ability_used(slot: StringName)
 signal floating_changed(active: bool)
+## O kit mudou (trava da Zona Nula entrou ou saiu): o HUD refaz a lista de habilidades.
+signal abilities_changed
 
 ## Vigor = esforço físico. Mana = magia. Todo personagem tem os dois.
 enum Pool { STAMINA, MANA }
@@ -26,6 +28,9 @@ const SLOT_UTILITY := &"utility"
 const SLOT_AIR_JUMP := &"air_jump"
 const SLOT_FLOAT := &"float"
 const ACTION_GRAB := &"grab"
+const EFFECT_JUMP := &"jump"
+const EFFECT_HASTE := &"haste"
+const EFFECT_WEIGHT := &"weight"
 const ACTION_JUMP := &"jump"
 ## Soltar o botão esquerdo: dispara uma habilidade carregável.
 const ACTION_PRIMARY_RELEASE := &"primary_release"
@@ -100,6 +105,9 @@ var _float_blocked := false
 var _float_fx: CPUParticles3D
 var _takeoff_y := 0.0
 var _speed_effects := {}
+var _effects := {}
+var _ability_locks := {}
+var _dash_vertical := false
 ## Suaviza a câmera ao subir um degrau (o corpo sobe na hora, a visão acompanha).
 var _step_offset := 0.0
 var _step_offset_speed := 0.0
@@ -240,6 +248,10 @@ func get_move_direction() -> Vector3:
 
 
 func get_ability(slot: StringName) -> Ability:
+	# Com o kit travado (Zona Nula), só vale o que a trava oferece para este espaço.
+	if not _ability_locks.is_empty():
+		var overrides: Dictionary = _ability_locks.values().back()
+		return overrides.get(slot) as Ability
 	match slot:
 		SLOT_PRIMARY: return class_data.primary_ability
 		SLOT_MOBILITY: return class_data.mobility_ability
@@ -348,6 +360,44 @@ func get_speed_factor() -> float:
 	return factor
 
 
+## Efeitos temporários de outras fontes (ex.: Gravidade dos Sonhos). Tipos: EFFECT_JUMP
+## (altura do pulo), EFFECT_HASTE (recargas mais curtas) e EFFECT_WEIGHT (gravidade).
+## Fator 1 = normal; vale o mais forte de cada tipo.
+func set_effect(kind: StringName, source: Object, factor: float) -> void:
+	if not _effects.has(kind):
+		_effects[kind] = {}
+	_effects[kind][source] = factor
+
+
+func clear_effect(kind: StringName, source: Object) -> void:
+	if _effects.has(kind):
+		_effects[kind].erase(source)
+
+
+func get_effect(kind: StringName) -> float:
+	var factor := 1.0
+	for value: float in _effects.get(kind, {}).values():
+		factor = maxf(factor, value)
+	return factor
+
+
+## Trava o kit (Zona Nula, design/gdd/mage-gravity.md): enquanto houver trava, cada espaço
+## só tem a habilidade que `overrides` oferecer ({espaço: Ability}); vazio = nenhuma.
+func set_ability_lock(source: Object, overrides: Dictionary) -> void:
+	_ability_locks[source] = overrides
+	cancel_charge()
+	abilities_changed.emit()
+
+
+func clear_ability_lock(source: Object) -> void:
+	if _ability_locks.erase(source):
+		abilities_changed.emit()
+
+
+func is_ability_locked() -> bool:
+	return not _ability_locks.is_empty()
+
+
 ## Altura (y) do último chão em que o jogador pisou. Base do teto do pulo duplo.
 func get_takeoff_height() -> float:
 	return _takeoff_y
@@ -419,7 +469,7 @@ func use_ability(slot: StringName, charge := -1.0) -> bool:
 		return false
 	spend(ability.cost_pool, cost)
 	if not debug_no_cooldowns:
-		_cooldowns[slot] = ability.cooldown / (stats.attack_speed if slot == SLOT_PRIMARY else 1.0)
+		_cooldowns[slot] = ability.cooldown / ((stats.attack_speed if slot == SLOT_PRIMARY else 1.0) * get_effect(EFFECT_HASTE))
 	if charge >= 0.0:
 		ability.activate_charged(self, charge)
 	else:
@@ -434,7 +484,14 @@ func spend(pool: Pool, amount: float) -> void:
 	_regen_wait[pool] = class_data.regen_delay
 
 
-func start_dash(dash_velocity: Vector3, duration: float, impact: float, source: String) -> void:
+## Devolve recurso (ex.: golpe de graça), sem passar do máximo.
+func refund(pool: Pool, amount: float) -> void:
+	_pools[pool] = minf(_pools[pool] + amount, get_pool_max(pool))
+
+
+## `vertical`: a arrancada também leva a componente vertical de `dash_velocity` (Gravidash).
+func start_dash(dash_velocity: Vector3, duration: float, impact: float, source: String, vertical := false) -> void:
+	_dash_vertical = vertical
 	_dash_velocity = dash_velocity
 	_dash_time = duration
 	_dash_impact = impact
@@ -543,6 +600,9 @@ func _process_queue() -> void:
 				# E pega; segurando qualquer coisa, E arremessa.
 				if is_instance_valid(held_body):
 					_throw()
+				elif get_ability(ACTION_GRAB):
+					# Kit travado com um agarrar próprio (Zona Nula).
+					use_ability(ACTION_GRAB)
 				else:
 					_grab()
 			SLOT_PRIMARY:
@@ -633,7 +693,7 @@ func _jump() -> void:
 		return
 	if is_on_floor() or _step_hang_time > 0.0:
 		_step_hang_time = 0.0
-		velocity.y = sqrt(2.0 * _gravity * stats.jump_height)
+		velocity.y = sqrt(2.0 * _gravity * stats.jump_height * get_effect(EFFECT_JUMP))
 	elif is_air_jump_available() and use_ability(SLOT_AIR_JUMP):
 		_air_jump_used = true
 
@@ -663,7 +723,7 @@ func _move(delta: float) -> void:
 		_move_flying(delta)
 		return
 	if not is_on_floor() and _step_hang_time <= 0.0:
-		velocity.y -= _gravity * delta
+		velocity.y -= _gravity * get_effect(EFFECT_WEIGHT) * delta
 	if _floating:
 		velocity.y = maxf(velocity.y, -class_data.float_ability.max_fall_speed)
 
@@ -677,6 +737,8 @@ func _move(delta: float) -> void:
 	if _dash_time > 0.0:
 		velocity.x = _dash_velocity.x
 		velocity.z = _dash_velocity.z
+		if _dash_vertical:
+			velocity.y = _dash_velocity.y
 	else:
 		var speed := stats.sprint_speed if _sprinting else stats.walk_speed
 		speed *= get_speed_factor()
@@ -788,6 +850,9 @@ func _update_step_camera(delta: float) -> void:
 ## Acaba o dash: o excesso de velocidade some (senão, no ar, ele continuaria voando).
 func _end_dash() -> void:
 	_dash_time = 0.0
+	if _dash_vertical:
+		velocity.y = clampf(velocity.y, -stats.sprint_speed, stats.sprint_speed * 0.5)
+		_dash_vertical = false
 	var horizontal := Vector2(velocity.x, velocity.z).limit_length(stats.sprint_speed)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.y

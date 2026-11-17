@@ -35,6 +35,7 @@ var _strafe_timer := 0.0
 var _dash_timer := 0.0
 var _dash_time := 0.0
 var _dash_velocity := Vector3.ZERO
+var _speed_effects := {}
 var _charging := false
 var _charge_goal := 0.0
 var _charge_time := 0.0
@@ -76,6 +77,23 @@ func register_hit(source: String, impulse: float) -> void:
 
 func add_heat(amount: float) -> void:
 	health.add_heat(amount)
+
+
+## Efeito de terreno ou magia na velocidade (lama, Gravidade dos Sonhos). Vale o mais forte.
+## Mesma interface do Player.
+func set_speed_effect(source: Object, factor: float) -> void:
+	_speed_effects[source] = factor
+
+
+func clear_speed_effect(source: Object) -> void:
+	_speed_effects.erase(source)
+
+
+func get_speed_factor() -> float:
+	var factor := 1.0
+	for value: float in _speed_effects.values():
+		factor = minf(factor, value)
+	return factor
 
 
 func apply_knockback(impulse: Vector3) -> void:
@@ -189,7 +207,7 @@ func _update_movement(delta: float, flat: Vector3, sees: bool) -> void:
 	var sprinting := distance > profile.sprint_range and _stamina > 0.0
 	if sprinting:
 		_stamina = maxf(_stamina - class_data.sprint_cost * delta, 0.0)
-	var speed := stats.sprint_speed if sprinting else stats.walk_speed
+	var speed := (stats.sprint_speed if sprinting else stats.walk_speed) * get_speed_factor()
 	var accel := class_data.acceleration * (1.0 if is_on_floor() else class_data.air_control)
 	var horizontal := Vector2(velocity.x, velocity.z).lerp(Vector2(wish.x, wish.z) * speed, clampf(accel * delta, 0.0, 1.0))
 	velocity.x = horizontal.x

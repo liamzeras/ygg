@@ -87,10 +87,8 @@ func bind_player(player: Player) -> void:
 	fill.set_corner_radius_all(3)
 	_bar.add_theme_stylebox_override("fill", fill)
 
-	for slot in Player.SLOTS + [Player.SLOT_AIR_JUMP, Player.SLOT_FLOAT]:
-		var ability := player.get_ability(slot)
-		if ability:
-			_add_slot(slot, ability.display_name)
+	_rebuild_slots()
+	player.abilities_changed.connect(_rebuild_slots)
 	player.pool_changed.connect(_on_pool_changed)
 	player.stats_changed.connect(_on_stats_changed)
 	player.hint_changed.connect(_on_hint_changed)
@@ -194,6 +192,18 @@ func _make_bar(color: Color) -> ProgressBar:
 	fill.set_corner_radius_all(3)
 	bar.add_theme_stylebox_override("fill", fill)
 	return bar
+
+
+## Refaz a lista de habilidades (no início e quando o kit troca, como na Zona Nula).
+func _rebuild_slots() -> void:
+	for row in _slot_box.get_children():
+		_slot_box.remove_child(row)
+		row.queue_free()
+	_slot_status.clear()
+	for slot in Player.SLOTS + [Player.SLOT_AIR_JUMP, Player.SLOT_FLOAT, Player.ACTION_GRAB]:
+		var ability := _player.get_ability(slot)
+		if ability:
+			_add_slot(slot, ability.display_name)
 
 
 func _on_stats_changed() -> void:

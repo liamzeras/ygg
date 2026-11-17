@@ -8,6 +8,11 @@ const ARENA := "res://src/levels/test_arena.tscn"
 const CLASSES: Array[PlayerClassData] = [
 	preload("res://assets/data/classes/fire.tres"),
 	preload("res://assets/data/classes/earth.tres"),
+	preload("res://assets/data/classes/gravity.tres"),
+]
+
+## Fichas que não aparecem no menu (o bot do F6 usa o Psiônico). `find_class` também as acha.
+const HIDDEN_CLASSES: Array[PlayerClassData] = [
 	preload("res://assets/data/classes/psionic.tres"),
 ]
 
@@ -23,7 +28,7 @@ func _ready() -> void:
 
 
 func find_class(id: String) -> PlayerClassData:
-	for data in CLASSES:
+	for data in CLASSES + HIDDEN_CLASSES:
 		if String(data.id) == id:
 			return data
 	return null
