@@ -40,8 +40,14 @@ transforma um pedaço da arena em relevo, com estalagmites e pedras soltas, e jo
   quando existir), o impulso dobra. O objeto não perde velocidade artificial: voa com a energia que recebeu
   e, ao bater em algo, causa dano por massa x velocidade (regra que já existe nos objetos).
 - **Personagem ou boneco:** toma dano pelo impulso (regra de dano já existente) e é empurrado.
-- **Superfície que não se move** (parede, chão, pilar, relevo do Terremoto): reveste o membro de pedra
-  por alguns segundos. O soco reveste as mãos e o chute reveste os pés, separadamente.
+- **Construção da Terra** (pilar da Escada, coluna do Terremoto), playtest de 2026-11-17: racha em estágios
+  (inteiro, 3 rachados, pedaços). Cada `break_impulse` N·s de golpe avança um estágio; nos rachados sai uma
+  lasca pelo lado oposto ao golpe; no último o pilar some e vira `chunk_count` blocos de pedra arremessados na
+  direção do golpe. Como é pedra, também reveste o membro. Valores em `StoneBreakRules` (earth.tres).
+  Provisório até o mundo ter a propriedade "quebrável" (frente gameplay); depois os pilares usam a dela.
+- **Superfície que não se move** de terra ou pedra (lei da Terra, `earth_workable`): reveste o membro de pedra
+  por alguns segundos. O soco reveste as mãos e o chute reveste os pés, separadamente. Madeira e metal fixos
+  não revestem.
 - **Revestido:** o golpe tem mais alcance e mais impulso. Golpear o ar arremessa um pedregulho de pedra
   na direção da mira (soco) ou rasteiro (chute). O pedregulho é um objeto de pedra comum: pode ser pego,
   socado de novo e some depois de alguns segundos.
@@ -84,7 +90,7 @@ Com Força humana (1x), o soco no boneco dá (140 − 10) x 0,1 = 13 de dano; re
 
 - Segurando um objeto: E arremessa. O botão esquerdo continua arremessando o que a Telecinese segura.
   Com as mãos ocupadas, soco e chute não saem.
-- Golpe na própria escada ou no relevo do Terremoto: conta como superfície fixa e reveste.
+- Golpe na própria escada ou no relevo do Terremoto: racha a construção e reveste.
 - Terremoto no nível 1: a área é menor que 1 m², então vira uma coluna só.
 - Terremoto mirando o céu ou uma rampa íngreme: bloqueado sem gastar Mana ("Precisa de chão firme").
 - Revestimento acaba no meio do golpe: vale o estado na hora do golpe.
@@ -107,11 +113,14 @@ alturas, chance de estalagmite, pedregulhos e duração do Terremoto.
 1. Soco num bloco de pedra o lança com o dobro do impulso de uma caixa de madeira de mesma massa.
 2. Soco não atinge uma caixa no chão; chute atinge. Os dois atingem o boneco.
 3. Socar a parede reveste as mãos; depois disso, socar o ar arremessa um pedregulho, e sem revestimento não.
+   Socar parede de madeira não reveste.
 4. Revestido, o soco no boneco dá mais dano que sem revestimento.
 5. Terremoto no nível 99 cobre 9 x 9 m; no nível 50, cerca de metade da área.
 6. Terremoto joga para cima e fere o boneco e as caixas na área, e não fere quem lançou.
 7. Relevo com alturas entre 0,2 e 2 m e pelo menos uma estalagmite no tamanho máximo; tudo some depois de 5 s.
 8. Nenhuma classe tem dash; E pega e arremessa em todas.
+- Socos seguidos num pilar de pedra o racham e, no fim, o desfazem em blocos que voam na direção do golpe.
+- Escada, Lamaçal e Terremoto só nascem sobre terra ou pedra (lei da Terra); a massa do pilar vem de stone.tres.
 
 ## Medido no teste automático (2026-11-16)
 

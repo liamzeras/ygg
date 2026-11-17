@@ -3,7 +3,7 @@ extends Node3D
 ## Queimadura forçada (Fogo-Fátuo, design/gdd/mage-fire.md): o alvo fica em chamas por
 ## `duration` s, seja qual for o material. Quem sabe receber calor (`add_heat` no próprio
 ## corpo ou no filho `Health`) recebe `heat_per_second`. Só uma por alvo: queimar de novo
-## reinicia o tempo.
+## reinicia o tempo. Sem ar (lama), apaga: ver `extinguish_on` e MudPatch.
 
 const NODE_NAME := "BurnEffect"
 
@@ -42,7 +42,12 @@ func _physics_process(delta: float) -> void:
 	if _time >= duration:
 		queue_free()
 		return
-	var receiver := heat_receiver_of(get_parent())
+	var target := get_parent()
+	# Lei do Fogo: sem ar, a queimadura apaga (lama, e no futuro água).
+	if target.has_method("get_air") and float(target.get_air()) <= 0.0:
+		queue_free()
+		return
+	var receiver := heat_receiver_of(target)
 	if receiver:
 		receiver.add_heat(heat_per_second * delta)
 
@@ -55,3 +60,10 @@ static func heat_receiver_of(node: Node) -> Node:
 		return node
 	var health := node.get_node_or_null("Health")
 	return health if health and health.has_method("add_heat") else null
+
+
+## Apaga a queimadura de `target`, se houver (zona sem ar sobre um personagem).
+static func extinguish_on(target: Node) -> void:
+	var effect := of(target)
+	if effect:
+		effect.queue_free()

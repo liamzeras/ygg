@@ -5,7 +5,10 @@ extends Ability
 ## o chute da cintura para baixo. Atinge o alvo mais próximo:
 ## - personagem ou boneco: dano pelo impulso e empurrão;
 ## - objeto solto: impulso (x2 se o material for de terra); ele voa e conserva a energia;
-## - superfície fixa: reveste o membro de pedra por `coat_duration` s (mais alcance e impulso).
+## - construção da Terra (pilar, coluna): racha em estágios e solta pedaços na direção do golpe
+##   (ver StoneBreakRules); também reveste o membro, porque é pedra;
+## - superfície fixa de terra ou pedra (PropMaterial.earth_workable): reveste o membro de pedra
+##   por `coat_duration` s (mais alcance e impulso). Madeira e metal fixos não revestem.
 ## Revestido, golpear o ar arremessa um pedregulho de pedra.
 ## Impulso = base_impulse x mult(Força) x (earth_multiplier) x (coated_multiplier).
 
@@ -63,7 +66,7 @@ func strike_impulse(player: Player, target: Object) -> float:
 	var impulse := base_impulse * power(player)
 	if is_coated(player):
 		impulse *= coated_multiplier
-	if target is PhysicsProp and earth_materials.has((target as PhysicsProp).material_data):
+	if target is Node and earth_materials.has(PropMaterial.of(target as Node)):
 		impulse *= earth_multiplier
 	return impulse
 
@@ -92,8 +95,14 @@ func activate(player: Player) -> void:
 		(target as RigidBody3D).apply_central_impulse(direction * impulse)
 		player.add_shake(0.25)
 	else:
-		player.set_meta(_coat_meta(), _now() + coat_duration)
-		Fx.burst(player.get_parent(), _band_center(player, 0.6), StonePillar.COLOR, 0.4)
+		# Construção da Terra (pilar, coluna): racha e solta pedaços na direção do golpe.
+		if target.has_method("take_strike"):
+			target.take_strike(impulse, direction, _band_center(player, Player.BODY_RADIUS + reach))
+		# Lei da Terra: só reveste o membro se a superfície for terra ou pedra.
+		var material := PropMaterial.of(target as Node)
+		if material and material.earth_workable:
+			player.set_meta(_coat_meta(), _now() + coat_duration)
+			Fx.burst(player.get_parent(), _band_center(player, 0.6), StonePillar.COLOR, 0.4)
 		player.add_shake(0.35)
 
 

@@ -91,6 +91,9 @@ func _add_pillar(ground: Vector3, width: float, height: float, spike: bool) -> S
 	pillar.lifetime = ability.lifetime + 10.0
 	pillar.sink_time = ability.sink_time
 	pillar.impact_transfer = 0.0
+	pillar.quiet = true
+	pillar.breaking = ability.breaking
+	pillar.caster = caster
 	get_parent().add_child(pillar)
 	pillar.start(ground, global_basis * Vector3.FORWARD)
 	if spike:
@@ -99,10 +102,9 @@ func _add_pillar(ground: Vector3, width: float, height: float, spike: bool) -> S
 		cone.top_radius = 0.0
 		cone.bottom_radius = width * 0.7
 		cone.height = width * 1.5
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = StonePillar.COLOR
-		mat.roughness = 1.0
-		cone.material = mat
+		cone.radial_segments = 8
+		cone.rings = 1
+		cone.material = StonePillar.stone_material(CasterLook.is_rival_same_class(caster))
 		tip.mesh = cone
 		tip.position.y = cone.height / 2.0
 		pillar.add_child(tip)

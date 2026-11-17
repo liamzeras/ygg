@@ -43,17 +43,23 @@ sozinha; a lava fecha um pedaço da arena; e a Almôndega transforma o tiro do i
 
 - Nasce no chão mirado (precisa de chão firme, como o Terremoto).
 - Área e duração crescem em partes iguais por nível: até 9 x 9 m e até 10 s no nível 99.
-- Tudo que estiver em cima recebe calor por segundo, **inclusive quem lançou**. Objetos inflamáveis pegam fogo.
+- Tudo que estiver em cima recebe calor por segundo, **menos quem lançou** (regra do Liam, playtest de
+  2026-11-17: o mago nunca se machuca com as próprias magias de fogo). Objetos inflamáveis pegam fogo.
+- É uma zona de calor do mundo (`HeatZone`): coberta por lama (zona sem ar), para de aquecer.
 - Uma lava por vez: lançar outra apaga a anterior.
 
 ### Almôndega de Fogo (F)
 
 - Uma bola de fogo envolve o mago por alguns segundos.
+- **Absorve todo dano que vem de fora** (playtest de 2026-11-17): enquanto dura, o mago não perde vida.
+- **Queima quem está dentro**, menos o mago: `inside_heat_per_second` de calor por segundo em personagens,
+  boneco e objetos dentro da bola.
 - Projéteis mágicos (Bola de Fogo, Fogo-Fátuo, Dardo Cinético) que entram nela vindo na direção do mago são
   consumidos: somem sem explodir nem causar dano.
 - Objetos soltos que chegam rápido (pedregulhos, caixas arremessadas) são parados e aquecidos.
 - Os projéteis do próprio mago saem normalmente, porque se afastam dele.
-- Não protege de golpes corpo a corpo, explosões já em andamento, lava ou Terremoto.
+- Provisório: a proteção do mago usa a invencibilidade da vida (frente monstros), então hoje também bloqueia
+  golpes de quem está dentro da bola. Falta um filtro de dano por origem (pedido à frente monstros).
 
 ## 4. Formulas
 
@@ -76,6 +82,11 @@ Exemplo no nível 50: voo de 7,6 s; lava de 6,4 x 6,4 m por 5,1 s.
 
 ## 5. Edge Cases
 
+- Outro mago de fogo: o fogo dele queima o jogador e o do jogador queima ele. A magia de um rival da mesma
+  classe aparece levemente mais escura (`CasterLook.RIVAL_DARKEN`), para distinguir do próprio fogo.
+- Bola de Fogo explodindo no próprio pé: não fere nem empurra quem lançou.
+- Caixa acesa pela lava do mago e queimando perto dele: é fogo do mundo, não da magia, e queima (pergunta
+  aberta ao Liam).
 - Nível 1: o voo dura 0,15 s e a lava 0,1 s numa área de 0,9 x 0,9 m. É o resultado da regra linear pedida;
   vale revisar um piso mínimo no playtest.
 - Voo acaba no ar: o mago cai com a gravidade normal (sem dano de queda hoje).
@@ -104,5 +115,6 @@ duração da Almôndega, custos e recargas.
 3. Fogo-Fátuo continua existindo depois de 10 s no ar e some ao bater.
 4. Fogo-Fátuo no boneco causa dano de fogo ao longo de 10 s; num bloco de pedra, deixa-o em chamas por 10 s.
 5. Chão de Lava no nível 99 mede 9 x 9 m e dura 10 s; causa dano de fogo no boneco e acende caixa de madeira.
-6. Almôndega consome um Dardo Cinético e uma Bola de Fogo que vêm na direção do mago, sem dano.
-7. Com a Almôndega ativa, a Bola de Fogo do próprio mago sai normalmente.
+. Em cima da própria lava, o mago não perde vida; o boneco na mesma lava queima. Lama sobre a lava abafa o calor.
+9. A própria Bola de Fogo explodindo no pé não fere o mago.
+10. Com a Almôndega, explosão de fora não fere o mago; o boneco dentro da bola queima.

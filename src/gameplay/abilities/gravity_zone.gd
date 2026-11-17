@@ -23,7 +23,7 @@ func _ready() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = color
+	mat.albedo_color = CasterLook.tint(color, caster)
 	mesh.material = mat
 	var instance := MeshInstance3D.new()
 	instance.mesh = mesh

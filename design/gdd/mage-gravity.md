@@ -37,8 +37,12 @@ troca tudo isso por uma luta "na mão", onde as magias de todo mundo deixam de e
 
 - Primeira conjuração: cria um mini buraco negro no ponto mirado (ou a `spawn_distance` m, se não houver nada).
   Ele puxa objetos soltos e personagens próximos para o centro, menos quem lançou.
-- Segunda conjuração, com o Mibune ativo: arremessa o Mibune na direção da mira, em alta velocidade. Ele
-  continua puxando o que encontra pelo caminho e atravessa paredes.
+- Segunda conjuração, com o Mibune ativo (playtest de 2026-11-17): o Mibune sai da frente do mago
+  (`launch_offset` m à frente da mira) e dispara rápido na direção da mira, como um projétil. Ele continua
+  puxando o que encontra pelo caminho e atravessa paredes.
+- Lei da Gravidade: o Mibune é uma área de gravidade do mundo (gravidade para o centro, somada à do lugar).
+  Objetos soltos caem para ele e mudam de peso. Monstros recebem o mesmo puxão direto do Mibune. **Magos não**
+  (nem quem lançou, nem outros magos): o corpo de um mago só muda pelas próprias habilidades (Liam, 2026-11-17).
 - Some depois de `lifetime` s. Não causa dano direto: o dano vem das colisões do que ele arrasta.
 
 ### Gravidade dos Sonhos (Q)
@@ -46,6 +50,11 @@ troca tudo isso por uma luta "na mão", onde as magias de todo mundo deixam de e
 - Zona quadrada em volta do mago, fixa no chão, com área em partes iguais por nível até 9 x 9 m.
 - Adversários dentro ficam mais lentos e mais pesados; o mago, dentro, pula mais alto e tem recargas mais
   curtas. A proporção é a mesma nos quatro efeitos (`strength`).
+- Lei da Gravidade: a zona também é área de gravidade do mundo (gravidade x (1 + `strength`)). Objetos soltos
+  dentro pesam mais e caem mais rápido, para todos, inclusive os do mago.
+- Outros magos dentro da zona ficam mais lentos, mas **não mais pesados**; o peso extra vale só para monstros
+  (Liam, 2026-11-17: o mago só muda de peso pelas próprias habilidades). Ficar mais lento continua valendo
+  (pergunta aberta ao Liam).
 - Dura `duration` s. Uma por vez.
 
 ### Gravidash (Ctrl)
@@ -76,13 +85,13 @@ troca tudo isso por uma luta "na mão", onde as magias de todo mundo deixam de e
 |---|---|
 | Impulso do Push-Pull (N·s) | `base_impulse x mult(Inteligência)` |
 | Rebate projétil se | `impulso do Push-Pull >= impulso do projétil` (massa x velocidade x escala mágica x poder) |
-| Puxão do Mibune (m/s²) | `pull_acceleration x (1 − distância / raio)` |
+| Puxão do Mibune (m/s²) | `pull_acceleration x mult(Inteligência)`, igual em todo o raio (área de gravidade) |
 | Área das zonas (m²) | `max_side² x parte(nível)`; lado = raiz(área) |
 | Gravidade dos Sonhos | adversário: velocidade x (1 − strength), gravidade x (1 + strength); mago: altura do pulo x (1 + strength), recarga / (1 + strength) |
 | Gravidash | `distance / duration` m/s por `duration` s |
 
 Valores iniciais (a ajustar no playtest): Push-Pull com `base_impulse` 120, alcance 15 m, empurra até 4 m,
-12 de Mana, recarga 0,5 s. Mibune com raio 5 m, puxão 30 m/s², arremesso a 25 m/s, 5 s de vida, 30 de Mana,
+12 de Mana, recarga 0,5 s. Mibune com raio 5 m, puxão 15 m/s², disparo a 35 m/s saindo a 1,2 m da mira, 5 s de vida, 30 de Mana,
 recarga 6 s. Gravidade dos Sonhos com `strength` 0,4 por 6 s, 30 de Mana, recarga 12 s. Gravidash de 4 m em
 0,2 s, 15 de Vigor, recarga 4 s. Zona Nula por 8 s, mínimo de 20 de Mana, recarga 20 s. Socos 140 e chutes
 170 de impulso, como os da Terra sem pedra.
@@ -117,6 +126,7 @@ Mibune, força e duração das zonas, distância do Gravidash, custos e recargas
 1. Push-Pull empurra uma caixa a 2 m e puxa uma caixa a 8 m.
 2. Push-Pull rebate um Dardo Cinético fraco que vem na direção do mago e não rebate um forte demais.
 3. Mibune puxa uma caixa próxima; a segunda conjuração o arremessa a mais de 15 m/s; some no tempo de vida.
+   A segunda conjuração o faz sair a menos de 2,7 m da frente do mago, na direção da mira atual.
 4. Na Gravidade dos Sonhos, o mago pula mais alto que fora dela, e a zona no nível 99 mede 9 x 9 m.
 5. Gravidash sai duas vezes seguidas e a terceira é bloqueada pela recarga; com Espaço, sobe.
 6. Zona Nula zera a Mana, troca o kit por socos e chutes, e um projétil que entra some.

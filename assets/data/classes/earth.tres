@@ -9,6 +9,16 @@
 [ext_resource type="Script" path="res://src/gameplay/abilities/earthquake_ability.gd" id="8_quake"]
 [ext_resource type="Resource" path="res://assets/data/materials/stone.tres" id="10_stone"]
 [ext_resource type="Resource" path="res://assets/data/materials/metal.tres" id="11_metal"]
+[ext_resource type="Script" path="res://src/gameplay/abilities/stone_break_rules.gd" id="12_break"]
+
+[sub_resource type="Resource" id="break"]
+script = ExtResource("12_break")
+material = ExtResource("10_stone")
+break_impulse = 120.0
+chunk_count = 4
+chip_size = 0.3
+throw_share = 0.8
+chunk_lifetime = 8.0
 
 [sub_resource type="Resource" id="attrs"]
 script = ExtResource("2_attrs")
@@ -80,10 +90,12 @@ aimed_step = 1
 rise_time = 0.35
 lifetime = 8.0
 sink_time = 0.6
+breaking = SubResource("break")
 stone_density = 350.0
 impact_transfer = 0.05
 reach = 12.0
 max_slope = 45.0
+needs_earth = true
 display_name = "Escada de Pedra"
 description = "Ergue uma escada de 3 pilares; o do meio nasce no chão mirado. Segure W para subir os degraus. Objetos em cima são arremessados."
 cost = 30.0
@@ -108,8 +120,10 @@ sink_time = 0.6
 base_damage_impulse = 250.0
 launch_impulse = 420.0
 launch_speed = 6.0
+breaking = SubResource("break")
 reach = 12.0
 max_slope = 45.0
+needs_earth = true
 display_name = "Terremoto"
 description = "Ergue um pedaço de chão em relevo, com estalagmites e pedras soltas, e joga para cima quem está ali. Cresce com o nível, até 9 x 9 m. Some em 5 s."
 cost = 40.0
@@ -126,6 +140,7 @@ cooling = 50.0
 character_speed = 0.5
 reach = 12.0
 max_slope = 45.0
+needs_earth = true
 display_name = "Lamaçal"
 description = "Amolece o chão mirado: objetos param, fogo apaga e quem pisa (você também) fica lento."
 cost = 25.0

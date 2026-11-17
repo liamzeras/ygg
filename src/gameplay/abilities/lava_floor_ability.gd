@@ -1,7 +1,7 @@
 class_name LavaFloorAbility
 extends TerrainAbility
 ## Fogo — Chão de Lava (design/gdd/mage-fire.md): poça de lava no chão mirado que aquece tudo
-## que está em cima, inclusive quem lançou. Área e duração crescem em partes iguais por nível:
+## que está em cima, menos quem lançou. Área e duração crescem em partes iguais por nível:
 ## área = max_side² x nível / nível máximo; duração = max_duration x nível / nível máximo.
 ## Calor por segundo = heat_per_second x mult(atributo). Só uma por vez.
 
@@ -34,6 +34,7 @@ func activate(player: Player) -> void:
 	pool.side = side(player)
 	pool.duration = duration(player)
 	pool.heat_per_second = heat_per_second * power(player)
+	pool.caster = player
 	player.get_parent().add_child(pool)
 	pool.global_transform = Transform3D(Basis.looking_at(player.get_flat_forward(), Vector3.UP), ground.position)
 	_active = pool

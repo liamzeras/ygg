@@ -16,6 +16,7 @@ func activate(player: Player) -> void:
 	var direction := player.get_aim_direction()
 	var wisp := FireWispProjectile.new()
 	wisp.ability = self
+	wisp.caster = player
 	wisp.mass = mass
 	wisp.power = power(player)
 	player.get_parent().add_child(wisp)

@@ -6,6 +6,8 @@ const RADIUS := 0.2
 const COLOR := Color(0.55, 0.9, 1.0)
 
 var ability: FireWispAbility
+## Quem lançou (para a cor do rival da mesma classe).
+var caster: Node3D
 
 var _origin := Vector3.ZERO
 var _done := false
@@ -23,7 +25,7 @@ func _ready() -> void:
 	mesh.height = RADIUS * 2.0
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = COLOR
+	mat.albedo_color = CasterLook.tint(COLOR, caster)
 	mesh.material = mat
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.mesh = mesh
