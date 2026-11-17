@@ -10,3 +10,5 @@ spread_speed = 1.5
 small_piece_size = 0.25
 piece_layer = 2
 piece_mask = 1
+max_explosions_per_frame = 1
+max_bursts_per_frame = 3

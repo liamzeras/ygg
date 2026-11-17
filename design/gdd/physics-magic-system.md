@@ -54,7 +54,9 @@ linha, o lado que ajuda e o lado que pune.
    lama e, no futuro, água) **apagam** o que queima dentro, **impedem o calor de entrar** e impedem de acender.
    Uma fonte de calor (braseiro) tocada por uma zona sem ar também para de aquecer enquanto estiver tocada.
    No mesmo tick, vale o menor ar: **sem ar sempre vence o fogo**, não importa a ordem.
-6. Pólvora em chamas: após `fuse_time`, explode. Apagar para o pavio.
+6. Pólvora em chamas: após `fuse_time` (com variação de até `fuse_jitter`, 10%, para mais ou para menos), explode.
+   Apagar para o pavio. **No máximo `max_explosions_per_frame` (1) explosão por quadro;** as outras esperam o
+   quadro seguinte (alguns ms). Barris acesos juntos explodem em sequência, não todos no mesmo quadro.
 7. **Pedra e metal guardam calor:** não queimam, mas acumulam calor até `max_heat` e perdem devagar
    (`heat_decay`). Acima de `radiate_threshold`, aquecem os vizinhos no raio `radiate_radius` e **perdem o calor
    que entregam** (o calor não se multiplica entre duas pedras). A cor vai para o vermelho conforme o calor.
@@ -104,7 +106,8 @@ Pedido do Liam (2026-11-17): todo objeto tem a propriedade quebrável. Até aqui
    brasas), o fogo e a **fração de combustível** que sobrou (queimado pela metade continua queimado pela metade).
 9. **Pólvora não vira pedaços:** barril quebrado explode na hora.
 10. **Pedaços não quebram de novo.** Somem após `piece_lifetime` (8 s). Com mais de `max_pieces` (40) vivos, os
-    mais antigos somem primeiro.
+    mais antigos somem primeiro. Pedaço que some vai para uma **reserva** (escondido, sem colisão) e volta como
+    pedaço de outro objeto: quebrar não cria nós novos. A reserva (`max_pieces`) é criada quando a cena carrega.
 11. **Física simplificada (desempenho):** pedaços ficam na camada de colisão 2. Colidem com o mundo, os objetos e
     os personagens, mas **não entre si**, e o mago anda através deles sem tropeçar. Pedaços com o maior lado
     abaixo de `small_piece_size` (0,25 m) não recebem calor e não avisam contato.
@@ -112,6 +115,10 @@ Pedido do Liam (2026-11-17): todo objeto tem a propriedade quebrável. Até aqui
     `material.hit_damage()` e `material.stage_for()` para os estágios, e `PhysicsProp.spawn_pieces()` para
     virar pedaços. O material delas é a **pedra moldada** (`earth_construct.tres`). Ela é igual à pedra, mas
     `break_toughness` 0,35, para que um pilar de uma tonelada caia em 6 socos de pedra.
+13. **Poeira por quadro:** no máximo `max_bursts_per_frame` (3) nuvens de poeira (rachar, quebrar, virar cinzas) por
+    quadro; as outras não aparecem. A poeira da explosão sempre aparece.
+14. **Quebras não esperam:** tudo que uma explosão parte vira pedaços no mesmo quadro. Adiar quebras foi medido no
+    teste profundo (2026-11-17) e deixou o tranco pior: a cena pesada dura mais quadros.
 
 | Material | `break_toughness` | Exemplo | Impulso por estágio | Soco de Pedra (140; x2 em pedra) | Racha em queda acima de | Pedaços |
 |---|---|---|---|---|---|---|
@@ -289,6 +296,9 @@ em `test_arena.gd`). `blocked_explosion_factor` em `assets/data/damage_rules.tre
 | `break_min_fraction` | 0,25 | 0,1–0,5 | Abaixo de 0,1 esbarrões acabam rachando; acima de 0,5 golpes médios não fazem nada |
 | `max_pieces` | 40 | 16–80 | Quantos pedaços ao mesmo tempo; principal botão de desempenho |
 | `piece_lifetime` | 8 s | 3–20 | Quanto tempo os destroços ficam no chão |
+| `max_explosions_per_frame` | 1 | 1–3 | Explosões no mesmo quadro; mais = tranco maior em cadeias de barris |
+| `max_bursts_per_frame` | 3 | 1–8 | Nuvens de poeira por quadro em quebras grandes |
+| `fuse_jitter` (pólvora) | 0,1 | 0–0,3 | Variação do pavio; 0 = barris acesos juntos explodem juntos |
 | `spread_speed` | 1,5 m/s | 0,5–4 | O quanto os pedaços se abrem em leque |
 
 ## Acceptance Criteria (Critérios de aceite)
@@ -318,7 +328,9 @@ Testes automáticos em `tests/suites/gameplay.gd` (nenhum usa habilidade):
   o pilar conservando a massa.
 - [x] **Quebrável · desempenho:** nunca mais de 40 pedaços vivos (os antigos somem primeiro); pedaços não
   colidem entre si; pequenos sem calor e sem contato; somem ao fim da vida; partir 10 caixas cabe num quadro
-  (< 16 ms; medido ~5 ms em modo headless); 40 pedaços vivos custam menos de 2 ms por quadro na física.
+  (< 16 ms; medido ~5 ms em modo headless); 40 pedaços vivos custam menos de 3,5 ms por quadro na física (medido ~2,7 ms, janela de 1,2 s).
+- Explosões: 2 barris mandados explodir no mesmo quadro explodem em quadros seguidos; o pavio de 6 barris varia
+  dentro de ±10%. Teste profundo (com janela): pior quadro da fase física abaixo de 33 ms.
 - [ ] Playtest: dá para ver os 3 estágios de rachadura antes de quebrar (hoje só escurece e solta poeira; a
   arte pode trocar por rachaduras de verdade).
 - [ ] Playtest: o Liam não sente travada ao partir várias caixas com uma explosão.
