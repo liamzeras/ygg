@@ -14,7 +14,7 @@ func run() -> void:
 # Degraus: até 0,4 m sobe só andando; 0,5 m exige pulo; a escada de 0,2 m chega a 2 m.
 func _test_steps() -> void:
 	print("\n--- Degraus: subir andando ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("fire")
 	var player: Player = arena.player
 	var rules: AttributeRules = player.rules
 	# Fileira de alturas em x = -10: 0,4 m em z = 3, 0,5 m em z = 0.
@@ -50,7 +50,7 @@ func _test_steps() -> void:
 # Regressão: subir escada com ritmo regular, sem perder velocidade nem dar tranco na câmera.
 func _test_stair_rhythm() -> void:
 	print("\n--- Ritmo da subida ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("fire")
 	var player: Player = arena.player
 	# Mais longe que o pé da escada (x = -20), para chegar já na velocidade de andar.
 	player.global_position = Vector3(-20, 0.05, 17)
@@ -92,7 +92,7 @@ func _test_stair_rhythm() -> void:
 # Pontos de partida em que o corpo era empurrado para cima ou parava contra o degrau seguinte.
 func _test_stair_no_jolt() -> void:
 	print("\n--- Escada sem solavanco ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("fire")
 	var player: Player = arena.player
 	for start: Array in [[false, 17.111], [false, 17.185], [true, 17.111], [true, 17.333]]:
 		var sprint: bool = start[0]
@@ -167,7 +167,7 @@ class CameraTrace extends Node:
 
 func _test_dash() -> void:
 	print("\n--- Dash (Ctrl) ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("fire")
 	var player: Player = arena.player
 	var dash := player.get_ability(Player.SLOT_DASH) as DashAbility
 	_check(InputMap.has_action("dash") and dash != null, "dash existe para a classe")
@@ -230,7 +230,7 @@ func _test_dash() -> void:
 # (design/gdd/physics-magic-system.md).
 func _test_explosion_occlusion() -> void:
 	print("\n--- Explosão: paredes protegem ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("fire")
 	var player: Player = arena.player
 	var dummy: TrainingDummy = arena.dummy
 	var factor: float = Explosion.DAMAGE.blocked_explosion_factor
@@ -325,7 +325,7 @@ func _test_explosion_occlusion() -> void:
 # Mede a distância real em que o fogo pula entre caixas de madeira, e a pirâmide inteira.
 func _test_fire_spread() -> void:
 	print("\n--- Contágio de fogo: medição ---")
-	var arena := await _load_arena("knight")
+	var arena := await _load_arena("fire")
 	var wood: PropMaterial = arena.WOOD
 	var box := PhysicsProp.Form.BOX
 	var size := Vector3(0.6, 0.6, 0.6)

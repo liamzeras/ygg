@@ -2,7 +2,7 @@ class_name TelekinesisAbility
 extends Ability
 ## Mago — Telecinese: segura um objeto à distância e arremessa com o botão esquerdo.
 ## Por ser "mais surreal" que as mãos, é mais limitada: carrega menos peso que
-## os braços de um cavaleiro, segura com menos firmeza e drena mana enquanto ativa.
+## as mãos, segura com menos firmeza e drena mana enquanto ativa.
 ## Carga = base x mult(Inteligência). Usar de novo solta o objeto.
 
 @export var reach := 8.0

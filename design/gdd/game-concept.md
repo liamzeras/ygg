@@ -76,6 +76,9 @@ dele vira a minha chance."
   - escolhas misturadas → mais flexível, sem maestria;
   - **nunca as duas maestrias ao mesmo tempo.**
 - O verbo de movimento de cada elemento é diferente dos outros (nenhum se repete).
+- **Nenhum elemento vira um papel só** ("água é o curandeiro" está proibido): todo elemento tem as 4 funções.
+- A lei mora no mundo (calor, água, massa, carga), não no mago, para que os elementos conversem sem código especial
+  entre eles.
 - **Todos os magos** têm Vigor e Mana, dash (Ctrl), pulo duplo (Espaço 2x) e a mesma velocidade de movimento.
 - Combinar elementos pode vir no futuro, mas o jogo não é desenhado pensando nisso.
 
@@ -125,9 +128,25 @@ Liam em 2026-11-16.** As habilidades de cada elemento ficam nos GDDs de elemento
   empurra objetos.
 - **Mundo**: materiais madeira, metal, pedra e pólvora; braseiro como fonte de fogo do ambiente. Regras em
   `physics-magic-system.md`.
-- **O Cavaleiro sai do jogo** (decidido em 2026-11-16): toda classe selecionável é um mago elemental. Tirá-lo do
-  menu e do código é trabalho da frente `classes`. Os GDDs `mage-elementalist.md` e `mage-psionic.md` descrevem
-  as classes antigas e serão substituídos pelos GDDs de elemento.
+- **O Cavaleiro sai do jogo** (decidido em 2026-11-16): toda classe selecionável é um mago elemental. As
+  habilidades dele não são aproveitadas.
+
+### O que o código já tem (2026-11-16)
+
+A frente `classes` já trocou as classes (commits 5b85a6d e 4ee9bab): **o Cavaleiro saiu do código, e o menu
+oferece Fogo, Terra e Gravidade** no lugar do Elementalista e do Psiônico. Por enquanto, cada classe tem só as
+habilidades que já existiam; as outras teclas ficam vazias até as habilidades novas chegarem (decisão do Liam).
+
+| Classe no código | Habilidades hoje |
+|---|---|
+| Fogo (`fire.tres`) | Bola de Fogo |
+| Terra (`earth.tres`) | Escada de Pedra e Lamaçal (sem ataque no botão esquerdo) |
+| Gravidade (`psionic.tres`, id `psionic` mantido para o bot do F6 e a arena) | Telecinese, Campo Lento, Flutuar e, por ora, o Dardo Cinético (decisão do Liam) |
+
+Ainda não existem no código: a escolha na escola de magos (hoje é o menu Novo Jogo → classe), a troca de versões,
+as maestrias e a lei de cada elemento como regra. O Dardo Cinético é de Ar (Vácuo) no modelo do Sábio ou sai; por
+ora fica na Gravidade. Os GDDs `mage-elementalist.md` e `mage-psionic.md` descrevem as classes antigas e serão
+substituídos pelos GDDs de elemento.
 
 ### Fatia vertical: Fogo, Terra e Gravidade
 
@@ -153,6 +172,8 @@ depende do chão e a Gravidade mexe em tudo que tem massa.
   maestria.
 - **Tamanho do kit:** `habilidades = elementos x 4 funções x 2 versões`. Jogo completo: 7 x 8 = 56. Fatia
   vertical: 3 x 8 = 24.
+- **Controle contra jogador:** `duração_jogador = duração_base x fator_jogador`, com `fator_jogador < 1`.
+  Valor a definir nos GDDs de elemento.
 - Atributo → valor físico: `attributes.md`. Calor, explosões e impactos: `physics-magic-system.md`.
 
 ## Edge Cases (Casos-limite)
@@ -166,6 +187,8 @@ depende do chão e a Gravidade mexe em tudo que tem massa.
   ou nada para trabalhar. Por isso as arenas precisam de variedade de materiais. O que a habilidade faz nesse caso
   (falha com aviso, efeito menor) fica para os GDDs de elemento.
 - Monstro e jogador atingidos pelo mesmo controle: cada um recebe a duração do seu caso (menor para jogador).
+- Interação que só ajuda um lado: proibida pelo pilar 5; se surgir no playtest, ganha um custo para quem se
+  beneficia.
 
 ## Dependencies (Dependências)
 
@@ -181,11 +204,13 @@ Atributos → Jogador (mago) → Habilidades do elemento → Física/Materiais �
 
 Tudo em `assets/data/`: `attribute_rules.tres`, `classes/*.tres` (atributos e habilidades) e `materials/*.tres`.
 Dá para editar no Inspetor do Godot sem tocar em código. Os ajustes de cada elemento (custo, alcance, força da
-maestria, duração de controle contra jogador e contra monstro) serão definidos nos GDDs de elemento.
+maestria, duração de controle contra jogador e contra monstro, `fator_jogador`, custo e janela de vulnerabilidade
+dos verbos de movimento) serão definidos nos GDDs de elemento.
 
 ## Acceptance Criteria (Critérios de aceite da fatia vertical)
 
-- [ ] O Cavaleiro não aparece em nenhum menu nem no jogo; só magos elementais são selecionáveis.
+- [x] O Cavaleiro não aparece em nenhum menu nem no jogo; só magos elementais são selecionáveis (frente
+      `classes`, 2026-11-16).
 - [ ] O jogador começa sem classe e escolhe Fogo, Terra ou Gravidade.
 - [ ] Cada um dos 3 elementos tem as 8 habilidades (4 funções x 2 versões) e funciona sem erro no teste de
       fumaça automatizado.
@@ -195,7 +220,8 @@ maestria, duração de controle contra jogador e contra monstro) serão definido
 - [ ] Os verbos de movimento de Fogo, Terra e Gravidade são diferentes entre si.
 - [ ] Pelo menos uma interação entre elementos da fatia funciona nos dois sentidos (exemplo: lama apaga fogo;
       fogo seca lama).
-- [ ] Um monstro de material e um monstro de elemento reagem às mesmas leis que o jogador.
+- [ ] Um monstro de material e um monstro de elemento reagem às mesmas leis que o jogador (teste automatizado).
+- [ ] Playtest: um jogador novo usa o rastro de outro mago a seu favor sem explicação.
 - [ ] Um jogador novo entende, sem explicação, que madeira queima e pólvora explode.
 - [ ] O boneco de testes mostra o impulso de cada habilidade e a comparação com um humano.
 - [ ] Nenhuma habilidade passa de ~10x o equivalente humano com atributos no teto.

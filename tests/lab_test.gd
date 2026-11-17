@@ -16,7 +16,7 @@ var _lab: LabController
 
 
 func _ready() -> void:
-	GameState.selected_class = GameState.find_class("mage")
+	GameState.selected_class = GameState.find_class("fire")
 	_arena = LAB.instantiate()
 	add_child(_arena)
 	_lab = _arena.get_node("LabController")
