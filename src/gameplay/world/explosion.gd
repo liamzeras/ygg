@@ -49,6 +49,14 @@ static func _affect(body: Node3D, origin: Vector3, impulse: float, heat: float, 
 	if DamageRules.is_invulnerable(body):
 		return
 	var receiver := DamageRules.receiver_of(body)
+	if body is BreakableStructure:
+		# Cenário quebrável: o golpe entra no ponto da estrutura mais perto da explosão.
+		var structure := body as BreakableStructure
+		var hit_point := structure.closest_point(origin)
+		var toward := hit_point - origin
+		var push := toward.normalized() if toward.length() > 0.01 else Vector3.DOWN
+		structure.take_hit(push * impulse, hit_point)
+		return
 	if body is PhysicsProp:
 		# Lei do Quebrável: o calor entra antes (pedaços herdam), depois o golpe empurra e racha.
 		if heat > 0.0:
@@ -68,7 +76,7 @@ static func _affect(body: Node3D, origin: Vector3, impulse: float, heat: float, 
 
 
 static func _can_be_affected(body: Node3D) -> bool:
-	return body is RigidBody3D or body.has_method("apply_knockback") or body.has_method("register_hit") or body.has_method("add_heat")
+	return body is RigidBody3D or body is BreakableStructure or body.has_method("apply_knockback") or body.has_method("register_hit") or body.has_method("add_heat")
 
 
 ## true se houver parede ou pilar no caminho até o centro do corpo. Um raio só: quem está

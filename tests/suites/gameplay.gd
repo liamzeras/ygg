@@ -17,6 +17,74 @@ func run() -> void:
 	await _test_break_law()
 	await _test_break_inheritance()
 	await _test_break_limits()
+	await _test_breakable_scenery()
+
+
+# Cenário quebrável: paredes, torres e chão da arena quebram e voltam sozinhos (pedido do Liam).
+# Os golpes são take_hit direto, como o soco e o chute chamam; nenhuma habilidade.
+func _test_breakable_scenery() -> void:
+	print("\n--- Lei do Quebrável: cenário ---")
+	var arena := await _load_arena("fire")
+	var rules := BreakRules.current()
+	_check(is_equal_approx(rules.rebuild_time, 30.0), "o cenário volta em %.0f s (break_rules.tres)" % rules.rebuild_time)
+	var tower: BreakableStructure = null
+	var floor_body: BreakableStructure = null
+	for node in get_tree().get_nodes_in_group(&"breakable_structures"):
+		var structure := node as BreakableStructure
+		if structure.size.is_equal_approx(Vector3(3, 3, 3)):
+			tower = structure
+		elif structure.bedrock and structure.size.x > 50.0:
+			floor_body = structure
+	_check(tower != null and floor_body != null, "a arena tem torre e chão quebráveis")
+	if tower == null or floor_body == null:
+		await _unload(arena)
+		return
+	await _frames(5)
+
+	# Soco de pedra (280 em concreto): 6 socos derrubam a torre de 3 m.
+	var saved_rebuild := rules.rebuild_time
+	rules.rebuild_time = 0.5
+	var result := {"pieces": []}
+	tower.shattered.connect(func(pieces: Array) -> void: result["pieces"] = pieces)
+	var punches := 0
+	while not tower.is_broken() and punches < 10:
+		tower.take_hit(Vector3.FORWARD * 280.0, tower.closest_point(tower.global_position + Vector3.BACK * 5.0))
+		punches += 1
+	var pieces: Array = result["pieces"]
+	_check(punches == 6 and tower.is_broken() and not tower.visible and tower.collision_layer == 0,
+			"6 socos de pedra derrubam a torre de 3 m (%d socos; sem colisão e invisível)" % punches)
+	var forward := pieces.size() > 0 and (pieces[0] as PhysicsProp).linear_velocity.z < 0.0
+	_check(pieces.size() == tower.material_data.break_pieces, "a torre vira %d pedaços (concreto: %d)" % [pieces.size(), tower.material_data.break_pieces])
+	_check(forward, "os pedaços da torre saem na direção do soco")
+
+	# Volta sozinha, mas não em cima de quem está no lugar.
+	var crate: PhysicsProp = arena._prop(arena.WOOD, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), tower.global_position + Vector3(0, -1.19, 0))
+	await _wait_seconds(1.2)
+	_check(tower.is_broken(), "com uma caixa no lugar, a torre espera para voltar")
+	crate.queue_free()
+	await _wait_seconds(1.2)
+	_check(not tower.is_broken() and tower.visible and tower.collision_layer != 0 and tower.get_break_stage() == 0,
+			"sem ninguém no lugar, a torre volta inteira")
+
+	# Chão (contenção): racha e solta entulho, mas nunca perde a colisão.
+	var spot := Vector3(36, 0, 36)
+	var floor_pieces := {"count": 0}
+	floor_body.shattered.connect(func(p: Array) -> void: floor_pieces["count"] += p.size())
+	for i in 8:
+		floor_body.take_hit(Vector3.DOWN * 280.0, spot)
+	var block: PhysicsProp = arena._prop(arena.STONE, PhysicsProp.Form.BOX, Vector3(0.6, 0.6, 0.6), spot + Vector3(0, 1.5, 0))
+	await _frames(60)
+	_check(floor_pieces["count"] > 0 and floor_body.collision_layer != 0 and not floor_body.is_broken(),
+			"o chão quebrado solta entulho (%d pedaços) e continua sólido" % floor_pieces["count"])
+	_check(block.global_position.y > 0.0, "nada cai pelo chão quebrado (bloco a %.2f m)" % block.global_position.y)
+	await _wait_seconds(0.8)
+	_check(floor_body.get_break_stage() == 0 and floor_body.rebuild_time_left() < 0.0, "o chão volta a ficar inteiro")
+	rules.rebuild_time = saved_rebuild
+	await _unload(arena)
+
+
+func _wait_seconds(seconds: float) -> void:
+	await get_tree().create_timer(seconds, true, true).timeout
 
 
 # Dono do calor: quem conjurou não se queima com o que criou; os outros, sim (decisão do Liam).

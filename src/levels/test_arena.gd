@@ -132,10 +132,10 @@ func _build_environment() -> void:
 
 func _build_bounds() -> void:
 	var size := ARENA_HALF_SIZE * 2.0
-	_static_box(Vector3(0, -0.5, 0), Vector3(size, 1, size), _floor_material)
+	_static_box(Vector3(0, -0.5, 0), Vector3(size, 1, size), _floor_material, true)
 	for side in [Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1)]:
 		var wall_size := Vector3(1, 2, size) if side.x != 0 else Vector3(size, 2, 1)
-		_static_box(side * (ARENA_HALF_SIZE + 0.5) + Vector3.UP, wall_size, _block_material)
+		_static_box(side * (ARENA_HALF_SIZE + 0.5) + Vector3.UP, wall_size, _block_material, true)
 	_sign(Vector3(0, 8.0, -14),"ARENA DE TESTES\n← Mobilidade      Materiais →", 0.012)
 
 
@@ -271,20 +271,11 @@ func _prop(material: PropMaterial, form: PhysicsProp.Form, size: Vector3, pos: V
 	return prop
 
 
-func _static_box(pos: Vector3, size: Vector3, material: Material) -> StaticBody3D:
-	var body := StaticBody3D.new()
+## Peça fixa do cenário. Tudo quebra e volta sozinho (BreakableStructure, concreto). `bedrock`:
+## chão e muros da borda racham e soltam entulho, mas nunca perdem a colisão.
+func _static_box(pos: Vector3, size: Vector3, material: Material, bedrock := false) -> StaticBody3D:
+	var body := BreakableStructure.create(size, material, null, bedrock)
 	body.position = pos
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	mesh.material = material
-	var mesh_instance := MeshInstance3D.new()
-	mesh_instance.mesh = mesh
-	body.add_child(mesh_instance)
-	var shape := BoxShape3D.new()
-	shape.size = size
-	var collision := CollisionShape3D.new()
-	collision.shape = shape
-	body.add_child(collision)
 	add_child(body)
 	return body
 

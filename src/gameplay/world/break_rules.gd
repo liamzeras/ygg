@@ -25,6 +25,19 @@ const PATH := "res://assets/data/materials/break_rules.tres"
 ## Efeitos de poeira (Fx.burst) de rachar, quebrar e virar cinzas por quadro. O resto não aparece.
 @export var max_bursts_per_frame := 3
 
+@export_group("Cenário (BreakableStructure)")
+## Impulso (N·s) por estágio de qualquer estrutura do cenário, de qualquer tamanho. 420 = 6 socos de
+## pedra sem revestimento (280 em concreto) ou 4 revestido (420): 4 estágios = 1680 N·s.
+@export var structure_stage_impulse := 420.0
+## Segundos até o que quebrou no cenário voltar inteiro (pedido do Liam: 30 s).
+@export var rebuild_time := 30.0
+## Se há alguém no lugar na hora de voltar, tenta de novo a cada isto (s).
+@export var rebuild_retry := 0.5
+## Massa máxima (kg) somada dos pedaços de uma estrutura (uma torre inteira pesaria toneladas).
+@export var structure_piece_mass := 200.0
+## Lado (m) do bloco de entulho que o chão e os muros da borda soltam no ponto do golpe.
+@export var bedrock_chunk_size := 0.8
+
 ## Quanto de cada limite já foi gasto neste quadro.
 static var _spent_tick := -1
 static var _spent: Dictionary[StringName, int] = {}

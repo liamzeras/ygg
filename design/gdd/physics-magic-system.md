@@ -130,6 +130,29 @@ Pedido do Liam (2026-11-17): todo objeto tem a propriedade quebrável. Até aqui
 | Pólvora | 4 m/s | barril, 28 kg | 112 N·s | 4 socos e explode | 10 m/s (antes, detona a 9) | explode |
 | Concreto, solo | 2,5 e 3 m/s | (chão não quebra; reservado para muros declarados) | — | — | 9 e 10 m/s | 6 e 4 |
 
+### Cenário quebrável: tudo quebra e volta em 30 s (pedido do Liam, 2026-11-17)
+
+Paredes, torres, degraus, escadas, rampas, plataformas e o chão da arena são `BreakableStructure`
+(`src/gameplay/world/breakable_structure.gd`), de concreto. Seguem a lei do Quebrável com estas diferenças:
+
+1. **Mesma interface dos objetos:** `take_hit(impulso, ponto)`. Soco, chute, Mibune e explosões já chamam isso.
+2. **Resistência igual para qualquer tamanho:** cada estágio custa `structure_stage_impulse` (420 N·s), seja
+   um degrau ou uma torre de 6 m. São 6 socos de pedra (280 no concreto) ou 4 revestidos (420). Golpes abaixo de
+   25% de um estágio (105 N·s) não marcam.
+3. **Estrutura comum, no 4º estágio:** some (sem colisão e invisível) e solta os pedaços do concreto (6), que
+   saem na direção do golpe. A massa somada dos pedaços é no máximo `structure_piece_mass` (200 kg): uma torre
+   de verdade pesaria toneladas e esmagaria tudo.
+4. **Contenção (chão e muros da borda):** nunca perde a colisão, para ninguém cair para fora do mundo. No 4º
+   estágio solta entulho de um bloco de `bedrock_chunk_size` (0,8 m) no ponto do golpe, fica rachada e pode
+   rachar de novo.
+5. **Volta sozinha:** `rebuild_time` (30 s) depois de quebrar, volta inteira (estágio 0, cor original).
+6. **Não prende nem esmaga ninguém:** na hora de voltar, a estrutura confere o próprio volume. Se houver
+   jogador, bot ou objeto inteiro (caixa, barril), espera e tenta de novo a cada `rebuild_retry` (0,5 s). Pedaços
+   soltos dentro do volume vão para a reserva antes de ela voltar. Chão e vizinhos fixos encostados não contam.
+7. **Explosões:** acertam a estrutura no ponto dela mais perto da explosão, com a queda por distância até a
+   superfície (não até o centro, que numa parede de 100 m fica longe).
+8. **Rachaduras:** escurecem só a estrutura atingida (cópia do material); voltam ao normal ao reconstruir.
+
 ### Interações da fatia (rastro de um, gancho do outro)
 
 | Rastro | Gancho | O que acontece | O lado que ajuda | O outro lado |
@@ -299,6 +322,11 @@ em `test_arena.gd`). `blocked_explosion_factor` em `assets/data/damage_rules.tre
 | `max_explosions_per_frame` | 1 | 1–3 | Explosões no mesmo quadro; mais = tranco maior em cadeias de barris |
 | `max_bursts_per_frame` | 3 | 1–8 | Nuvens de poeira por quadro em quebras grandes |
 | `fuse_jitter` (pólvora) | 0,1 | 0–0,3 | Variação do pavio; 0 = barris acesos juntos explodem juntos |
+| `structure_stage_impulse` | 420 N·s | 200–1000 | Socos para derrubar parede/torre (420 = 6 socos; 280 = 4) |
+| `rebuild_time` | 30 s | 5–120 | Quanto tempo o cenário fica quebrado |
+| `rebuild_retry` | 0,5 s | 0,2–2 | Espera extra quando há alguém no lugar |
+| `structure_piece_mass` | 200 kg | 50–500 | Peso dos destroços de uma estrutura grande |
+| `bedrock_chunk_size` | 0,8 m | 0,4–1,5 | Tamanho do entulho que o chão e a borda soltam |
 | `spread_speed` | 1,5 m/s | 0,5–4 | O quanto os pedaços se abrem em leque |
 
 ## Acceptance Criteria (Critérios de aceite)
@@ -331,6 +359,9 @@ Testes automáticos em `tests/suites/gameplay.gd` (nenhum usa habilidade):
   (< 16 ms; medido ~5 ms em modo headless); 40 pedaços vivos custam menos de 3,5 ms por quadro na física (medido ~2,7 ms, janela de 1,2 s).
 - Explosões: 2 barris mandados explodir no mesmo quadro explodem em quadros seguidos; o pavio de 6 barris varia
   dentro de ±10%. Teste profundo (com janela): pior quadro da fase física abaixo de 33 ms.
+- Cenário: 6 socos de 280 N·s derrubam a torre de 3 m em 6 pedaços que saem na direção do soco; com uma caixa no
+  lugar a torre espera; sem ninguém, volta inteira. Chão golpeado solta entulho, não perde a colisão e nada cai
+  através dele; volta inteiro. `rebuild_time` = 30 s no `.tres`.
 - [ ] Playtest: dá para ver os 3 estágios de rachadura antes de quebrar (hoje só escurece e solta poeira; a
   arte pode trocar por rachaduras de verdade).
 - [ ] Playtest: o Liam não sente travada ao partir várias caixas com uma explosão.
@@ -374,3 +405,9 @@ Testes automáticos em `tests/suites/gameplay.gd` (nenhum usa habilidade):
    pedaços ainda batem no mago e nos monstros. Quer que bloqueiem a passagem?
 4. **Pedaços machucam?** Pedaços grandes que batem rápido num monstro ou no boneco dão dano de impacto (massa x
    velocidade), como qualquer objeto. Os pequenos não dão. Confirma?
+5. **Buraco no chão?** Hoje o chão e os muros da borda racham e soltam entulho, mas não abrem buraco (para ninguém
+   cair para fora do mundo). Opções: (a) manter assim; (b) abrir cratera rasa no chão (o chão vira placas com
+   uma base indestrutível embaixo; custa mais desempenho); (c) buraco de verdade só em pisos elevados
+   (plataformas), nunca no chão da arena.
+6. **Força igual para toda estrutura?** Hoje degrau e torre de 6 m caem com os mesmos 6 socos. Quer que as
+   grandes aguentem mais (por exemplo, proporcional ao tamanho)?
