@@ -31,13 +31,15 @@ extends Resource
 @export_group("Habilidades")
 ## Botão esquerdo.
 @export var primary_ability: Ability
+## Botão direito.
+@export var secondary_ability: Ability
 ## Q.
 @export var mobility_ability: Ability
 ## F.
 @export var special_ability: Ability
 ## Espaço no ar (pulo duplo). Só um por salto; recarrega ao tocar o chão.
 @export var air_jump_ability: Ability
-## Ctrl: dash curto.
-@export var dash_ability: Ability
+## Ctrl. (O dash saiu de todas as classes por enquanto; volta pondo um DashAbility aqui.)
+@export var utility_ability: Ability
 ## Segurar Espaço enquanto cai (só o Psiônico, por enquanto).
 @export var float_ability: FloatAbility

@@ -19,14 +19,17 @@ const POOL_NAMES := {Pool.STAMINA: "Vigor", Pool.MANA: "Mana"}
 const SLOT_PRIMARY := &"primary"
 const SLOT_MOBILITY := &"mobility"
 const SLOT_SPECIAL := &"special"
-const SLOT_DASH := &"dash"
+## Botão direito.
+const SLOT_SECONDARY := &"secondary"
+## Ctrl (era o dash; o dash saiu de todas as classes por enquanto, design/gdd/mage-earth.md).
+const SLOT_UTILITY := &"utility"
 const SLOT_AIR_JUMP := &"air_jump"
 const SLOT_FLOAT := &"float"
 const ACTION_GRAB := &"grab"
 const ACTION_JUMP := &"jump"
 ## Soltar o botão esquerdo: dispara uma habilidade carregável.
 const ACTION_PRIMARY_RELEASE := &"primary_release"
-const SLOTS: Array[StringName] = [SLOT_PRIMARY, SLOT_MOBILITY, SLOT_SPECIAL, SLOT_DASH]
+const SLOTS: Array[StringName] = [SLOT_PRIMARY, SLOT_SECONDARY, SLOT_MOBILITY, SLOT_SPECIAL, SLOT_UTILITY]
 const KILL_HEIGHT := -30.0
 ## Aumento do FOV ao correr (graus). Puramente visual.
 const SPRINT_FOV_KICK := 6.0
@@ -158,8 +161,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		request_action(ACTION_PRIMARY_RELEASE)
 	elif event.is_action_pressed("mobility"):
 		request_action(SLOT_MOBILITY)
-	elif event.is_action_pressed("dash"):
-		request_action(SLOT_DASH)
+	elif event.is_action_pressed("secondary"):
+		request_action(SLOT_SECONDARY)
+	elif event.is_action_pressed("utility"):
+		request_action(SLOT_UTILITY)
 	elif event.is_action_pressed("special"):
 		request_action(SLOT_SPECIAL)
 
@@ -237,7 +242,8 @@ func get_ability(slot: StringName) -> Ability:
 		SLOT_PRIMARY: return class_data.primary_ability
 		SLOT_MOBILITY: return class_data.mobility_ability
 		SLOT_SPECIAL: return class_data.special_ability
-		SLOT_DASH: return class_data.dash_ability
+		SLOT_SECONDARY: return class_data.secondary_ability
+		SLOT_UTILITY: return class_data.utility_ability
 		SLOT_AIR_JUMP: return class_data.air_jump_ability
 		SLOT_FLOAT: return class_data.float_ability
 	return null
@@ -510,10 +516,16 @@ func _process_queue() -> void:
 			ACTION_JUMP:
 				_jump()
 			ACTION_GRAB:
-				_toggle_hands()
-			SLOT_PRIMARY:
+				# E pega; segurando qualquer coisa, E arremessa.
 				if is_instance_valid(held_body):
 					_throw()
+				else:
+					_grab()
+			SLOT_PRIMARY:
+				if is_instance_valid(held_body):
+					# O botão esquerdo só arremessa o que a Telecinese segura; com as mãos, é o E.
+					if _hold.get("telekinetic", false):
+						_throw()
 				elif get_ability(SLOT_PRIMARY) and get_ability(SLOT_PRIMARY).is_chargeable():
 					_start_charge()
 				else:
@@ -763,10 +775,7 @@ func _push_bodies(delta: float) -> void:
 		body.apply_central_impulse(push.normalized() * stats.push_force * delta)
 
 
-func _toggle_hands() -> void:
-	if is_instance_valid(held_body):
-		release_held()
-		return
+func _grab() -> void:
 	var body := get_aimed_body(class_data.hand_range)
 	if body == null:
 		return
@@ -837,8 +846,10 @@ func _update_hint() -> void:
 	var text := ""
 	var can_interact := false
 	if is_instance_valid(held_body):
-		text = "[%s] Arremessar   [%s] Soltar" % [InputBindings.label("primary"),
-				InputBindings.label("special") if _hold.get("telekinetic", false) else InputBindings.label("grab")]
+		if _hold.get("telekinetic", false):
+			text = "[%s / %s] Arremessar   [%s] Soltar" % [InputBindings.label("primary"), InputBindings.label("grab"), InputBindings.label("special")]
+		else:
+			text = "[%s] Arremessar" % InputBindings.label("grab")
 	else:
 		var body := get_aimed_body(class_data.hand_range)
 		if body:

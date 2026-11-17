@@ -12,7 +12,8 @@ const KEYS := {
 	"sprint": [KEY_SHIFT],
 	"mobility": [KEY_Q],
 	"special": [KEY_F],
-	"dash": [KEY_CTRL],
+	"utility": [KEY_CTRL],
+	"grab": [KEY_E],
 	"spawn_targets": [KEY_F7],
 	"spawn_bot": [KEY_F6],
 	"debug_editor": [KEY_F2],
@@ -23,7 +24,7 @@ const KEYS := {
 
 const MOUSE := {
 	"primary": [MOUSE_BUTTON_LEFT],
-	"grab": [MOUSE_BUTTON_RIGHT],
+	"secondary": [MOUSE_BUTTON_RIGHT],
 }
 
 ## Nomes amigáveis exibidos no HUD e na ajuda de controles.
@@ -32,10 +33,11 @@ const LABELS := {
 	"jump": "Espaço",
 	"sprint": "Shift",
 	"primary": "Botão esq.",
-	"grab": "Botão dir.",
+	"secondary": "Botão dir.",
+	"grab": "E",
 	"mobility": "Q",
 	"special": "F",
-	"dash": "Ctrl",
+	"utility": "Ctrl",
 	"spawn_targets": "F7",
 	"spawn_bot": "F6",
 	"air_jump": "Espaço 2x",

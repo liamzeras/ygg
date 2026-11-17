@@ -1,5 +1,5 @@
 extends "res://tests/suite_base.gd"
-## Suíte da frente gameplay: corpo do jogador (degraus, rampa, dash e arremesso em movimento).
+## Suíte da frente gameplay: corpo do jogador (degraus, rampa, explosões, fogo, pegar e arremessar).
 
 
 func run() -> void:
@@ -8,7 +8,7 @@ func run() -> void:
 	await _test_stair_no_jolt()
 	await _test_explosion_occlusion()
 	await _test_fire_spread()
-	await _test_dash()
+	await _test_grab_and_throw()
 
 
 # Degraus: até 0,4 m sobe só andando; 0,5 m exige pulo; a escada de 0,2 m chega a 2 m.
@@ -165,65 +165,44 @@ class CameraTrace extends Node:
 		return best
 
 
-func _test_dash() -> void:
-	print("\n--- Dash (Ctrl) ---")
+# O dash saiu de todas as classes (design/gdd/mage-earth.md); E pega e arremessa em todas.
+func _test_grab_and_throw() -> void:
+	print("\n--- Sem dash; E pega e arremessa ---")
 	var arena := await _load_arena("fire")
 	var player: Player = arena.player
-	var dash := player.get_ability(Player.SLOT_DASH) as DashAbility
-	_check(InputMap.has_action("dash") and dash != null, "dash existe para a classe")
-	for id in GameState.CLASSES:
-		_check(id.dash_ability != null, "%s tem dash" % id.display_name)
+	for data in GameState.CLASSES:
+		_check(not data.utility_ability is DashAbility, "%s não tem dash" % data.display_name)
+	_check(InputMap.has_action("grab") and _has_key(&"grab", KEY_E), "E é a tecla de pegar")
+	_check(InputMap.has_action("secondary") and InputMap.action_get_events(&"secondary").any(func(e: InputEvent) -> bool: return e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_RIGHT), "botão direito é a habilidade secundária")
 
-	# Parado: vai para a frente.
-	player.respawn()
-	await _frames(10)
-	var forward := player.get_flat_forward()
-	var start := player.global_position
-	var stamina := player.get_pool(Player.Pool.STAMINA)
-	_press_key(KEY_CTRL)
-	await _frames(2)
-	_check(stamina - player.get_pool(Player.Pool.STAMINA) > dash.cost - 1.0, "tecla Ctrl faz o dash e gasta Vigor")
-	_check(player.get_cooldown(Player.SLOT_DASH) > 0.0, "dash entra em recarga")
-	await _frames(58)
-	var moved := player.global_position - start
-	_check(moved.dot(forward) > 2.5 and moved.dot(forward) < 4.5, "dash parado anda %.2f m para a frente" % moved.dot(forward))
-
-
-	# Com direção: vai para o lado apertado.
-	await _frames(30)
-	var right := forward.cross(Vector3.UP).normalized()
-	start = player.global_position
-	Input.action_press("move_right")
-	await _frames(2)
-	start = player.global_position
-	player.request_action(Player.SLOT_DASH)
-	await _frames(12)
-	Input.action_release("move_right")
-	moved = player.global_position - start
-	_check(moved.dot(right) > 2.0 and absf(moved.dot(forward)) < 0.3, "Ctrl + direita vai para a direita (%.2f m)" % moved.dot(right))
-
-	# Não atravessa parede: bloco de teste à frente (torre de 3 m, x = -38).
-	await _frames(70)
-	player.global_position = Vector3(-38, 0.05, -17.5)
-	await _frames(5)
-	player.face_point(Vector3(-38, 1.6, -30))
-	await _frames(2)
-	player.request_action(Player.SLOT_DASH)
-	await _frames(30)
-	_check(player.global_position.z > -18.6, "dash não atravessa a parede (z %.2f; parede em -18,5)" % player.global_position.z)
-	_check(Vector2(player.velocity.x, player.velocity.z).length() <= player.stats.sprint_speed, "dash não deixa velocidade sobrando")
-
-	# Arremesso herda o movimento de quem arremessa.
+	# E pega a caixa mirada; o botão esquerdo não arremessa o que está nas mãos.
 	var crate := _nearest_crate(arena, player)
+	player.global_position = crate.global_position + Vector3(0, -0.3, 1.6)
+	await _frames(10)
+	player.face_point(crate.global_position)
+	await _frames(3)
+	_press_key(KEY_E)
+	await _frames(20)
+	_check(player.held_body == crate, "E pega a caixa")
+	player.request_action(Player.SLOT_PRIMARY)
+	await _frames(5)
+	_check(player.held_body == crate, "botão esquerdo não arremessa o que está nas mãos")
+
+	# Arremesso com E herda o movimento de quem arremessa.
+	player.release_held()
 	crate.global_position = player.get_aim_origin() + Vector3(0, 0, 1.5)
 	player.hold(crate, {"telekinetic": false, "distance": 1.5, "stiffness": 10.0, "throw_speed": 5.0, "carry_mass": 1000.0, "drain": 0.0})
 	player.face_point(player.get_aim_origin() + Vector3(0, 0, 10))
 	await _frames(3)
 	player.velocity = Vector3(0, 0, 7)
-	player.request_action(Player.SLOT_PRIMARY)
+	player.request_action(Player.ACTION_GRAB)
 	await _frames(1)
-	_check(crate.linear_velocity.z > 10.0, "arremesso correndo soma o movimento (%.1f m/s)" % crate.linear_velocity.z)
+	_check(player.held_body == null and crate.linear_velocity.z > 10.0, "E arremessa, e correndo soma o movimento (%.1f m/s)" % crate.linear_velocity.z)
 	await _unload(arena)
+
+
+func _has_key(action: StringName, key: Key) -> bool:
+	return InputMap.action_get_events(action).any(func(e: InputEvent) -> bool: return e is InputEventKey and e.physical_keycode == key)
 
 
 # Parede e pilar protegem de explosões; caixa solta e o próprio chão, não
