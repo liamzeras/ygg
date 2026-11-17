@@ -29,3 +29,8 @@ Godot aberto, separadas por `/`.
 | 2026-11-17 | cd0a250 | explosao | 109 / 109 | 29 / 30 | 14,1 / 14,1 | 15,0 / 15,0 | 10 / 9 | 6 / 6 | **Reprova:** pior quadro 137 / 133 ms (item 1) |
 | 2026-11-17 | cd0a250 | magia | 97 / 100 | 76 / 78 | 12,1 / 11,9 | 12,9 / 12,5 | 0 / 0 | 0 / 0 | 12 Bolas de Fogo por rodada |
 | 2026-11-17 | cd0a250 | combate | 96 / 98 | 26 / 29 | 11,2 / 11,2 | 15,2 / 15,4 | 15 / 15 | 7 / 5 | **Reprova:** pior quadro 118 / 135 ms; o bot agora vê os projéteis |
+| 2026-11-17 | 3cb0d0b | parado | 117 / 116 | 103 / 105 | 9,2 / 9,1 | 9,6 / 9,4 | 0 / 0 | 0 / 0 | Depois dos itens 0, 1, 2 e 7: igual |
+| 2026-11-17 | 3cb0d0b | criacao | 115 / 114 | 101 / 99 | 9,7 / 9,8 | 9,9 / 10,0 | 0 / 0 | 0 / 0 | Igual |
+| 2026-11-17 | 3cb0d0b | explosao | 110 / 109 | 55 / 52 | 12,0 / 12,7 | 15,0 / 17,6 | 8 / 32 | 0 / 0 | **Passa a aprovar:** pior quadro 29 / 26 ms (era 137 / 133) |
+| 2026-11-17 | 3cb0d0b | magia | 98 / 95 | 79 / 75 | 12,1 / 12,4 | 12,5 / 13,0 | 0 / 0 | 0 / 0 | Igual |
+| 2026-11-17 | 3cb0d0b | combate | 98 / 99 | 36 / 39 | 11,2 / 10,9 | 15,7 / 15,3 | 15 / 13 | 4 / 2 | **Passa a aprovar:** pior quadro 47 / 63 ms (era 118 / 135); ainda tem trancos |
