@@ -19,3 +19,4 @@ earth_force_factor = 1.5
 break_toughness = 2.5
 break_impact_speed = 9.0
 break_pieces = 6
+hardness = 1.0

@@ -62,6 +62,10 @@ const BREAK_STAGES := 4
 @export_range(0.0, 1.0) var break_min_fraction := 0.25
 ## Velocidade de batida (m/s) acima da qual uma queda ou colisão começa a rachar o objeto.
 @export var break_impact_speed := 10.0
+## Dureza de uma estrutura fixa do cenário feita deste material (1 = concreto). O impulso por
+## estágio da estrutura é BreakRules.structure_stage_impulse x dureza; o tamanho não conta
+## (decisão do Liam, 2026-11-17). Objetos soltos não usam isto.
+@export var hardness := 1.0
 ## Em quantos pedaços o objeto se parte no último estágio.
 @export_range(2, 8) var break_pieces := 4
 

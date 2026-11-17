@@ -19,3 +19,4 @@ radiate_radius = 1.0
 radiate_rate = 0.4
 break_toughness = 12.0
 break_impact_speed = 18.0
+hardness = 4.0
