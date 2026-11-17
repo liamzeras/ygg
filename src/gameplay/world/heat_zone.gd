@@ -10,6 +10,9 @@ extends Area3D
 @export var heat_per_second := 80.0
 ## Ar dentro da área: 1 = normal, 0 = sem ar. Acima de 1 fica reservado para o vento (Ar).
 @export var air_factor := 1.0
+## Quem conjurou a zona (ex.: o mago do Chão de Lava). Ele não se queima nela e vira o dono do
+## calor do que ela acende. Vazio = fonte do ambiente, queima todo mundo.
+var heat_owner: Node = null
 
 
 func _ready() -> void:
@@ -18,11 +21,12 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	var heat := heat_per_second * delta if heat_per_second > 0.0 and air_here() > 0.0 else 0.0
+	var owner_node := heat_owner if is_instance_valid(heat_owner) else null
 	for body in get_overlapping_bodies():
 		if air_factor != 1.0 and body.has_method("apply_air"):
 			body.apply_air(air_factor)
-		if heat > 0.0 and body.has_method("add_heat"):
-			body.add_heat(heat)
+		if heat > 0.0 and body.has_method("add_heat") and not PhysicsProp.is_heat_owner(body, owner_node):
+			PhysicsProp.give_heat(body, heat, owner_node)
 
 
 ## Ar no lugar onde a zona está: o menor `air_factor` entre as zonas de ar que a cobrem.

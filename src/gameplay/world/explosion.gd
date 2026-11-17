@@ -49,6 +49,12 @@ static func _affect(body: Node3D, origin: Vector3, impulse: float, heat: float, 
 	if DamageRules.is_invulnerable(body):
 		return
 	var receiver := DamageRules.receiver_of(body)
+	if body is PhysicsProp:
+		# Lei do Quebrável: o calor entra antes (pedaços herdam), depois o golpe empurra e racha.
+		if heat > 0.0:
+			(body as PhysicsProp).add_heat(heat)
+		(body as PhysicsProp).take_hit(direction * impulse)
+		return
 	if body is RigidBody3D:
 		(body as RigidBody3D).apply_central_impulse(direction * impulse)
 	elif body.has_method("apply_knockback"):

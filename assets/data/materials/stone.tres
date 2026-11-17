@@ -16,3 +16,6 @@ radiate_radius = 1.5
 radiate_rate = 0.6
 earth_workable = true
 earth_force_factor = 2.0
+break_toughness = 2.8
+break_impact_speed = 8.0
+break_pieces = 6
